@@ -1,11 +1,23 @@
 <nav class="app-header navbar navbar-expand bg-body">
   <div class="container-fluid">
-    <ul class="navbar-nav">
+    <ul class="navbar-nav w-75 me-2">
       <li class="nav-item">
         <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button" aria-label="Toggle sidebar">
           <i class="bi bi-list"></i>
         </a>
       </li>
+      
+      <li class="nav-item" style="width: 300px;">
+        
+          <div class="input-group has-validation">
+            <span class="input-group-text" id="inputGroupPrepend">
+              <i class="bi bi-search"></i>
+            </span>
+            <input type="text" class="form-control" id="" placeholder="Search...">
+            <div class="invalid-feedback"></div>
+          </div>
+       
+      </li> 
     </ul>
 
     <ul class="navbar-nav ms-auto align-items-center gap-2">
@@ -21,7 +33,7 @@
           <span class="theme-icon-active">
             <i class="my-1"></i>
           </span>
-          <span class="d-lg-none ms-2" id="bd-theme-text">Toggle theme</span>
+          <span class="d-none d-lg-inline ms-2" id="bd-theme-text">Toggle theme</span>
         </button>
         <ul
           class="dropdown-menu dropdown-menu-end"
@@ -69,7 +81,7 @@
       <li class="nav-item">
         <form method="POST" action="{{ route('logout') }}">
           @csrf
-          <button type="submit" class="nav-link border-0 bg-transparent p-0">
+          <button type="submit" class="nav-link border-0 bg-transparent p-0 overflow-hidden">
             <i class="bi bi-box-arrow-right me-1"></i>Log out
           </button>
         </form>
