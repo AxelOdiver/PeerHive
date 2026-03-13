@@ -1,14 +1,13 @@
-<aside id="appSidebar" class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
+<aside id="appSidebar" class="app-sidebar bg-dark-subtle shadow" data-bs-theme="dark">
   <div class="sidebar-brand">
-    <a href="{{ route('dashboard') }}" class="brand-link">
-      <i class="bi bi-grid-1x2-fill brand-image opacity-75"></i>
-      <span class="brand-text fw-light">PeerSharing</span>
+    <a href="{{ route('dashboard') }}" class="brand-link d-flex justify-content-center align-items-center w-100 p-0 gap-2">
+      <span class="brand-text fw-semibold fs-2 display-6">PeerHive</span>
     </a>
   </div>
 
   <div class="sidebar-wrapper">
     <div class="sidebar-user border-bottom border-secondary-subtle">
-      <div class="d-flex align-items-center gap-2 p-3">
+      <div class="d-flex justify-content-center align-items-center gap-2 p-3">
         <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center dashboard-avatar">
           <i class="bi bi-person-fill text-white"></i>
         </div>
@@ -28,16 +27,34 @@
         aria-label="Main navigation"
         data-accordion="false"
       >
-        <li class="nav-item">
+        <li class="nav-item mb-2">
           <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
             <i class="nav-icon bi bi-speedometer"></i>
             <p>Dashboard</p>
           </a>
         </li>
-        <li class="nav-item">
-          <a href="{{ route('profile.edit') }}" class="nav-link {{ request()->routeIs('profile.*') ? 'active' : '' }}">
-            <i class="nav-icon bi bi-person-gear"></i>
-            <p>Profile</p>
+        <li class="nav-item mb-2">
+          <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+            <i class="nav-icon bi bi-star"></i>
+            <p>Favorites</p>
+          </a>
+        </li>
+         <li class="nav-item mb-2">
+          <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+            <i class="nav-icon bi bi-alarm"></i>
+            <p>Schedule Classes</p>
+          </a>
+        </li>
+        <li class="nav-item mb-2">
+          <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+            <i class="nav-icon bi bi-chat-dots"></i>
+            <p>Messages</p>
+          </a>
+        </li>
+        <li class="nav-item mb-2">
+          <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+            <i class="nav-icon bi bi-clock-history"></i>
+            <p>History</p>
           </a>
         </li>
       </ul>
