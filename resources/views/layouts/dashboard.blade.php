@@ -34,6 +34,7 @@
       })();
     </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @stack('styles')
   </head>
   <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
     <div class="app-wrapper">
@@ -45,7 +46,7 @@
           <div class="container-fluid">
             <div class="row">
               <div class="col-sm-6">
-                <h3 class="mb-0">@yield('page-title', 'Dashboard')</h3>
+                <u class="mb-0">@yield('page-title', 'Dashboard')</u>
               </div>
             </div>
           </div>
