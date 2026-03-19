@@ -8,7 +8,7 @@
       </li>
       
       <li class="nav-item" style="width: 300px;">
-        
+       <!-- Search Form -->  
           <div class="input-group has-validation">
             <span class="input-group-text" id="inputGroupPrepend">
               <i class="bi bi-search"></i>
@@ -16,10 +16,9 @@
             <input type="text" class="form-control" id="" placeholder="Search...">
             <div class="invalid-feedback"></div>
           </div>
-       
       </li> 
     </ul>
-
+     <!-- Notifications Dropdown Menu -->
     <ul class="navbar-nav ms-auto align-items-center gap-2">
       <li class="nav-item dropdown">
         <a class="nav-link" data-bs-toggle="dropdown" href="#" aria-expanded="false">
@@ -28,15 +27,16 @@
         </a>
         <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
           <a href="#" class="dropdown-item">
-            <!--begin::Message-->
             <div class="d-flex">
               <div class="flex-shrink-0">
-                <img src="../assets/img/user1-128x128.jpg" alt="User Avatar" class="img-size-50 rounded-circle me-3">
+                <img src="https://media.istockphoto.com/id/1495088043/vector/user-profile-icon-avatar-or-person-icon-profile-picture-portrait-symbol-default-portrait.jpg?s=612x612&w=0&k=20&c=dhV2p1JwmloBTOaGAtaA3AW1KSnjsdMt7-U_3EZElZ0=" alt="User Avatar" class="img-size-50 rounded-circle me-3">
               </div>
               <div class="flex-grow-1">
                 <h3 class="dropdown-item-title">
-                  Brad Diesel
-                  <span class="float-end fs-7 text-danger"><i class="bi bi-star-fill"></i></span>
+                  Axel Odiver
+                  <span class="float-end fs-7 text-danger">
+                    <i class="bi bi-star-fill"></i>
+                  </span>
                 </h3>
                 <p class="fs-7">Call me whenever you can...</p>
                 <p class="fs-7 text-secondary">
@@ -44,18 +44,16 @@
                 </p>
               </div>
             </div>
-            <!--end::Message-->
           </a>
           <div class="dropdown-divider"></div>
           <a href="#" class="dropdown-item">
-            <!--begin::Message-->
             <div class="d-flex">
               <div class="flex-shrink-0">
-                <img src="../assets/img/user8-128x128.jpg" alt="User Avatar" class="img-size-50 rounded-circle me-3">
+                <img src="https://media.istockphoto.com/id/1495088043/vector/user-profile-icon-avatar-or-person-icon-profile-picture-portrait-symbol-default-portrait.jpg?s=612x612&w=0&k=20&c=dhV2p1JwmloBTOaGAtaA3AW1KSnjsdMt7-U_3EZElZ0=" alt="User Avatar" class="img-size-50 rounded-circle me-3">
               </div>
               <div class="flex-grow-1">
                 <h3 class="dropdown-item-title">
-                  John Pierce
+                  John Paul Castro
                   <span class="float-end fs-7 text-secondary">
                     <i class="bi bi-star-fill"></i>
                   </span>
@@ -66,18 +64,16 @@
                 </p>
               </div>
             </div>
-            <!--end::Message-->
           </a>
           <div class="dropdown-divider"></div>
           <a href="#" class="dropdown-item">
-            <!--begin::Message-->
             <div class="d-flex">
               <div class="flex-shrink-0">
-                <img src="../assets/img/user3-128x128.jpg" alt="User Avatar" class="img-size-50 rounded-circle me-3">
+                <img src="https://media.istockphoto.com/id/1495088043/vector/user-profile-icon-avatar-or-person-icon-profile-picture-portrait-symbol-default-portrait.jpg?s=612x612&w=0&k=20&c=dhV2p1JwmloBTOaGAtaA3AW1KSnjsdMt7-U_3EZElZ0=" alt="User Avatar" class="img-size-50 rounded-circle me-3">
               </div>
               <div class="flex-grow-1">
                 <h3 class="dropdown-item-title">
-                  Nora Silvester
+                  Dominic Belen
                   <span class="float-end fs-7 text-warning">
                     <i class="bi bi-star-fill"></i>
                   </span>
@@ -88,12 +84,12 @@
                 </p>
               </div>
             </div>
-            <!--end::Message-->
           </a>
           <div class="dropdown-divider"></div>
           <a href="#" class="dropdown-item dropdown-footer">See All Messages</a>
         </div>
       </li>
+       <!-- Theme Mode -->
       <li class="nav-item dropdown">
         <button
           class="btn btn-link nav-link py-2 px-0 px-lg-2 dropdown-toggle d-flex align-items-center"

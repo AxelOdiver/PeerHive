@@ -19,21 +19,41 @@
         <form method="POST" action="{{ route('login.store') }}" id="form">
             @csrf
 
-            <div class="input-group mb-3">
+          <div class="input-group mb-3">
             <input
               type="text"
-              name="name"
+              name="first_name"
               class="form-control"
-              placeholder="Full Name"
+              placeholder="First Name"
+              required
+              autofocus
+            >            
+            <div class="invalid-feedback" data-error-for="first_name"></div>
+          </div>
+
+          <div class="input-group mb-3">
+            <input
+              type="text"
+              name="middle_name"
+              class="form-control"
+              placeholder="Middle Name"
+              required
+              autofocus
+            >            
+            <div class="invalid-feedback" data-error-for="middle_name"></div>
+          </div>
+
+          <div class="input-group mb-3">
+            <input
+              type="text"
+              name="last_name"
+              class="form-control"
+              placeholder="Last Name"
               required
               autofocus
             >
-            <span class="input-group-text">
-              <i class="bi bi-person"></i>
-            </span>
-            <div class="invalid-feedback" data-error-for="name"></div>
+            <div class="invalid-feedback" data-error-for="last_name"></div>
           </div>
-
 
           <div class="input-group mb-3">
             <input
@@ -68,14 +88,11 @@
           </button>
           
         </form>
-
         <div class="social-auth-links text-center mt-3 mb-3">
           <p>- OR -</p>
-          <a href="{{ route('register') }}" class="btn btn-secondary w-100">Register</a>
-          
+          <button type="submit" form="form" class="btn btn-secondary w-100">Register</button>
       </div>
     </div>
-
   </div>
 @endsection
 
