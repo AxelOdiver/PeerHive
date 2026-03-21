@@ -5,11 +5,6 @@
 @push('styles')
 <style>
   
-  .card:hover {
-    transform: translateY(-5px);
-    transition: transform 0.5s ease;
-  }
-
   .btn-swap {
     background-color: var(--bs-emphasis-color) !important;
     color: var(--bs-body-bg) !important;
@@ -24,7 +19,7 @@
 </style>
 @endpush
 @section('content')
-<div class="container-fluid px-3 d-flex flex-column align-items-start gap-3 mb-4">
+<div class=" d-flex flex-column align-items-start gap-3 mb-4">
   <div class="d-inline-flex bg-light rounded-0 shadow-sm p-0 overflow-hidden w-100" style="max-width: 500px;">
     <input type="radio" class="btn-check" name="btnradio" id="btnradio1" autocomplete="off" checked>
     <label class="btn btn-outline-dark flex-fill border-0 rounded-0 py-2 fw-bold shadow-none" for="btnradio1">Send
@@ -33,13 +28,31 @@
     <label class="btn btn-outline-dark flex-fill border-0 rounded-0 py-2 fw-bold shadow-none" for="btnradio2">Received
     </label>    
   </div>
-  <div class="d-inline-flex bg-dark rounded-1 p-0 overflow-hidden">
-    <button class="btn btn-sm btn-dark rounded-1 px-3 py-1 border-0 d-flex align-items-center shadow-none">
-      <i class="bi bi-funnel-fill me-1 text-white"></i>
-      <span class="fw-semibold text-uppercase text-white" style="font-size: 0.75rem;">Filter</span>
-    </button>
+  <!-- Dropdown Filter -->
+  <div class="border border-secondary rounded-1 p-0 overflow-hidden">
+    <a class="nav-link dropdown-toggle show rounded-1 px-3 py-1 d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+      <i class="bi bi-funnel-fill me-1"></i>
+      <span class="fw-semibold text-uppercase" style="font-size: 0.75rem;">Filter</span>
+    </a>
+    <ul class="dropdown-menu show text-center" data-bs-popper="static">
+      <li>
+        <a class="dropdown-item" href="#">Seen</a>
+      </li>
+      <li>
+        <hr class="dropdown-divider">
+      </li>
+      <li>
+        <a class="dropdown-item" href="#">Accepted</a>
+      </li>
+      <li>
+        <hr class="dropdown-divider">
+      </li>
+      <li>
+        <a class="dropdown-item" href="#">Declined</a>
+      </li>
+    </ul>
   </div>
-</div>
+</div>  
 <!-- Swap List -->
 <h2 class="mb-3 mt-2 fw-bold">Students</h2>
 <div class="row">
@@ -60,7 +73,6 @@
                   <i class="bi bi-star"></i>
                 </span>  
               </p>       
-                <p class="text-success small fw-bold mb-2 text-nowrap">Experience: 5 years +</p>   
                   <div class="d-flex align-items-center flex-wrap gap-2 mt-2 mb-3">
                     <div class="d-flex align-items-center">
                       <button class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-heart"></i></button>
@@ -100,7 +112,6 @@
                   <i class="bi bi-star"></i>
                 </span>  
               </p>       
-                <p class="text-success small fw-bold mb-2 text-nowrap">Experience: 8 years +</p>   
                   <div class="d-flex align-items-center flex-wrap gap-2 mt-2 mb-3">
                     <div class="d-flex align-items-center">
                       <button class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-heart"></i></button>
@@ -140,7 +151,6 @@
                   <i class="bi bi-star"></i>
                 </span>  
               </p>       
-                <p class="text-success small fw-bold mb-2 text-nowrap">Experience: 10 years +</p>   
                   <div class="d-flex align-items-center flex-wrap gap-2 mt-2 mb-3">
                     <div class="d-flex align-items-center">
                       <button class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-heart"></i></button>

@@ -86,7 +86,6 @@
                   <i class="bi bi-star"></i>
                 </span>  
               </p>       
-                <p class="text-success small fw-bold mb-2 text-nowrap">Experience: 5 years +</p>   
                   <div class="d-flex align-items-center flex-wrap gap-2 mt-2 mb-3">
                     <div class="d-flex align-items-center">
                       <button class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-heart"></i></button>
@@ -127,7 +126,6 @@
                   <i class="bi bi-star"></i>
                 </span>  
               </p>       
-                <p class="text-success small fw-bold mb-2 text-nowrap">Experience: 8 years +</p>   
                   <div class="d-flex align-items-center flex-wrap gap-2 mt-2 mb-3">
                     <div class="d-flex align-items-center">
                       <button class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-heart"></i></button>
@@ -168,7 +166,6 @@
                   <i class="bi bi-star"></i>
                 </span>  
               </p>       
-                <p class="text-success small fw-bold mb-2 text-nowrap">Experience: 10 years +</p>   
                   <div class="d-flex align-items-center flex-wrap gap-2 mt-2 mb-3">
                     <div class="d-flex align-items-center">
                       <button class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-heart"></i></button>

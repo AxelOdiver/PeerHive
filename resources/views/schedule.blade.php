@@ -71,7 +71,8 @@
 @endpush
 
 @section('content')
-<!-- Week Availability Picker -->
+<h2 class="mb-3 fw-bold">Schedule</h2>
+<!-- Week Availability  -->
 <div class="card shadow-sm">
   <div class="card-header">
     <h3 class="card-title mb-0">Weekly Availability</h3>
@@ -79,12 +80,11 @@
 
   <div class="card-body">
     <div class="row g-3 row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-7" id="weekTiles">
-      <!-- Tiles injected by JS -->
     </div>
   </div>
 </div>
 
-<!-- Time Range Modal -->
+<!-- Time Range -->
 <div class="modal fade" id="availabilityModal" tabindex="-1" aria-labelledby="availabilityModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
