@@ -7,8 +7,8 @@
 
   <div class="sidebar-wrapper d-flex flex-column" style="min-height: calc(100vh - 60px);">
     <div class="sidebar-user border-bottom border-secondary-subtle">
-      <div class="d-flex justify-content-center align-items-center gap-2 p-3">
-        <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center dashboard-avatar">
+      <div class="d-flex justify-content-start align-items-center gap-2 p-3">
+        <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center dashboard-avatar me-2">
           <i class="bi bi-person-fill text-white"></i>
         </div>
         <div class="sidebar-user-meta">

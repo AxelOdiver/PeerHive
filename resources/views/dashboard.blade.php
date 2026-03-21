@@ -166,24 +166,24 @@
                   <i class="bi bi-star"></i>
                 </span>  
               </p>       
-                  <div class="d-flex align-items-center flex-wrap gap-2 mt-2 mb-3">
-                    <div class="d-flex align-items-center">
-                      <button class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-heart"></i></button>
-                      <small class="text-muted fw-semibold ms-1">3k+</small>
-                    </div>
-                    <div class="d-flex align-items-center">
-                      <button class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-arrow-left-right"></i></button>
-                      <small class="text-muted fw-semibold ms-1">65</small>
-                    </div>
-                    <div class="d-flex align-items-center">
-                      <button class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-chat-dots"></i></button>
-                      <small class="text-muted fw-semibold ms-1">1000</small>
-                    </div>
+                <div class="d-flex align-items-center flex-wrap gap-2 mt-2 mb-3">
+                  <div class="d-flex align-items-center">
+                    <button class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-heart"></i></button>
+                    <small class="text-muted fw-semibold ms-1">3k+</small>
                   </div>
-                    <a href="{{ route('swap') }}" 
-                      class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2 {{ request()->routeIs('swap') ? 'active' : '' }}">
-                      Swap
-                    </a>
+                  <div class="d-flex align-items-center">
+                    <button class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-arrow-left-right"></i></button>
+                    <small class="text-muted fw-semibold ms-1">65</small>
+                  </div>
+                  <div class="d-flex align-items-center">
+                    <button class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-chat-dots"></i></button>
+                    <small class="text-muted fw-semibold ms-1">1000</small>
+                  </div>
+                </div>
+                  <a href="{{ route('swap') }}" 
+                    class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2 {{ request()->routeIs('swap') ? 'active' : '' }}">
+                    Swap
+                  </a>
               </div>
           </div>
       </div>
