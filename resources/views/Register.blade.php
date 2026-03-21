@@ -14,9 +14,9 @@
       <div class="card-body login-card-body">
         <p class="login-box-msg">Register to start your session</p>
 
-        <div id="loginError" class="alert alert-danger py-2 d-none"></div>
+        <div id="registerError" class="alert alert-danger py-2 d-none"></div>
 
-        <form method="POST" action="{{ route('login.store') }}" id="form">
+        <form method="POST" action="{{ route('register.store') }}" id="form">
             @csrf
 
           <div class="input-group mb-3">
@@ -36,8 +36,7 @@
               type="text"
               name="middle_name"
               class="form-control"
-              placeholder="Middle Name"
-              required
+              placeholder="Middle Name (Optional)"
               autofocus
             >            
             <div class="invalid-feedback" data-error-for="middle_name"></div>
@@ -84,6 +83,20 @@
             <div class="invalid-feedback" data-error-for="password"></div>
           </div>
           
+          <div class="input-group mb-3">
+            <input
+              type="password"
+              name="password_confirmation"
+              class="form-control"
+              placeholder="Confirm Password"
+              required
+            >
+            <span class="input-group-text">
+              <i class="bi bi-lock-fill"></i>
+            </span>
+            <div class="invalid-feedback" data-error-for="password_confirmation"></div>
+          </div>
+          
         </form>
         <div class="social-auth-links text-center mt-3 mb-3">
           <button type="submit" form="form" class="btn btn-secondary w-100">Submit</button>
@@ -100,7 +113,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function clearErrors() {
     $form.find('.is-invalid').removeClass('is-invalid');
-    $('[data-error]').text('');
+    $form.find('[data-error-for]').text('');
+    $('#registerError').addClass('d-none').text('');
   }
 
   $form.on('submit', function (e) {
@@ -116,7 +130,12 @@ document.addEventListener('DOMContentLoaded', function () {
         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
       },
       success: function (response) {
-        window.location.assign(response.redirect);
+        sessionStorage.setItem('toast', JSON.stringify({
+          type: 'success',
+          message: response.message ?? 'Registration successful!',
+        }));
+
+        window.location.href = response.redirect ?? '{{ route('dashboard') }}';
       },
       error: function (xhr) {
         if (xhr.status === 422) {
@@ -130,9 +149,7 @@ document.addEventListener('DOMContentLoaded', function () {
           return;
         }
 
-        // 401 invalid credentials (or other errors)
-        const msg = xhr.responseJSON?.message ?? 'Login failed';
-        $('#loginError').removeClass('d-none').text(msg);
+        $('#registerError').removeClass('d-none').text('Sorry, something went wrong. Please try again.');
       }
     });
   });

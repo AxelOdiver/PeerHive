@@ -163,6 +163,27 @@
           }
         });
       }
+
+      const pendingToast = sessionStorage.getItem('toast');
+
+      if (pendingToast) {
+        try {
+          const { type, message } = JSON.parse(pendingToast);
+          sessionStorage.removeItem('toast');
+
+          if (type && message) {
+            toast(type, message);
+          }
+        } catch (error) {
+          sessionStorage.removeItem('toast');
+        }
+      }
+
+      @if(session('error'))
+          toast('error', '{{ session('error') }}'); 
+      @elseif(session('success'))
+          toast('success', '{{ session('success') }}'); 
+      @endif
     </script>
 
     @stack('scripts')

@@ -11,8 +11,8 @@
         <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center dashboard-avatar me-2">
           <i class="bi bi-person-fill text-white"></i>
         </div>
-        <div class="sidebar-user-meta">
-          <div class="fw-semibold text-white">{{ auth()->user()->name ?? 'User' }}</div>
+        <div class="sidebar-user-meta ">
+          <div class="fw-semibold text-white">{{ auth()->user()->first_name. ' ' .auth()->user()->middle_name. ' ' .auth()->user()->last_name ?? 'User' }}</div>
           <small class="text-white-50 d-block">{{ auth()->user()->email ?? '' }}</small>
           <a href="{{ route('profile.edit') }}" class="small link-light">Edit profile</a>
         </div>
