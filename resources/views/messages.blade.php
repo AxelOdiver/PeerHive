@@ -187,16 +187,22 @@
       <!-- /.direct-chat-pane -->
     </div>
     <!-- /.card-body -->
-    <div class="card-footer" style="box-sizing: border-box; display: block;">
-      <form action="#" method="post">
-        <div class="input-group">
-          <input type="text" name="message" placeholder="Type Message ..." class="form-control" aria-label="Type Message ...">
-          <span class="input-group-append">
-            <button type="button" class="btn btn-primary">Send</button>
-          </span>
-        </div>
-      </form>
-    </div>
-    <!-- /.card-footer-->
+  <div class="card-footer border-0 bg-transparent">
+  <div class="bg-body-secondary rounded-4 shadow-sm p-2 d-flex align-items-center">
+    
+    <input 
+      type="text" 
+      name="message" 
+      placeholder="Type your message here..." 
+      class="form-control border-0 bg-transparent shadow-none flex-grow-1"
+    >
+
+    <button type="button" class="btn btn-link text-secondary p-1 me-2">
+      <i class="bi bi-emoji-smile-fill fs-5"></i>
+    </button>
+    
   </div>
+</div>
+    <!-- /.card-footer-->
+</div>
 @endsection
