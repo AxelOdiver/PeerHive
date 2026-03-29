@@ -1,4 +1,4 @@
-# PeerSharing - Run Instructions
+# PeerHive - Run Instructions
 
 ## Prerequisites
 - PHP 8.2+
