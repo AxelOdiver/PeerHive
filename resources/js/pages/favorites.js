@@ -12,8 +12,12 @@ $(document).on('click', '.fav-btn', function() {
     },
     success: function(response) {
       if (response.action === 'removed') {
-        $('#card-' + itemId).fadeOut(300, function() { 
+        $('#card-' + itemId).fadeOut(100, function() { 
           $(this).remove(); 
+
+          if ($('#favoritesList .favorite-card').length === 0) {
+             $('#empty-favorites-alert').fadeIn(100);
+          }
         });
       }
     },
