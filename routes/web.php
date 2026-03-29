@@ -31,13 +31,16 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
     Route::get('/dashboard', function () {
-    $students = User::where('id', '!=', auth()->id())->take(3)->get(); 
+    $topstudents = User::where('id', '!=', auth()->id())->take(3)->get(); 
+    $excludeIds = $topstudents->pluck('id');
+
+    $students = User::where('id', '!=', auth()->id())->whereNotIn('id', $excludeIds)->take(6)->get(); 
 
     // Grabs an array of just the IDs you have already favorited (e.g., [2, 3])
     $favoritedIds = auth()->user()->favorites->pluck('id')->toArray();
 
     // Pass both variables to the view
-    return view('dashboard', compact('students', 'favoritedIds'));
+    return view('dashboard', compact('topstudents','students', 'favoritedIds'));
     })->name('dashboard');
 
     Route::post('/favorite/toggle', [FavoriteController::class, 'toggleFavorite'])->name('favorite.toggle');
@@ -50,6 +53,7 @@ Route::middleware('auth')->group(function () {
     Route::view('/schedule', 'schedule')->name('schedule');
     Route::view('/messages', 'messages')->name('messages');
     Route::view('/history', 'history')->name('history');
+    Route::view('/community', 'community')->name('community');
 
     Route::view('/profile', 'profile.edit')->name('profile.edit');
     Route::put('/profile', [UserController::class, 'update'])->name('profile.update');

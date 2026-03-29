@@ -68,7 +68,54 @@
   </div>
   <!-- TOP STUDENTS -->
   <h2 class="mb-3 fw-bold">Top Students</h2>
-  
+  <div class="row">
+    @foreach($topstudents as $topstudent)
+    <div class="col-12 col-md-6 col-xl-4 mb-4">
+      <div class="card border-0 shadow-sm rounded-4 p-3 h-100 w-100">
+        <div class="d-flex align-items-start gap-2 gap-sm-3">        
+          
+          <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold bg-primary text-white flex-shrink-0" 
+          style="width: 60px; height: 60px; font-size: 1.5rem;">
+          {{ strtoupper(substr($topstudent->first_name, 0, 1)) }}{{ strtoupper(substr($topstudent->last_name, 0, 1)) }}
+        </div>      
+        
+        <div class="flex-grow-1 min-w-0">
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <h5 class="fw-bold mb-0 text-truncate">{{ $topstudent->first_name }} {{ $topstudent->last_name }}</h5>
+            
+            <button type="button" class="text-muted btn btn-sm p-0 shadow-none line-height-1 ms-2 flex-shrink-0 fav-btn" data-id="{{ $topstudent->id }}">
+              @if(in_array($topstudent->id, $favoritedIds))
+              <i class="bi bi-bookmark-fill text-warning"></i>
+              @else
+              <i class="bi bi-bookmark"></i>
+              @endif
+            </button>
+          </div>        
+          
+          <p class="text-muted small mb-1 text-truncate">Peer Student
+            <span class="text-warning text-nowrap ms-1">
+              @for($i = 0; $i < 4; $i++) <i class="bi bi-star-fill"></i> @endfor
+              <i class="bi bi-star"></i>
+            </span>  
+          </p>       
+          
+          <div class="d-flex align-items-center flex-wrap gap-2 mt-2 mb-3">
+            <div class="d-flex align-items-center"><button type="button" class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-heart"></i></button><small class="text-muted fw-semibold ms-1">0</small></div>
+            <div class="d-flex align-items-center"><button type="button" class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-arrow-left-right"></i></button><small class="text-muted fw-semibold ms-1">0</small></div>
+            <div class="d-flex align-items-center"><button type="button" class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-chat-dots"></i></button><small class="text-muted fw-semibold ms-1">0</small></div>
+          </div>
+          
+          <button type="button" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2 open-swap-modal" data-id="{{ $topstudent->id }}">
+            Swap
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  @endforeach
+</div>
+  <!-- PeerHive Students -->
+  <h2 class="mb-3 fw-bold">PeerHive Students</h2>
   <div class="row">
     @foreach($students as $student)
     <div class="col-12 col-md-6 col-xl-4 mb-4">
