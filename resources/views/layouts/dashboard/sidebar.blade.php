@@ -37,6 +37,12 @@
           'active' => request()->routeIs('history'),
       ],
       [
+          'href' => route('community'),
+          'icon' => 'bi bi-diagram-3',
+          'label' => 'Community',
+          'active' => request()->routeIs('community'),
+      ],
+      [
           'href' => route('users'),
           'icon' => 'bi bi-people',
           'label' => 'Users',
