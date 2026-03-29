@@ -1,4 +1,4 @@
 <footer class="app-footer">
-  <strong>PeerSharing</strong>
+  <strong>PeerHive</strong>
   <span class="ms-2">All rights reserved.</span>
 </footer>

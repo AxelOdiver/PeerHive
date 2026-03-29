@@ -36,12 +36,6 @@
     </a>
     <ul class="dropdown-menu show text-center" data-bs-popper="static">
       <li>
-        <a class="dropdown-item" href="#">Seen</a>
-      </li>
-      <li>
-        <hr class="dropdown-divider">
-      </li>
-      <li>
         <a class="dropdown-item" href="#">Accepted</a>
       </li>
       <li>
@@ -74,36 +68,36 @@
             <p class="text-muted mb-0 small">{{ $swap->requestedUser->email }}</p>
           </div>
         </div>
-          <div class="d-flex justify-content-end mt-3">
-            @if($swap->status === 'pending')
-            <form method="POST" action="{{ route('swap.destroy', $swap) }}" class="me-2 cancel-swap-form w-50 flex-grow-1">
-              @csrf
-              @method('DELETE')
-              <button type="submit" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2 open-swap-modal">Unswap</button>
-            </form>
-            @endif
-            <div class="text-end">
-              <small class="text-muted">Status</small>
-              <span class="badge text-bg-{{ $swap->status === 'accepted' ? 'success' : ($swap->status === 'declined' ? 'danger' : 'warning') }}">
-                {{ ucfirst($swap->status) }}
-              </span>
-            </div>
+        <div class="d-flex justify-content-end mt-3">
+          @if($swap->status === 'pending')
+          <form method="POST" action="{{ route('swap.destroy', $swap) }}" class="me-2 cancel-swap-form w-50 flex-grow-1">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2 open-swap-modal">Unswap</button>
+          </form>
+          @endif
+          <div class="text-end">
+            <small class="text-muted">Status</small>
+            <span class="badge text-bg-{{ $swap->status === 'accepted' ? 'success' : ($swap->status === 'declined' ? 'danger' : 'warning') }}">
+              {{ ucfirst($swap->status) }}
+            </span>
           </div>
         </div>
       </div>
     </div>
-    @endforeach
   </div>
+  @endforeach
+</div>
 </div>
 
 @else
 <div id="swapEmptyState">
   <h2 class="fw-bold mb-4">Swap Dashboard</h2>
   <div class="alert alert-light text-center py-5 rounded-4 shadow-sm">
-  <i class="bi bi-people fs-1 text-muted mb-3 d-block"></i>
-  <h5 class="text-muted">You haven't selected any peers to swap with.</h5>
-  <p class="text-muted mb-0">Go back to the dashboard, check the boxes on the student cards, and click "Swap"!</p>
-  <a href="{{ route('dashboard') }}" class="btn btn-primary mt-3">Find Peers</a>
+    <i class="bi bi-people fs-1 text-muted mb-3 d-block"></i>
+    <h5 class="text-muted">You haven't selected any peers to swap with.</h5>
+    <p class="text-muted mb-0">Go back to the dashboard, check the boxes on the student cards, and click "Swap"!</p>
+    <a href="{{ route('dashboard') }}" class="btn btn-primary mt-3">Find Peers</a>
   </div>
 </div>
 @endif
