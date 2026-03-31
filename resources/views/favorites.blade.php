@@ -21,11 +21,10 @@
 @endpush
 
 @section('content')
-<div class="container-fluid">
-  <h2 class="mb-3 fw-bold">My Favorites</h2>
-  <div class="row" id="favoritesList">
-    @foreach($favorites as $student)
-    <div class="col-12 col-md-6 col-xl-4 mb-4 favorite-card" id="card-{{ $student->id }}">
+<h2 class="mb-3 fw-bold">My Favorites</h2>
+<div class="row" id="favoritesList">
+  @foreach($favorites as $student)
+  <div class="col-12 col-md-6 col-xl-4 mb-4 favorite-card" id="card-{{ $student->id }}">
       <div class="card border-0 shadow-sm rounded-4 p-3 h-100 w-100">
         <div class="d-flex align-items-start gap-2 gap-sm-3">                      
           <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold bg-primary text-white flex-shrink-0" 
@@ -70,7 +69,6 @@
     <h5 class="text-muted">You haven't bookmarked any students yet.</h5>
     <p class="text-muted mb-0">Go to your dashboard to find peers to collaborate with!</p>
   </div>
-</div>
 </div>
 
 <x-modal id="swapModal" title="Swap Request">

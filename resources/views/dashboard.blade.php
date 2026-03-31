@@ -57,11 +57,11 @@
       </div>
       
       <div class="d-flex align-items-center gap-0 mt-auto">
-        <button class="btn btn-sm p-0 shadow-none fs-4"><i class="bi bi-heart"></i></button>
+        <button class="btn btn-sm shadow-none fs-4"><i class="bi bi-heart"></i></button>
         <small class="text-muted fw-semibold p-2 me-2">20k+</small>
-        <button class="btn btn-sm p-0 shadow-none fs-4"><i class="bi bi-arrow-left-right"></i></button>
+        <button class="btn btn-sm shadow-none fs-4"><i class="bi bi-arrow-left-right"></i></button>
         <small class="text-muted fw-semibold p-2 me-2">500+</small>
-        <button class="btn btn-sm p-0 shadow-none fs-4"><i class="bi bi-chat-dots"></i></button>
+        <button class="btn btn-sm shadow-none fs-4"><i class="bi bi-chat-dots"></i></button>
         <small class="text-muted fw-semibold p-2 me-2">1k+</small>
       </div>
     </div>
@@ -100,9 +100,9 @@
           </p>       
           
           <div class="d-flex align-items-center flex-wrap gap-2 mt-2 mb-3">
-            <div class="d-flex align-items-center"><button type="button" class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-heart"></i></button><small class="text-muted fw-semibold ms-1">0</small></div>
-            <div class="d-flex align-items-center"><button type="button" class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-arrow-left-right"></i></button><small class="text-muted fw-semibold ms-1">0</small></div>
-            <div class="d-flex align-items-center"><button type="button" class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-chat-dots"></i></button><small class="text-muted fw-semibold ms-1">0</small></div>
+            <div class="d-flex align-items-center"><button type="button" class="btn btn-sm shadow-none fs-5"><i class="bi bi-heart"></i></button><small class="text-muted fw-semibold ms-1">0</small></div>
+            <div class="d-flex align-items-center"><button type="button" class="btn btn-sm shadow-none fs-5"><i class="bi bi-arrow-left-right"></i></button><small class="text-muted fw-semibold ms-1">0</small></div>
+            <div class="d-flex align-items-center"><button type="button" class="btn btn-sm shadow-none fs-5"><i class="bi bi-chat-dots"></i></button><small class="text-muted fw-semibold ms-1">0</small></div>
           </div>
           
           <button type="button" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2 open-swap-modal" data-id="{{ $topstudent->id }}">
@@ -148,9 +148,9 @@
           </p>       
           
           <div class="d-flex align-items-center flex-wrap gap-2 mt-2 mb-3">
-            <div class="d-flex align-items-center"><button type="button" class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-heart"></i></button><small class="text-muted fw-semibold ms-1">0</small></div>
-            <div class="d-flex align-items-center"><button type="button" class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-arrow-left-right"></i></button><small class="text-muted fw-semibold ms-1">0</small></div>
-            <div class="d-flex align-items-center"><button type="button" class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-chat-dots"></i></button><small class="text-muted fw-semibold ms-1">0</small></div>
+            <div class="d-flex align-items-center"><button type="button" class="btn btn-sm shadow-none fs-5"><i class="bi bi-heart"></i></button><small class="text-muted fw-semibold ms-1">0</small></div>
+            <div class="d-flex align-items-center"><button type="button" class="btn btn-sm shadow-none fs-5"><i class="bi bi-arrow-left-right"></i></button><small class="text-muted fw-semibold ms-1">0</small></div>
+            <div class="d-flex align-items-center"><button type="button" class="btn btn-sm shadow-none fs-5"><i class="bi bi-chat-dots"></i></button><small class="text-muted fw-semibold ms-1">0</small></div>
           </div>
           
           <button type="button" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2 open-swap-modal" data-id="{{ $student->id }}">
