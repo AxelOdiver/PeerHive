@@ -4,11 +4,18 @@
 @section('page-title', 'Profile')
 
 @section('content')
+<div class="card">
+  <div class="d-flex justify-content-center position-relative p-4">
+    <img src="profile.jpg" class="rounded-circle" style="width:150px;height:150px;">
+    <label for="file-upload" class="position-absolute bottom-0 end-0 bg-white p-2 rounded-circle border">
+        <i class="bi bi-camera"></i> <!-- Requires Bootstrap Icons -->
+        <input id="file-upload" type="file" style="display:none;" accept="image/*">
+    </label>
+  </div>
+     
   <div class="row">
     <div class="col-lg-6">
-      <div class="card">
         <div class="card-header">
-          <h3 class="card-title mb-0">Edit Your Profile</h3>
         </div>
         <div class="card-body">
           <form id="form" method="POST" action="{{ route('profile.update') }}">

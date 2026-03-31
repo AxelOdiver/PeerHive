@@ -53,22 +53,38 @@
             <div class="d-flex align-items-center"><button type="button" class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-arrow-left-right"></i></button><small class="text-muted fw-semibold ms-1">0</small></div>
             <div class="d-flex align-items-center"><button type="button" class="btn btn-sm p-0 shadow-none fs-5"><i class="bi bi-chat-dots"></i></button><small class="text-muted fw-semibold ms-1">0</small></div>
           </div>
-
+          
           <button type="button" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2 open-swap-modal" data-id="{{ $student->id }}">
             Swap
           </button>
         </div>
       </div>
     </div>
-    @endforeach
-  </div>
-  
-  <div class="col-12" id="empty-favorites-alert" style="display: {{ $favorites->isEmpty() ? 'block' : 'none' }};">
-    <div class="alert alert-light text-center py-5 rounded-4 shadow-sm">
-      <i class="bi bi-bookmark-x fs-1 text-muted mb-3 d-block"></i>
-      <h5 class="text-muted">You haven't bookmarked any students yet.</h5>
-      <p class="text-muted mb-0">Go to your dashboard to find peers to collaborate with!</p>
-    </div>
+  </div> 
+  @endforeach
+</div>
+
+<div class="col-12" id="empty-favorites-alert" style="display: {{ $favorites->isEmpty() ? 'block' : 'none' }};">
+  <div class="alert alert-light text-center py-5 rounded-4 shadow-sm">
+    <i class="bi bi-bookmark-x fs-1 text-muted mb-3 d-block"></i>
+    <h5 class="text-muted">You haven't bookmarked any students yet.</h5>
+    <p class="text-muted mb-0">Go to your dashboard to find peers to collaborate with!</p>
   </div>
 </div>
+</div>
+
+<x-modal id="swapModal" title="Swap Request">
+  <form id="swapRequestForm">
+    <input type="hidden" id="swapUserId" name="user_id" value="">
+    <div class="form-floating">
+      <textarea class="form-control" placeholder="Write a message" id="swapRequestMessage" name="message" style="height: 100px"></textarea>
+      <label for="swapRequestMessage">Write a message</label>
+    </div>
+  </form>
+  
+  <x-slot:footer>
+  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+  <button type="submit" class="btn btn-primary" id="sendSwapRequestBtn" form="swapRequestForm">Send Request</button>
+</x-slot:footer>
+</x-modal>
 @endsection
