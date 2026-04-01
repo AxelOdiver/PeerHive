@@ -6,6 +6,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\SwapController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ScheduleController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -50,6 +51,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/swap/add', [SwapController::class, 'add'])->name('swap.add');
     Route::get('/swap', [SwapController::class, 'index'])->name('swap');
     Route::delete('/swap/{swap}', [SwapController::class, 'destroy'])->name('swap.destroy');
+
+    Route::get('/schedule/data', [ScheduleController::class, 'getSchedule'])->name('schedule.data');
+    Route::post('/schedule', [ScheduleController::class, 'store'])->name('schedule.store');
+    Route::delete('/schedule', [ScheduleController::class, 'destroy'])->name('schedule.destroy');
 
     Route::view('/schedule', 'schedule')->name('schedule');
     Route::view('/messages', 'messages')->name('messages');
