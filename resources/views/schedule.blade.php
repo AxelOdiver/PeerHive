@@ -75,7 +75,10 @@
 <!-- Week Availability  -->
 <div class="card shadow-sm">
   <div class="card-header">
-    <h3 class="card-title mb-0">Weekly Availability</h3>
+    <div class="d-flex justify-content-between align-items-center">
+      <h3 class="card-title mb-0">Your Weekly Availability</h3>
+      <small class="text-muted">Click a day to set your schedule</small>
+    </div>
   </div>
 
   <div class="card-body">
@@ -85,46 +88,35 @@
 </div>
 
 <!-- Time Range -->
-<div class="modal fade" id="availabilityModal" tabindex="-1" aria-labelledby="availabilityModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <form id="availabilityForm">
-        <div class="modal-header">
-          <h5 class="modal-title" id="availabilityModalLabel">Set Availability</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
+<x-modal id="availabilityModal" title="Set Availability">
+  <form id="availabilityForm">
+    <input type="hidden" id="selectedDayIndex">
 
-        <div class="modal-body">
-          <input type="hidden" id="selectedDayIndex">
-
-          <div class="mb-3">
-            <label for="selectedDayLabel" class="form-label">Day</label>
-            <input type="text" class="form-control" id="selectedDayLabel" readonly>
-          </div>
-
-          <div class="row g-3">
-            <div class="col-6">
-              <label for="startTime" class="form-label">Start time</label>
-              <input type="time" class="form-control" id="startTime" required>
-            </div>
-            <div class="col-6">
-              <label for="endTime" class="form-label">End time</label>
-              <input type="time" class="form-control" id="endTime" required>
-            </div>
-          </div>
-
-          <div class="form-text mt-3">
-            Pick your available time range for this day.
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary me-auto" id="clearTimeBtn">Clear</button>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save availability</button>
-        </div>
-      </form>
+    <div class="mb-3">
+      <label for="selectedDayLabel" class="form-label">Day</label>
+      <input type="text" class="form-control" id="selectedDayLabel" readonly>
     </div>
-  </div>
-</div>
+
+    <div class="row g-3">
+      <div class="col-6">
+        <label for="startTime" class="form-label">Start time</label>
+        <input type="time" class="form-control" id="startTime" required>
+      </div>
+      <div class="col-6">
+        <label for="endTime" class="form-label">End time</label>
+        <input type="time" class="form-control" id="endTime" required>
+      </div>
+    </div>
+
+    <div class="form-text mt-3">
+      Pick your available time range for this day.
+    </div>
+  </form>
+
+  <x-slot:footer>
+    <button type="button" class="btn btn-outline-secondary me-auto" id="clearTimeBtn">Clear</button>
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <button type="submit" class="btn btn-primary" form="availabilityForm">Save availability</button>
+  </x-slot:footer>
+</x-modal>
 @endsection

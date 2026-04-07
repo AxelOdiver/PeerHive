@@ -1,47 +1,42 @@
-// Schedule page - availability picker
 $(document).ready(function() {
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const $weekTiles = $('#weekTiles');
-  const modalEl = document.getElementById('availabilityModal');
-  const modal = new bootstrap.Modal(modalEl);
   
   const $selectedDayIndex = $('#selectedDayIndex');
   const $selectedDayLabel = $('#selectedDayLabel');
   const $startTimeInput = $('#startTime');
   const $endTimeInput = $('#endTime');
-  const $form = $('#availabilityForm');
+  const $availabilityForm = $('#availabilityForm');
   const $clearTimeBtn = $('#clearTimeBtn');
 
   let availability = {};
 
-  // --- 1. GET SCHEDULE ---
-  function loadScheduleFromDatabase() {
-    fetch('/schedule/data')
-      .then(res => {
-        if (!res.ok) throw new Error('Server error'); // Safety check
-        return res.json();
-      })
-      .then(data => {
-        availability = {}; 
-        
-        if (data.schedule) {
-          data.schedule.forEach(item => {
-            availability[item.day_index] = {
-              start: item.start_time,
-              end: item.end_time
-            };
-          });
-        }
-        
-        renderTiles(); 
-      })
-      .catch(error => {
-        console.error("Error loading schedule:", error);
-        renderTiles(); 
-      });
+  function syncAvailability(schedule = []) {
+    availability = {};
+
+    schedule.forEach(item => {
+      availability[item.day_index] = {
+        start: item.start_time,
+        end: item.end_time
+      };
+    });
   }
 
-  // Load immediately on page open
+  function loadScheduleFromDatabase() {
+    $.ajax({
+      url: '/schedule/data',
+      method: 'GET',
+      success: function(data) {
+        syncAvailability(data.schedule || []);
+        renderTiles();
+      },
+      error: function(xhr, status, error) {
+        console.error("Error loading schedule:", error);
+        renderTiles();
+      }
+    });
+  }
+
   loadScheduleFromDatabase();
   
   function formatTime(time24) {
@@ -100,7 +95,7 @@ $(document).ready(function() {
     $startTimeInput.val(existing.start || '');
     $endTimeInput.val(existing.end || '');
     
-    modal.show();
+    showModal('availabilityModal');
   }
   
   $weekTiles.on('click', '.availability-tile', function() {
@@ -108,8 +103,7 @@ $(document).ready(function() {
     openModal(dayIndex);
   });
   
-  // --- 2. SAVE SCHEDULE (POST) ---
-  $form.on('submit', function(e) {
+  $availabilityForm.on('submit', function(e) {
     e.preventDefault();
     
     const dayIndex = $selectedDayIndex.val();
@@ -123,78 +117,58 @@ $(document).ready(function() {
       return;
     }
     
-    // Save locally for instant UI update
     availability[dayIndex] = {
       start: start,
       end: end
     };
     
-    fetch('/schedule', {
+    $.ajax({
+      url: '/schedule',
       method: 'POST',
+      contentType: 'application/json',
       headers: {
         'Content-Type': 'application/json',
         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
       },
-      body: JSON.stringify({
+      data: JSON.stringify({
         day_index: dayIndex,
         start_time: start,
         end_time: end
-      })
-    })
-    .then(res => {
-      if (!res.ok) throw new Error('Save failed'); // Safety check
-      return res.json();
-    })
-    .then(() => {
-      // Refresh the data from the server to guarantee it matches
-      return fetch('/schedule/data');
-    })
-    .then(res => res.json())
-    .then(data => {
-      availability = {};
-
-      data.schedule.forEach(item => {
-        availability[item.day_index] = {
-          start: item.start_time,
-          end: item.end_time
-        };
-      });
-
-      renderTiles();
-      modal.hide();
-      if(window.toast) toast('success', 'Availability saved');
-    })
-    .catch(() => {
-      if(window.toast) toast('error', 'Something went wrong while saving. Please try again.');
+      }),
+      success: function() {
+        loadScheduleFromDatabase();
+        hideModal('availabilityModal');
+        if(window.toast) toast('success', 'Availability saved');
+      },
+      error: function() {
+        if(window.toast) toast('error', 'Something went wrong while saving. Please try again.');
+      }
     });
   });
 
-  // --- 3. DELETE SCHEDULE (DELETE) ---
   $clearTimeBtn.on('click', function() {
     const dayIndex = $selectedDayIndex.val();
     
-    fetch('/schedule', {
+    $.ajax({
+      url: '/schedule',
       method: 'DELETE',
+      contentType: 'application/json',
       headers: {
         'Content-Type': 'application/json',
         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
       },
-      body: JSON.stringify({
+      data: JSON.stringify({
         day_index: dayIndex
-      })
-    })
-    .then(res => {
-      if (!res.ok) throw new Error('Delete failed'); // Safety check
-      return res.json();
-    })
-    .then(() => {
-      delete availability[dayIndex];
-      renderTiles();
-      modal.hide();
-      if(window.toast) toast('success', 'Time cleared');
-    })
-    .catch(() => {
-      if(window.toast) toast('error', 'Could not clear time');
+      }),
+      success: function() {
+        delete availability[dayIndex];
+        renderTiles();
+        hideModal('availabilityModal');
+        if(window.toast) toast('success', 'Time cleared');
+      },
+      error: function() {
+        if(window.toast) toast('error', 'Could not clear time');
+      }
     });
   });
 

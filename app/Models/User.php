@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -40,8 +41,12 @@ class User extends Authenticatable
 
     public function favorites()
     {
-    // Make sure 'Item::class' matches whatever model you are favoring (e.g., Swap::class, Post::class)
-    return $this->belongsToMany(User::class, 'favorites', 'user_id', 'item_id')->withTimestamps();
+        return $this->belongsToMany(User::class, 'favorites', 'user_id', 'item_id')->withTimestamps();
+    }
+
+    public function schedules()
+    {
+        return $this->hasMany(Schedule::class);
     }
 
     public function getProfilePictureUrlAttribute(): ?string

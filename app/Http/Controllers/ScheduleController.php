@@ -22,25 +22,27 @@ class ScheduleController extends Controller
     public function store(Request $request) 
     {
         // Validates that the request actually has the needed data
-        $request->validate([
+        $validated = $request->validate([
             'day_index' => 'required|integer',
             'start_time' => 'required|string',
             'end_time' => 'required|string',
         ]);
 
+
+
         Schedule::updateOrCreate(
             [
                 'user_id' => Auth::id(),
-                'day_index' => $request->input('day_index'),
+                'day_index' => $validated['day_index'],
             ],
             [
-                'start_time' => $request->input('start_time'),
-                'end_time' => $request->input('end_time'),
+                'start_time' => $validated['start_time'],
+                'end_time' => $validated['end_time'],
             ]
         );
 
         return response()->json([
-            'message' => 'Schedule saved successfully',
+            'message' => 'Schedule updated successfully',
         ]);
     }
 

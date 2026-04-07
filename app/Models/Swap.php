@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Swap extends Model
 {
@@ -15,12 +14,12 @@ class Swap extends Model
         'responded_at',
     ];
 
-    public function requester(): BelongsTo
+    public function requester()
     {
         return $this->belongsTo(User::class, 'requester_id');
     }
 
-    public function requestedUser(): BelongsTo
+    public function requestedUser()
     {
         return $this->belongsTo(User::class, 'requested_user_id');
     }

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use \App\Models\Schedule;
 
 class UserSeeder extends Seeder
 {
@@ -18,6 +19,13 @@ class UserSeeder extends Seeder
             'email' => 'admin@admin',
         ]);
 
-        User::factory(50)->create();
+        User::factory(50)->create()->each(function ($user) {
+            foreach (range(0, 4) as $day) {
+                Schedule::factory()
+                    ->for($user)
+                    ->forDay($day)
+                    ->create();
+            }
+        });
     }
 }

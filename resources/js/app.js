@@ -35,7 +35,7 @@ $(document).ready(function() {
     'register': () => import('./pages/register.js'),
     'swap': () => import('./pages/swap.js'),
     'schedule': () => import('./pages/schedule.js'),
-    'profile': () => import('./pages/profile/edit.js'),
+    'profile': () => Promise.all([import('./pages/profile/edit.js'), import('./pages/schedule.js')]),
     'users': () => import('./pages/users.js'),
   };
   
