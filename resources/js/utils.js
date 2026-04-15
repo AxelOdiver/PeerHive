@@ -45,7 +45,7 @@ export function toast(type, message) {
     icon: type,
     title: message,
     showConfirmButton: false,
-    timer: 5000,
+    timer: 2500,
     timerProgressBar: true,
     customClass: {
       popup: bgClass
