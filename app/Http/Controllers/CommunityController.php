@@ -17,7 +17,7 @@ class CommunityController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'description' => 'required|string',
+            'subject' => 'required|string|in:Coding,Foreign Language,Graphic Designing',
             'member_limit' => 'required|integer|min:3|max:25',
         ]);
 
@@ -71,6 +71,30 @@ class CommunityController extends Controller
 
         return response()->json([
             'message' => 'Description updated successfully!'
+        ]);
+    }
+
+    public function updateTags(Request $request, $id)
+    {
+        $community = Community::findOrFail($id);
+
+        // Only the creator can edit tags
+        if (auth()->id() !== $community->user_id) {
+            return response()->json(['message' => 'Unauthorized action.'], 403); 
+        }
+
+        $validated = $request->validate([
+            'tags' => 'nullable|array',
+            'tags.*' => 'string|max:50',
+        ]);
+
+        $community->update([
+            'tags' => $validated['tags'] ?? []
+        ]);
+
+        return response()->json([
+            'message' => 'Tags updated successfully!',
+            'tags' => $community->tags
         ]);
     }
 }

@@ -11,9 +11,15 @@ class Community extends Model
 
     protected $fillable = [
         'name',
+        'subject',
         'description',
         'member_limit',
-        'user_id'
+        'user_id',
+        'tags',
+    ];
+
+    protected $casts = [
+        'tags' => 'array',
     ];
 
     public function user()

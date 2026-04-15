@@ -28,6 +28,12 @@
       </div>
       <p class="text-muted mb-2">{{ str()->limit($community->description ?? 'No description available.', 100) }}</p>
       
+      <div class="mb-3">
+        <span class="badge bg-secondary-subtle text-secondary-emphasis px-3 py-2 rounded-pill">
+          <i class="bi bi-book-half me-1"></i> {{ $community->subject }}
+        </span>
+      </div>
+      
       <div class="mt-auto pt-2">
         <span class="badge bg-secondary mb-2 p-2">Limit: {{ $community->member_limit }} members</span>
         <a href="{{ route('community.show', $community->id) }}" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2 d-block text-center text-decoration-none">
@@ -53,10 +59,12 @@
       <label for="editCommunityName">Community Name</label>
     </div>
     
-    <div class="form-floating">
-      <textarea class="form-control mt-3" id="editCommunityDescription" name="description" placeholder="Description" style="height: 100px" required></textarea>
-      <label for="editCommunityDescription">Description</label>
-    </div>
+    <select name="subject" id="subjectInput" class="form-select mt-3 p-3" required>
+      <option value="" selected disabled>Choose a Subject...</option>
+      <option value="Coding">Coding</option>
+      <option value="Foreign Language">Foreign Language</option>
+      <option value="Graphic Designing">Graphic Designing</option>
+    </select> 
     
     <div class="form-floating">
       <input type="number" class="form-control mt-3" id="editCommunityLimit" name="member_limit" placeholder="Member Limit" min="3" max="25" value="25" required>

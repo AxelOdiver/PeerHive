@@ -37,16 +37,25 @@
         </div>
         @endif  
         
-        <div class="d-flex align-items-center mt-auto pt-2 flex-wrap gap-2">
+        <!-- Tags section -->
+        <div class="d-flex align-items-center mt-2 pt-2 flex-wrap gap-2">
           <span class="text-muted small me-1">Tags:</span>
-          <span class="badge rounded-pill px-3 py-2 fw-normal bg-secondary">Study-group</span>
-          <span class="badge rounded-pill px-3 py-2 fw-normal bg-secondary">Share-insight</span>
-          
           @if(auth()->check() && auth()->id() === $community->user_id)
-          <button class="btn btn-dark rounded-pill px-3 py-1 d-flex align-items-center gap-1 fw-bold border-0">
-            <i class="bi bi-plus-lg fs-5"></i> Add tags
+          <button class="btn btn-sm btn-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#editTagsModal">
+            <i class="bi bi-pencil-fill me-1"></i> Edit Tags
           </button>
           @endif
+          <div class="d-flex flex-wrap gap-2">
+            @if($community->tags && count($community->tags) > 0)
+            @foreach($community->tags as $tag)
+            <span class="badge bg-secondary-subtle text-secondary-emphasis px-3 py-2 rounded-pill">
+              {{ $tag }}
+            </span>
+            @endforeach
+            @else
+            <span class="text-muted fst-italic small">No tags selected yet.</span>
+            @endif
+          </div>
         </div>
       </div>
     </div>
@@ -63,12 +72,41 @@
       </div>
     </div>
   </div>
-    
-    <!-- Full-width section for posts, files, or chat features -->
+  
+  <!-- Full-width section for posts, files, or chat features -->
   <div class="card border-0 shadow-sm rounded-4 p-5 text-center">
     <h3 class="text-muted">Welcome to the {{ $community->name }} community!</h3>
     <p class="text-muted mb-0">This is where you will add posts, files, or chat features later.</p>
   </div>
-  
 </div>
+
+<x-modal id="editTagsModal" title="Edit Community Tags">
+  <form id="editTagsForm">
+    @csrf
+    @method('PUT')
+    
+    <input type="hidden" id="editTagsCommunityId" value="{{ $community->id }}">
+    
+    <p class="text-muted small mb-3">Select the tags that best describe your community.</p>
+    
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <input type="checkbox" class="btn-check" id="editTagBeginner" name="tags[]" value="Beginner Friendly" {{ collect($community->tags)->contains('Beginner Friendly') ? 'checked' : '' }}>
+      <label class="btn btn-outline-secondary rounded-pill btn-sm" for="editTagBeginner">Beginner Friendly</label>
+      
+      <input type="checkbox" class="btn-check" id="editTagStudy" name="tags[]" value="Study Group" {{ collect($community->tags)->contains('Study Group') ? 'checked' : '' }}>
+      <label class="btn btn-outline-secondary rounded-pill btn-sm" for="editTagStudy">Study Group</label>
+      
+      <input type="checkbox" class="btn-check" id="editTagProject" name="tags[]" value="Project Collab" {{ collect($community->tags)->contains('Project Collab') ? 'checked' : '' }}>
+      <label class="btn btn-outline-secondary rounded-pill btn-sm" for="editTagProject">Project Collab</label>
+      
+      <input type="checkbox" class="btn-check" id="editTagFast" name="tags[]" value="Fast Paced" {{ collect($community->tags)->contains('Fast Paced') ? 'checked' : '' }}>
+      <label class="btn btn-outline-secondary rounded-pill btn-sm" for="editTagFast">Fast Paced</label>
+    </div>
+  </form>
+  
+  <x-slot:footer>
+  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+  <button type="submit" class="btn btn-primary" id="saveTagsBtn" form="editTagsForm">Save Tags</button>
+</x-slot:footer>
+</x-modal>
 @endsection
