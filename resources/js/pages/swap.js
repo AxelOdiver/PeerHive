@@ -1,3 +1,17 @@
+function toggleSwapSections(section) {
+  $('[data-swap-section]').addClass('d-none');
+  $(`[data-swap-section="${section}"]`).removeClass('d-none');
+}
+
+$(document).on('change', 'input[name="swapSection"]', function () {
+  const section = this.id === 'swapSectionReceive' ? 'receive' : 'send';
+  toggleSwapSections(section);
+});
+
+$(function () {
+  toggleSwapSections($('input[name="swapSection"]:checked').attr('id') === 'swapSectionReceive' ? 'receive' : 'send');
+});
+
 $(document).on('submit', '.cancel-swap-form', function (e) {
   e.preventDefault();
 

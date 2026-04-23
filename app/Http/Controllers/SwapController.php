@@ -45,12 +45,17 @@ class SwapController extends Controller
 
     public function index()
     {
-        
-        $swaps = Swap::with('requestedUser')
-        ->where('requester_id', auth()->id())
-        ->get();
+        $sentSwaps = Swap::with('requestedUser')
+            ->where('requester_id', auth()->id())
+            ->latest()
+            ->get();
 
-        return view('swap', compact('swaps'));
+        $receivedSwaps = Swap::with('requester')
+            ->where('requested_user_id', auth()->id())
+            ->latest()
+            ->get();
+
+        return view('swap', compact('sentSwaps', 'receivedSwaps'));
     }
 
     public function destroy(Swap $swap)
