@@ -22,172 +22,129 @@
         </button>
       </div>
     </div>
-    <!-- /.card-header -->
     <div class="card-body" style="box-sizing: border-box; display: block;">
-      <!-- Conversations are loaded here -->
       <div class="direct-chat-messages" style="height:400px">
-        <!-- Message. Default to the start -->
         <div class="direct-chat-msg">
           <div class="direct-chat-infos clearfix">
-            <span class="direct-chat-name float-start"> Alexander Pierce </span>
+            <span class="direct-chat-name float-start"> John Paul Castro </span>
             <span class="direct-chat-timestamp float-end"> 23 Jan 2:00 pm </span>
           </div>
-          <!-- /.direct-chat-infos -->
-          <img class="direct-chat-img" src="./assets/img/user1-128x128.jpg" alt="message user image" draggable="false">
-          <!-- /.direct-chat-img -->
+          <img class="direct-chat-img" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" alt="message user image" draggable="false">
           <div class="direct-chat-text">
             Is this template really for free? That's unbelievable!
           </div>
-          <!-- /.direct-chat-text -->
-        </div>
-        <!-- /.direct-chat-msg -->
-
-        <!-- Message to the end -->
+          </div>
         <div class="direct-chat-msg end">
           <div class="direct-chat-infos clearfix">
-            <span class="direct-chat-name float-end"> Sarah Bullock </span>
+            <span class="direct-chat-name float-end"> Dominic Belen </span>
             <span class="direct-chat-timestamp float-start"> 23 Jan 2:05 pm </span>
           </div>
-          <!-- /.direct-chat-infos -->
-          <img class="direct-chat-img" src="./assets/img/user3-128x128.jpg" alt="message user image" draggable="false">
-          <!-- /.direct-chat-img -->
+          <img class="direct-chat-img" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" alt="message user image" draggable="false">
           <div class="direct-chat-text">You better believe it!</div>
-          <!-- /.direct-chat-text -->
-        </div>
-        <!-- /.direct-chat-msg -->
-
-        <!-- Message. Default to the start -->
+          </div>
         <div class="direct-chat-msg">
           <div class="direct-chat-infos clearfix">
-            <span class="direct-chat-name float-start"> Alexander Pierce </span>
+            <span class="direct-chat-name float-start"> John Paul Castro </span>
             <span class="direct-chat-timestamp float-end"> 23 Jan 5:37 pm </span>
           </div>
-          <!-- /.direct-chat-infos -->
-          <img class="direct-chat-img" src="./assets/img/user1-128x128.jpg" alt="message user image" draggable="false">
-          <!-- /.direct-chat-img -->
+          <img class="direct-chat-img" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" alt="message user image" draggable="false">
           <div class="direct-chat-text">
             Working with AdminLTE on a great new app! Wanna join?
           </div>
-          <!-- /.direct-chat-text -->
-        </div>
-        <!-- /.direct-chat-msg -->
-
-        <!-- Message to the end -->
+          </div>
         <div class="direct-chat-msg end">
           <div class="direct-chat-infos clearfix">
-            <span class="direct-chat-name float-end"> Sarah Bullock </span>
+            <span class="direct-chat-name float-end"> Dominic Belen </span>
             <span class="direct-chat-timestamp float-start"> 23 Jan 6:10 pm </span>
           </div>
-          <!-- /.direct-chat-infos -->
-          <img class="direct-chat-img" src="./assets/img/user3-128x128.jpg" alt="message user image" draggable="false">
-          <!-- /.direct-chat-img -->
+          <img class="direct-chat-img" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" alt="message user image" draggable="false">
           <div class="direct-chat-text">I would love to.</div>
-          <!-- /.direct-chat-text -->
+          </div>
         </div>
-        <!-- /.direct-chat-msg -->
-      </div>
-      <!-- /.direct-chat-messages-->
-
-      <!-- Contacts are loaded here -->
       <div class="direct-chat-contacts">
         <ul class="contacts-list">
           <li>
             <a href="#" draggable="false">
-              <img class="contacts-list-img" src="./assets/img/user1-128x128.jpg" alt="User Avatar" draggable="false">
+              <img class="contacts-list-img" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" alt="User Avatar" draggable="false">
 
               <div class="contacts-list-info">
                 <span class="contacts-list-name">
-                  Count Dracula
+                  Axel Odiver
                   <small class="contacts-list-date float-end"> 2/28/2023 </small>
                 </span>
                 <span class="contacts-list-msg"> How have you been? I was... </span>
               </div>
-              <!-- /.contacts-list-info -->
-            </a>
+              </a>
           </li>
-          <!-- End Contact Item -->
           <li>
             <a href="#" draggable="false">
-              <img class="contacts-list-img" src="./assets/img/user7-128x128.jpg" alt="User Avatar" draggable="false">
+              <img class="contacts-list-img" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" alt="User Avatar" draggable="false">
 
               <div class="contacts-list-info">
                 <span class="contacts-list-name">
-                  Sarah Doe
+                  John Paul Castro
                   <small class="contacts-list-date float-end"> 2/23/2023 </small>
                 </span>
                 <span class="contacts-list-msg"> I will be waiting for... </span>
               </div>
-              <!-- /.contacts-list-info -->
-            </a>
+              </a>
           </li>
-          <!-- End Contact Item -->
           <li>
             <a href="#" draggable="false">
-              <img class="contacts-list-img" src="./assets/img/user3-128x128.jpg" alt="User Avatar" draggable="false">
+              <img class="contacts-list-img" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" alt="User Avatar" draggable="false">
 
               <div class="contacts-list-info">
                 <span class="contacts-list-name">
-                  Nadia Jolie
+                  Paul Briones
                   <small class="contacts-list-date float-end"> 2/20/2023 </small>
                 </span>
                 <span class="contacts-list-msg"> I'll call you back at... </span>
               </div>
-              <!-- /.contacts-list-info -->
-            </a>
+              </a>
           </li>
-          <!-- End Contact Item -->
           <li>
             <a href="#" draggable="false">
-              <img class="contacts-list-img" src="./assets/img/user5-128x128.jpg" alt="User Avatar" draggable="false">
+              <img class="contacts-list-img" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" alt="User Avatar" draggable="false">
 
               <div class="contacts-list-info">
                 <span class="contacts-list-name">
-                  Nora S. Vans
+                  Axel Odiver
                   <small class="contacts-list-date float-end"> 2/10/2023 </small>
                 </span>
                 <span class="contacts-list-msg"> Where is your new... </span>
               </div>
-              <!-- /.contacts-list-info -->
-            </a>
+              </a>
           </li>
-          <!-- End Contact Item -->
           <li>
             <a href="#" draggable="false">
-              <img class="contacts-list-img" src="./assets/img/user6-128x128.jpg" alt="User Avatar" draggable="false">
+              <img class="contacts-list-img" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" alt="User Avatar" draggable="false">
 
               <div class="contacts-list-info">
                 <span class="contacts-list-name">
-                  John K.
+                  Dominic Belen
                   <small class="contacts-list-date float-end"> 1/27/2023 </small>
                 </span>
                 <span class="contacts-list-msg"> Can I take a look at... </span>
               </div>
-              <!-- /.contacts-list-info -->
-            </a>
+              </a>
           </li>
-          <!-- End Contact Item -->
           <li>
             <a href="#" draggable="false">
-              <img class="contacts-list-img" src="./assets/img/user8-128x128.jpg" alt="User Avatar" draggable="false">
+              <img class="contacts-list-img" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" alt="User Avatar" draggable="false">
 
               <div class="contacts-list-info">
                 <span class="contacts-list-name">
-                  Kenneth M.
+                  Paul Briones
                   <small class="contacts-list-date float-end"> 1/4/2023 </small>
                 </span>
                 <span class="contacts-list-msg"> Never mind I found... </span>
               </div>
-              <!-- /.contacts-list-info -->
-            </a>
+              </a>
           </li>
-          <!-- End Contact Item -->
-        </ul>
-        <!-- /.contacts-list -->
+          </ul>
+        </div>
       </div>
-      <!-- /.direct-chat-pane -->
-    </div>
-    <!-- /.card-body -->
-  <div class="card-footer border-0 bg-transparent">
+    <div class="card-footer border-0 bg-transparent">
   <div class="bg-body-secondary rounded-4 shadow-sm p-2 d-flex align-items-center">
     
     <input 
@@ -203,6 +160,5 @@
     
   </div>
 </div>
-    <!-- /.card-footer-->
-</div>
+    </div>
 @endsection
