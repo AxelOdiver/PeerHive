@@ -55,6 +55,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/favorite/toggle', [FavoriteController::class, 'toggleFavorite'])->name('favorite.toggle');
     Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
 
+    Route::post('/swap/{swap}/respond', [SwapController::class, 'respond'])->name('swap.respond');
     Route::post('/swap/add', [SwapController::class, 'add'])->name('swap.add');
     Route::get('/swap', [SwapController::class, 'index'])->name('swap');
     Route::delete('/swap/{swap}', [SwapController::class, 'destroy'])->name('swap.destroy');

@@ -73,8 +73,8 @@
         </div>
 
         <div class="text-center mt-2">
-          <a href="{{ route('login') }}" class="btn btn-link text-muted p-0 small">
-            ← Back to Login
+          <a href="{{ route('login') }}" class="btn btn-secondary w-100">
+            Back to Login
           </a>
         </div>
       </div>

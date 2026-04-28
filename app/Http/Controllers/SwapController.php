@@ -45,17 +45,43 @@ class SwapController extends Controller
 
     public function index()
     {
-        $sentSwaps = Swap::with('requestedUser')
+        $sent = Swap::with('requestedUser')
             ->where('requester_id', auth()->id())
-            ->latest()
             ->get();
 
-        $receivedSwaps = Swap::with('requester')
+        $received = Swap::with('requester')
             ->where('requested_user_id', auth()->id())
-            ->latest()
             ->get();
 
-        return view('swap', compact('sentSwaps', 'receivedSwaps'));
+        return view('swap', compact('sent', 'received'));
+    }
+
+    public function respond(Request $request, Swap $swap)
+    {
+        // Only the requested user (receiver) can respond
+        if ($swap->requested_user_id !== auth()->id()) {
+            return response()->json([
+                'message' => 'Unauthorized action.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'status' => 'required|in:accepted,declined',
+        ]);
+
+        $swap->update([
+            'status' => $validated['status'],
+            'responded_at' => now(),
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'swap_status' => $swap->status,
+            'message' => $validated['status'] === 'accepted'
+                ? 'Swap accepted! Redirecting to messages...'
+                : 'Swap declined.',
+            'redirect' => $validated['status'] === 'accepted' ? route('messages') : null,
+        ]);
     }
 
     public function destroy(Swap $swap)
