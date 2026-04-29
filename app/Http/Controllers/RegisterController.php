@@ -20,8 +20,10 @@ class RegisterController extends Controller
             'middle_name' => ['nullable', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
+            'password' => ['required', 'string', 'min:8', 'confirmed', 'regex:/^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).+$/'],
+    ], [
+        'password.regex' => 'Password must contain at least one uppercase letter, one number, and one special character.',
+    ]);
 
         $user = User::create([
             'first_name' => $validated['first_name'],
@@ -31,15 +33,14 @@ class RegisterController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
-        auth()->login($user);
 
         if ($request->expectsJson()) {
             return response()->json([
-                'redirect' => route('dashboard'),
+                'redirect' => route('login'),
                 'message' => 'Registration successful!',
             ]);
         }
 
-        return redirect()->route('dashboard')->with('success', 'Registration successful!');
+        return redirect()->route('login')->with('success', 'Registration successful!');
     }
 }
