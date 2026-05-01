@@ -88,7 +88,7 @@ $(document).on('submit', '#swapRequestForm', function(e) {
           customClass: {
             // 3. Keep the borders clean and rounded without fighting SweetAlert's default styles
             popup: 'shadow-lg border-0 rounded-4', 
-            confirmButton: 'btn btn-primary px-4 fw-bold'
+            confirmButton: 'btn btn-primary px-4'
           }
         });
       } else {

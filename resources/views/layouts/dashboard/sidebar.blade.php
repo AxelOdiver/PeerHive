@@ -42,13 +42,24 @@
           'label' => 'Community',
           'active' => request()->routeIs('community'),
       ],
-      [
+    ];
+      // only admin users will see the following links
+      if (auth()->check() && auth()->user()->role === 'admin') {
+      
+      $navItems[] = [
+          'href' => route('admin.qualifications'), 
+          'icon' => 'bi bi-shield-lock',
+          'label' => 'Approvals',
+          'active' => request()->routeIs('admin.qualifications'),
+      ];
+
+      $navItems[] = [
           'href' => route('users'),
           'icon' => 'bi bi-people',
-          'label' => 'Users',
+          'label' => 'Users Data',
           'active' => request()->routeIs('users'),
-      ],
-  ];
+      ];
+    }
 @endphp
 
 <aside id="appSidebar" class="app-sidebar bg-dark-subtle shadow" data-bs-theme="dark">

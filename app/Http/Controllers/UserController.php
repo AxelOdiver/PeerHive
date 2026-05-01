@@ -12,8 +12,16 @@ class UserController extends Controller
     /**
      * Display a listing of the resource.
      */
+    /**
+     * Display a listing of the resource.
+     */
     public function index()
     {
+        // THE GATEKEEPER: Kick out non-admins
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Unauthorized. This area is for administrators only.');
+        }
+
         return view('users');
     }
     
@@ -22,6 +30,11 @@ class UserController extends Controller
      */
     public function data(Request $request)
     {
+        // THE GATEKEEPER: Stop non-admins from loading the JSON data
+        if (auth()->user()->role !== 'admin') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
         $query = User::query();
 
         return response()->json([

@@ -10,6 +10,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\CommunityController;
 use App\Http\Controllers\QualificationController;
+use App\Http\Controllers\AdminQualificationController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -92,6 +93,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+
+    Route::get('/admin/qualifications', [AdminQualificationController::class, 'index'])->name('admin.qualifications'); 
+    Route::post('/admin/qualifications/{id}/respond', [AdminQualificationController::class, 'respond'])->name('admin.qualifications.respond');
 });
 
 /*

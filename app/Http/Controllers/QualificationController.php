@@ -12,25 +12,47 @@ class QualificationController extends Controller
      */
     public function store(Request $request)
     {
-        // 1. The Strict Validation Rules
+        $user = auth()->user();
+        
+        // 1. SECURITY GATES: Check past attempts
+        $latest = UserSubjectQualification::where('user_id', $user->id)->latest()->first();
+        $attempts = UserSubjectQualification::where('user_id', $user->id)->count();
+
+        if ($latest) {
+            if ($latest->status === 'pending') {
+                return response()->json(['errors' => ['file' => ['You already have a pending application.']]], 422);
+            }
+            if ($latest->status === 'approved') {
+                return response()->json(['errors' => ['file' => ['You are already approved!']]], 422);
+            }
+            if ($attempts >= 3) {
+                return response()->json(['errors' => ['file' => ['You have reached the maximum limit of 3 attempts.']]], 422);
+            }
+        }
+
+        // 2. Validate the new file
         $validated = $request->validate([
             'subject' => 'required|string|max:255',
-            'proof_document' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048', // max 2MB
+            'proof_document' => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240', // 10MB max
         ]);
 
-        // 2. Save the File Safely
+        // 3. Save the new submission
         $path = $request->file('proof_document')->store('qualifications', 'public');
 
-        // 3. Save to the Database
         UserSubjectQualification::create([
-            'user_id' => auth()->id(),
+            'user_id' => $user->id,
             'subject_name' => $validated['subject'],
             'proof_file_path' => $path,
             'status' => 'pending',
         ]);
 
-        // 4. Return with a success toast!
-        // Adjust this redirect to wherever you want the user to go after submitting
-        return back()->with('success', 'Application submitted! An admin will review your proof shortly.');
+        // 4. Return success to your AJAX SweetAlert
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Application submitted! An admin will review your proof shortly.'
+            ]);
+        }
+
+        return back()->with('success', 'Application submitted!');
     }
 }

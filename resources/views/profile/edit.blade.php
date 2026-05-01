@@ -204,23 +204,69 @@
   </div>
 </div>
 
-<form action="{{ route('qualifications.store') }}" method="POST" enctype="multipart/form-data">
-  @csrf
-  <div class="card flex fill mt-4 p-3">
-    <label class="form-label">Subject You Want to Teach</label>
-    <select name="subject" class="form-select mb-3" required>
-      <option value="Coding">Coding</option>
-      <option value="Foreign Language">Foreign Language</option>
-      <option value="Graphic Design">Graphic Design</option>
-    </select>
+<!-- Qualification Request Form -->
+@php
+$latestQualification = \App\Models\UserSubjectQualification::where('user_id', auth()->id())->latest()->first();
+$attempts = \App\Models\UserSubjectQualification::where('user_id', auth()->id())->count();
+@endphp
+
+@if($latestQualification && ($latestQualification->status === 'pending' || $latestQualification->status === 'approved' || $attempts >= 3))
+<div class="card flex fill mt-4 p-4 text-center shadow-sm border-0 rounded-4">
+  <h5 class="fw-bold mt-2"><i class="bi bi-award text-primary me-2"></i> {{ $latestQualification->subject_name }}</h5>
+  <p class="text-muted mb-4">Application Status</p>
   
-    <label class="form-label">Upload Proof (Grade or Certificate)</label>
-    <input type="file" name="proof_document" class="form-control" accept=".jpg,.png,.pdf" required>
-    <small class="text-muted">Max file size: 2MB.</small>
+  @if($latestQualification->status === 'pending')
+  <div class="alert alert-warning rounded-4 d-inline-block px-5 mb-0">
+    <i class="bi bi-hourglass-split me-2"></i> Your application is <strong>Pending Review</strong> by an Admin.
+  </div>
+  @elseif($latestQualification->status === 'approved')
+  <div class="alert alert-success rounded-4 d-inline-block px-5 mb-0">
+    <i class="bi bi-check-circle-fill me-2"></i> You are officially <strong>Approved</strong> to teach this subject!
+  </div>
+  @else
+  <div class="alert alert-danger rounded-4 d-inline-block px-5 mb-0">
+    <i class="bi bi-x-circle-fill me-2"></i> Your applications were <strong>Rejected</strong>.<br><br>
+    <small>You have reached the maximum number of attempts (3/3). Please kindly contact admin to appeal your submission.</small>
+  </div>
+  @endif
+</div>
+
+@else
+<form id="qualificationForm" action="{{ route('qualifications.store') }}" method="POST" enctype="multipart/form-data">
+  @csrf
+  <div class="card flex fill mt-4 p-4 shadow-sm border-0 rounded-4">
+    <h5 class="mb-4"><i class="bi bi-file-earmark-check me-2"></i> Submit Teaching Qualification</h5>
+    
+    @if($latestQualification && $latestQualification->status === 'rejected')
+    <div class="alert alert-danger rounded-3 mb-4 border-0">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i> Your previous application was rejected. You have <strong>{{ 3 - $attempts }}</strong> attempts remaining.
+    </div>
+    @endif
+    
+    <div class="mb-3">
+      <label class="form-label">Subject You Want to Teach</label>
+      <select name="subject" class="form-select" required>
+        <option value="" disabled selected>Select a subject...</option>
+        <option value="Coding">Coding</option>
+        <option value="Foreign Language">Foreign Language</option>
+        <option value="Graphic Design">Graphic Design</option>
+      </select>
+    </div>
+    
+    <div class="mb-2">
+      <label class="form-label">Upload Proof (Grade or Certificate)</label>
+      <input type="file" name="proof_document" class="form-control" accept=".jpg,.png,.pdf" required>
+      <small class="text-muted mt-1 d-block"><i class="bi bi-info-circle me-1"></i> Max file size: 10MB.</small>
+    </div>
   </div>
   
-  <button type="submit" class="btn btn-primary mt-3">Submit for Approval</button>
+  <div class="text-start">
+    <button type="submit" class="btn btn-primary mt-3 px-4 rounded-pill">
+      Submit for Approval
+    </button>
+  </div>
 </form>
+@endif
 
 <!-- Form Submit Button -->
 <div class="mt-3">
@@ -259,4 +305,10 @@
   <button type="submit" class="btn btn-primary" form="availabilityForm">Save availability</button>
 </x-slot:footer>
 </x-modal>
+
+<div id="server-messages" 
+data-errors="{{ json_encode($errors->all()) }}" 
+data-success="{{ session('success') }}" 
+class="d-none">
+</div>
 @endsection

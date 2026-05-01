@@ -73,7 +73,7 @@
               <div class="text-end {{ $swap->status !== 'pending' ? 'w-100' : '' }}">
                 <small class="text-muted d-block">Status</small>
                 <span class="badge fs-8 px-3 py-2
-                  @if($swap->status === 'accepted') text-bg-success
+                  @if($swap->status === 'accepted') text-bg-primary
                   @elseif($swap->status === 'declined') text-bg-danger
                   @else text-bg-warning
                   @endif">
@@ -81,7 +81,7 @@
                 </span>
                 @if($swap->status === 'accepted')
                 <div class="mt-2">
-                  <a href="{{ route('messages') }}" class="btn btn-sm btn-success rounded-pill">
+                  <a href="{{ route('messages') }}" class="btn btn-sm btn-primary rounded-pill">
                     <i class="bi bi-chat-dots me-1"></i> Go to Messages
                   </a>
                 </div>
@@ -136,13 +136,13 @@
               @if($swap->status === 'pending')
               <div class="d-flex gap-2 w-100">
                 <button
-                  class="btn btn-primary flex-fill rounded-3 fw-bold respond-swap-btn"
+                  class="btn btn-primary flex-fill rounded-3 respond-swap-btn"
                   data-swap-id="{{ $swap->id }}"
                   data-action="accepted">
                   <i class="bi bi-check-lg me-1"></i> Accept
                 </button>
                 <button
-                  class="btn btn-danger flex-fill rounded-3 fw-bold respond-swap-btn"
+                  class="btn btn-danger flex-fill rounded-3 respond-swap-btn"
                   data-swap-id="{{ $swap->id }}"
                   data-action="declined">
                   <i class="bi bi-x-lg me-1"></i> Decline

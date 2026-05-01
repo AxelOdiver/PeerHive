@@ -138,6 +138,63 @@ $(document).ready(function() {
             $('#confirmPasswordWrap').removeClass('is-visible');
         }
     });
+
+    $('#qualificationForm').on('submit', function(e) {
+        e.preventDefault(); // STOPS THE PAGE FROM REFRESHING!
+
+        const formData = new FormData(this);
+        const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        const swalThemeClass = isDark ? 'bg-dark text-light border shadow' : 'bg-white text-dark border shadow';
+
+        $.ajax({
+            url: $(this).attr('action'),
+            method: 'POST',
+            data: formData,
+            processData: false, // Required for file uploads
+            contentType: false, // Required for file uploads
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                // Show Success SweetAlert
+                window.Swal.fire({
+                    title: 'Success!',
+                    text: response.message,
+                    icon: 'success',
+                    confirmButtonText: 'Return',
+                    customClass: {
+                        popup: swalThemeClass,
+                        confirmButton: 'btn btn-primary px-4'
+                    }
+                }).then(() => {
+                    // Reload the page ONLY after they click "Awesome" to show the yellow "Pending" box
+                    window.location.reload(); 
+                });
+            },
+            error: function(xhr) {
+                // Catch Laravel Validation Errors (like File Too Large)
+                if (xhr.status === 422) {
+                    const errors = xhr.responseJSON.errors;
+                    // Combine all error arrays into a single string
+                    const errorMessages = Object.values(errors).map(err => err.join('\n')).join('\n');
+
+                    window.Swal.fire({
+                        title: 'Submission Failed',
+                        text: errorMessages,
+                        icon: 'error',
+                        confirmButtonText: 'Try Again',
+                        customClass: {
+                            popup: swalThemeClass,
+                            confirmButton: 'btn btn-primary fw-bold px-4'
+                        }
+                    });
+                } else {
+                    toast('error', 'Something went wrong with the server.');
+                }
+            }
+        });
+    });
 });
 
 
