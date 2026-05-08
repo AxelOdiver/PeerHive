@@ -20,7 +20,7 @@
   <div class="d-inline-flex bg-dark rounded-0 shadow-sm p-0 overflow-hidden w-100" style="max-width: 500px;">
     <input type="radio" class="btn-check" name="btnradio" id="btnradio1" autocomplete="off" checked>
     <label class="btn btn-outline-light flex-fill border-0 rounded-0 py-2 fw-bold shadow-none" for="btnradio1">
-      Send
+      Sent
       @if($sent->count() > 0)
         <span class="badge bg-secondary ms-1">{{ $sent->count() }}</span>
       @endif
