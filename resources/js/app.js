@@ -39,6 +39,7 @@ $(document).ready(function() {
     'swap': () => import('./pages/swap.js'),
     'schedule': () => import('./pages/schedule.js'),
     'profile': () => Promise.all([import('./pages/profile/edit.js'), import('./pages/schedule.js')]),
+    'users.profile': () => import('./pages/profile/show.js'),
     'users': () => import('./pages/users.js'),
     'community': () => import('./pages/community.js'),
     'community.show': () => import('./pages/community-show.js'),

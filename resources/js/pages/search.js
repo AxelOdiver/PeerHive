@@ -1,89 +1,76 @@
 /**
- * Dashboard global search
- * Attaches to #globalSearch input and renders a dropdown of users + communities.
+ * Dashboard global search.
+ * Attaches to #globalSearch and renders student results in the top nav.
  */
 $(document).ready(function () {
-    const $input   = $('#globalSearch');
+    const $input = $('#globalSearch');
     const $wrapper = $('#searchWrapper');
     const $dropdown = $('#searchDropdown');
     let debounceTimer = null;
+    let activeRequest = null;
 
     if (!$input.length) return;
 
-    // ── helpers ──────────────────────────────────────────────────────────────
-
     function renderDropdown(data) {
-        const { users, communities } = data;
-        const hasUsers       = users.length > 0;
-        const hasCommunities = communities.length > 0;
+        const users = data.users || [];
 
-        if (!hasUsers && !hasCommunities) {
-            $dropdown.html(`
+        if (!users.length) {
+            openDropdown(`
                 <div class="search-empty">
-                    <i class="bi bi-search me-2 opacity-50"></i>No results found
+                    <i class="bi bi-search me-2 opacity-50"></i>No students found
                 </div>
-            `).show();
+            `);
             return;
         }
 
-        let html = '';
+        const html = users.map((user) => `
+            <a href="${user.url}" class="search-item d-flex align-items-center gap-2 text-decoration-none">
+                <div class="search-avatar">${escapeHtml(user.initials)}</div>
+                <div class="search-item-text overflow-hidden">
+                    <div class="search-item-title">${escapeHtml(user.name)}</div>
+                    <div class="search-item-sub text-truncate">${escapeHtml(user.availability)}</div>
+                </div>
+            </a>
+        `).join('');
 
-        if (hasUsers) {
-            html += `<div class="search-section-label">Students</div>`;
-            users.forEach(u => {
-                html += `
-                <a href="${u.url}" class="search-item d-flex align-items-center gap-2 text-decoration-none">
-                    <div class="search-avatar">${u.initials}</div>
-                    <div class="search-item-text">
-                        <div class="search-item-title">${escapeHtml(u.name)}</div>
-                        <div class="search-item-sub">${escapeHtml(u.email)}</div>
-                    </div>
-                </a>`;
-            });
-        }
-
-        if (hasCommunities) {
-            html += `<div class="search-section-label ${hasUsers ? 'mt-1' : ''}">Communities</div>`;
-            communities.forEach(c => {
-                html += `
-                <a href="${c.url}" class="search-item d-flex align-items-center gap-2 text-decoration-none">
-                    <div class="search-avatar community-avatar"><i class="bi bi-diagram-3-fill"></i></div>
-                    <div class="search-item-text">
-                        <div class="search-item-title">${escapeHtml(c.name)}</div>
-                        <div class="search-item-sub">${escapeHtml(c.subject)}</div>
-                    </div>
-                </a>`;
-            });
-        }
-
-        $dropdown.html(html).show();
+        openDropdown(html);
     }
 
     function showLoading() {
-        $dropdown.html(`
+        openDropdown(`
             <div class="search-empty">
-                <span class="spinner-border spinner-border-sm me-2" role="status"></span>Searching…
+                <span class="spinner-border spinner-border-sm me-2" role="status"></span>Searching...
             </div>
-        `).show();
+        `);
+    }
+
+    function openDropdown(html) {
+        $dropdown.html(html).addClass('is-open');
+        $input.attr('aria-expanded', 'true');
     }
 
     function hideDropdown() {
-        $dropdown.hide().html('');
+        $dropdown.removeClass('is-open').html('');
+        $input.attr('aria-expanded', 'false');
     }
 
-    function escapeHtml(str) {
-        return String(str)
+    function escapeHtml(value) {
+        return String(value ?? '')
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
-
-    // ── events ───────────────────────────────────────────────────────────────
 
     $input.on('input', function () {
         const q = $(this).val().trim();
         clearTimeout(debounceTimer);
+
+        if (activeRequest) {
+            activeRequest.abort();
+            activeRequest = null;
+        }
 
         if (q.length < 2) {
             hideDropdown();
@@ -93,37 +80,39 @@ $(document).ready(function () {
         showLoading();
 
         debounceTimer = setTimeout(() => {
-            $.ajax({
+            activeRequest = $.ajax({
                 url: '/search',
                 method: 'GET',
                 data: { q },
                 success: renderDropdown,
-                error: () => {
-                    $dropdown.html(`
+                error: (_, status) => {
+                    if (status === 'abort') return;
+
+                    openDropdown(`
                         <div class="search-empty text-danger">
                             <i class="bi bi-exclamation-circle me-1"></i>Something went wrong.
                         </div>
-                    `).show();
+                    `);
+                },
+                complete: () => {
+                    activeRequest = null;
                 },
             });
         }, 280);
     });
 
-    // Close dropdown when clicking outside
     $(document).on('click', function (e) {
-        if (!$wrapper[0].contains(e.target)) {
+        if ($wrapper.length && !$wrapper[0].contains(e.target)) {
             hideDropdown();
         }
     });
 
-    // Reopen on focus if there's text
     $input.on('focus', function () {
         if ($(this).val().trim().length >= 2) {
             $(this).trigger('input');
         }
     });
 
-    // Keyboard navigation (Escape to close)
     $input.on('keydown', function (e) {
         if (e.key === 'Escape') {
             hideDropdown();

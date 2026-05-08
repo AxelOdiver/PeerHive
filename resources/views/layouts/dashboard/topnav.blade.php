@@ -30,7 +30,6 @@
 
 /* ── Dropdown ─────────────────────────────────────────── */
 #searchDropdown {
-    display: none;
     position: absolute;
     top: calc(100% + 6px);
     left: 0;
@@ -43,6 +42,16 @@
     max-height: 360px;
     overflow-y: auto;
     padding: 6px 0;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-10px);
+    transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+#searchDropdown.is-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
 }
 
 .search-section-label {
@@ -116,8 +125,8 @@
         </a>
       </li>
 
-      <li class="nav-item" id="searchWrapper">
-        <div class="position-relative">
+      <li class="nav-item d-flex align-items-center" id="searchWrapper">
+        <div class="position-relative w-100">
           <i class="bi bi-search search-icon-prefix"></i>
           <input
             type="text"
@@ -125,6 +134,8 @@
             class="form-control form-control-sm"
             placeholder="Search students, communities…"
             autocomplete="off"
+            aria-expanded="false"
+            aria-controls="searchDropdown"
           >
           <div id="searchDropdown"></div>
         </div>
