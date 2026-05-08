@@ -13,20 +13,37 @@
   .btn-swap:hover {
     opacity: 0.5;
   }
+
+  .swap-tab-toggle {
+    max-width: 500px;
+    background-color: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+  }
+
+  .swap-tab-toggle .swap-tab-label {
+    color: var(--bs-body-color);
+    background-color: transparent;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  .swap-tab-toggle .btn-check:checked + .swap-tab-label {
+    color: var(--bs-body-bg);
+    background-color: var(--bs-emphasis-color);
+  }
 </style>
 @endpush
 @section('content')
 <div class="d-flex flex-column align-items-start gap-3 mb-4">
-  <div class="d-inline-flex bg-dark rounded-0 shadow-sm p-0 overflow-hidden w-100" style="max-width: 500px;">
+  <div class="swap-tab-toggle d-inline-flex rounded-0 shadow-sm p-0 overflow-hidden w-100">
     <input type="radio" class="btn-check" name="btnradio" id="btnradio1" autocomplete="off" checked>
-    <label class="btn btn-outline-light flex-fill border-0 rounded-0 py-2 fw-bold shadow-none" for="btnradio1">
+    <label class="btn swap-tab-label flex-fill border-0 rounded-0 py-2 fw-bold shadow-none" for="btnradio1">
       Sent
       @if($sent->count() > 0)
         <span class="badge bg-secondary ms-1">{{ $sent->count() }}</span>
       @endif
     </label>
     <input type="radio" class="btn-check" name="btnradio" id="btnradio2" autocomplete="off">
-    <label class="btn btn-outline-light flex-fill border-0 rounded-0 py-2 fw-bold shadow-none" for="btnradio2">
+    <label class="btn swap-tab-label flex-fill border-0 rounded-0 py-2 fw-bold shadow-none" for="btnradio2">
       Received
       @php $pendingReceived = $received->where('status', 'pending')->count(); @endphp
       @if($pendingReceived > 0)
