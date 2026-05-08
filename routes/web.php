@@ -51,6 +51,7 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/likes/toggle', [LikeController::class, 'toggle'])->name('likes.toggle');
 
+    Route::post('/swap/{swap}/respond', [SwapController::class, 'respond'])->name('swap.respond');
     Route::post('/swap/add', [SwapController::class, 'add'])->name('swap.add');
     Route::get('/swap', [SwapController::class, 'index'])->name('swap');
     Route::delete('/swap/{swap}', [SwapController::class, 'destroy'])->name('swap.destroy');

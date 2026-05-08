@@ -23,7 +23,7 @@ class DashboardController extends Controller
         $students = User::where('id', '!=', $currentUser->id)
             ->whereNotIn('id', $excludeIds)
             ->withCount(['likedBy', 'swaps'])
-            ->take(6)
+            ->take(12)
             ->get();
 
         $favoritedIds = $currentUser->favorites->pluck('id')->toArray();
