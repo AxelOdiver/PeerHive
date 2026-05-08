@@ -17,16 +17,16 @@
 @endpush
 @section('content')
 <div class="d-flex flex-column align-items-start gap-3 mb-4">
-  <div class="d-inline-flex bg-light rounded-0 shadow-sm p-0 overflow-hidden w-100" style="max-width: 500px;">
+  <div class="d-inline-flex bg-dark rounded-0 shadow-sm p-0 overflow-hidden w-100" style="max-width: 500px;">
     <input type="radio" class="btn-check" name="btnradio" id="btnradio1" autocomplete="off" checked>
-    <label class="btn btn-outline-dark flex-fill border-0 rounded-0 py-2 fw-bold shadow-none" for="btnradio1">
+    <label class="btn btn-outline-light flex-fill border-0 rounded-0 py-2 fw-bold shadow-none" for="btnradio1">
       Send
       @if($sent->count() > 0)
         <span class="badge bg-secondary ms-1">{{ $sent->count() }}</span>
       @endif
     </label>
     <input type="radio" class="btn-check" name="btnradio" id="btnradio2" autocomplete="off">
-    <label class="btn btn-outline-dark flex-fill border-0 rounded-0 py-2 fw-bold shadow-none" for="btnradio2">
+    <label class="btn btn-outline-light flex-fill border-0 rounded-0 py-2 fw-bold shadow-none" for="btnradio2">
       Received
       @php $pendingReceived = $received->where('status', 'pending')->count(); @endphp
       @if($pendingReceived > 0)
