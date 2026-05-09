@@ -30,8 +30,6 @@ class LoginController extends Controller
         }
 
         $user = Auth::user();
-
-        // Log back out — must pass OTP or device check first
         Auth::logout();
 
         // ── Check for a trusted-device cookie ──────────────────────────
@@ -48,10 +46,17 @@ class LoginController extends Controller
                 $request->session()->regenerate();
 
                 if ($request->expectsJson()) {
-                    return response()->json(['redirect' => route('dashboard')]);
+                    $route = $user->role === 'admin' ? route('users') : route('dashboard');
+                    return response()->json(['redirect' => $route]);
                 }
-                return redirect()->route('dashboard');
+
+                return $user->role === 'admin'
+                    ? redirect()->route('users')
+                    : redirect()->route('dashboard');
             }
+
+            // Stale cookie — clear it
+            cookie()->queue(cookie()->forget('trusted_device'));
         }
 
         // ── New/unknown device — generate OTP ─────────────────────────
@@ -79,7 +84,7 @@ class LoginController extends Controller
     public function destroy(Request $request)
     {
         Auth::logout();
-        
+
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

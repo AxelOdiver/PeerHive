@@ -16,6 +16,7 @@ class UserSubjectQualification extends Model
         'subject_name',
         'proof_file_path',
         'status',
+        'rejection_reason',
     ];
 
     // 2. THE RELATIONSHIP

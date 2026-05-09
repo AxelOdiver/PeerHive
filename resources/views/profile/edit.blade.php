@@ -225,6 +225,12 @@ $attempts = \App\Models\UserSubjectQualification::where('user_id', auth()->id())
   @else
   <div class="alert alert-danger rounded-4 d-inline-block px-5 mb-0">
     <i class="bi bi-x-circle-fill me-2"></i> Your applications were <strong>Rejected</strong>.<br><br>
+    @if($latestQualification->rejection_reason)
+    <div class="text-start bg-body rounded-3 p-3 mb-3 border">
+      <div class="fw-semibold mb-1">Admin comment</div>
+      <div class="small">{{ $latestQualification->rejection_reason }}</div>
+    </div>
+    @endif
     <small>You have reached the maximum number of attempts (3/3). Please kindly contact admin to appeal your submission.</small>
   </div>
   @endif
@@ -239,6 +245,12 @@ $attempts = \App\Models\UserSubjectQualification::where('user_id', auth()->id())
     @if($latestQualification && $latestQualification->status === 'rejected')
     <div class="alert alert-danger rounded-3 mb-4 border-0">
       <i class="bi bi-exclamation-triangle-fill me-2"></i> Your previous application was rejected. You have <strong>{{ 3 - $attempts }}</strong> attempts remaining.
+      @if($latestQualification->rejection_reason)
+      <div class="mt-3 p-3 bg-body rounded-3 border">
+        <div class="fw-semibold mb-1">Admin comment</div>
+        <div class="small">{{ $latestQualification->rejection_reason }}</div>
+      </div>
+      @endif
     </div>
     @endif
     
@@ -310,4 +322,5 @@ data-errors="{{ json_encode($errors->all()) }}"
 data-success="{{ session('success') }}" 
 class="d-none">
 </div>
+
 @endsection

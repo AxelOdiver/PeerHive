@@ -93,11 +93,11 @@ class OtpController extends Controller
         }
 
         if ($request->expectsJson()) {
-            $response = response()->json(['redirect' => route('dashboard')]);
+            $response = response()->json( Auth::user()->role === 'admin' ? ['redirect' => route('users')] : ['redirect' => route('dashboard')]);
             return $cookie ? $response->withCookie($cookie) : $response;
         }
 
-        $redirect = redirect()->route('dashboard');
+        $redirect = Auth::user()->role === 'admin' ? redirect()->route('users') : redirect()->route('dashboard');
         return $cookie ? $redirect->withCookie($cookie) : $redirect;
     }
 

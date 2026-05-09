@@ -33,7 +33,7 @@ $(document).ready(function() {
             $('#profilePasswordStatus').text('Updated');
         }
     }
-    
+
     $.ajax({
         url: '/profile/show',
         method: 'GET',
@@ -196,5 +196,3 @@ $(document).ready(function() {
         });
     });
 });
-
-

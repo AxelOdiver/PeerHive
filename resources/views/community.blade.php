@@ -15,7 +15,7 @@
   @forelse($communities as $community)
   <div class="col-12 col-md-6 col-xl-4 mb-4">
     <div class="card border-0 shadow-sm rounded-4 p-3 h-100 w-100 position-relative">
-      @if(auth()->check() && auth()->id() === $community->user_id)
+      @if(auth()->check() && (auth()->id() === $community->user_id || auth()->user()->role === 'admin'))
       <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-3 delete-community-btn" data-id="{{ $community->id }}" title="Delete Community">
         <i class="bi bi-trash"></i>
       </button>

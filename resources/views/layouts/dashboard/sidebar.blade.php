@@ -1,5 +1,5 @@
 @php
-  $navItems = [
+  $navItemsUser = [
       [
           'href' => route('dashboard'),
           'icon' => 'bi bi-speedometer',
@@ -43,22 +43,27 @@
           'active' => request()->routeIs('community'),
       ],
     ];
-      // only admin users will see the following links
-      if (auth()->check() && auth()->user()->role === 'admin') {
-      
-      $navItems[] = [
+
+    $navItemsAdmin = [
+      [
           'href' => route('admin.qualifications'), 
           'icon' => 'bi bi-shield-lock',
           'label' => 'Approvals',
           'active' => request()->routeIs('admin.qualifications'),
-      ];
-
-      $navItems[] = [
+      ],
+      [
           'href' => route('users'),
           'icon' => 'bi bi-people',
           'label' => 'Users Data',
           'active' => request()->routeIs('users'),
-      ];
+      ]
+    
+    ];
+
+    if (auth()->check() && auth()->user()->role === 'admin') {
+      $navItems = $navItemsAdmin;
+    } else {
+      $navItems = $navItemsUser;
     }
 @endphp
 

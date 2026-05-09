@@ -32,13 +32,17 @@ class AdminQualificationController extends Controller
         }
 
         $request->validate([
-            'status' => 'required|in:approved,rejected'
+            'status' => 'required|in:approved,rejected',
+            'rejection_reason' => 'required_if:status,rejected|nullable|string|max:1000',
         ]);
 
         $qualification = UserSubjectQualification::findOrFail($id);
         
         $qualification->update([
-            'status' => $request->status
+            'status' => $request->status,
+            'rejection_reason' => $request->status === 'rejected'
+                ? $request->input('rejection_reason')
+                : null,
         ]);
 
         return back()->with('success', "Student qualification has been {$request->status}!");
