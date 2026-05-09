@@ -11,7 +11,7 @@ class CommunityController extends Controller
 {
     public function index()
     {
-        $communities = Community::with('user')->latest()->get();
+        $communities = Community::with(['user', 'members'])->latest()->get();
         return view('community', compact('communities'));
     }
 
@@ -25,11 +25,39 @@ class CommunityController extends Controller
 
         $validated['user_id'] = auth()->id();
         $community = Community::create($validated);
+        $community->members()->syncWithoutDetaching([auth()->id()]);
 
         return response()->json([
             'message' => 'Community created successfully!',
             'community' => $community,
         ], 201);
+    }
+
+    public function join(Community $community)
+    {
+        if ($community->user_id === auth()->id()) {
+            return redirect()->route('community.show', $community);
+        }
+
+        if ($community->members()->where('user_id', auth()->id())->exists()) {
+            return redirect()->route('community.show', $community);
+        }
+
+        $memberCount = $community->members()->count();
+
+        if (!$community->members()->where('user_id', $community->user_id)->exists()) {
+            $memberCount++;
+        }
+
+        if ($memberCount >= $community->member_limit) {
+            return back()->with('error', 'This community has reached its member limit.');
+        }
+
+        $community->members()->attach(auth()->id());
+
+        return redirect()
+            ->route('community.show', $community)
+            ->with('success', 'You joined the community.');
     }
     //Load the community details page
     public function show(Community $community)
@@ -66,8 +94,7 @@ class CommunityController extends Controller
     // Handle community deletion
     public function destroy(Community $community)
     {
-        // Ensure only the creator can delete the community
-        if ($community->user_id !== auth()->id()) {
+        if ($community->user_id !== auth()->id() && auth()->user()->role !== 'admin') {
             return response()->json([
                 'message' => 'Unauthorized to delete this community.',
             ], 403);
@@ -83,7 +110,7 @@ class CommunityController extends Controller
     public function update(Request $request, Community $community)
     {
         // Authorization Only the creator can edit
-    if (auth()->id() !== $community->user_id) {
+    if (auth()->id() !== $community->user_id && auth()->user()->role !== 'admin') {
             return response()->json([
                 'message' => 'You are not authorized to edit this community.'
             ], 403); 
@@ -108,7 +135,7 @@ class CommunityController extends Controller
         $community = Community::findOrFail($id);
 
         // Only the creator can edit tags
-        if (auth()->id() !== $community->user_id) {
+        if (auth()->id() !== $community->user_id && auth()->user()->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized action.'], 403); 
         }
 
@@ -146,7 +173,7 @@ class CommunityController extends Controller
     {
         $post = Post::findOrFail($id);
 
-        if (auth()->id() !== $post->user_id) {
+        if (auth()->id() !== $post->user_id && auth()->user()->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized action.'], 403);
         }
         

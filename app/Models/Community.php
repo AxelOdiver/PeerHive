@@ -31,4 +31,9 @@ class Community extends Model
     {
         return $this->hasMany(Post::class);
     }
+
+    public function members()
+    {
+        return $this->belongsToMany(User::class)->withTimestamps();
+    }
 }

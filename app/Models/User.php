@@ -63,6 +63,11 @@ class User extends Authenticatable
         return $this->hasMany(Community::class);
     }
 
+    public function joinedCommunities()
+    {
+        return $this->belongsToMany(Community::class)->withTimestamps();
+    }
+
     // Users who liked this user
     public function likedBy()
     {

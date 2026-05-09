@@ -64,6 +64,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/community', [CommunityController::class, 'index'])->name('community');
     Route::get('/community/{community}', [CommunityController::class, 'show'])->name('community.show');
     Route::post('/community', [CommunityController::class, 'store'])->name('community.store');
+    Route::post('/community/{community}/join', [CommunityController::class, 'join'])->name('community.join');
     Route::delete('/community/{community}', [CommunityController::class, 'destroy'])->name('community.destroy');
     Route::put('/community/{community}', [CommunityController::class, 'update'])->name('community.update');
     Route::put('/community/{id}/tags', [CommunityController::class, 'updateTags'])->name('community.tags.update');

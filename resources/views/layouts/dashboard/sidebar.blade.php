@@ -56,6 +56,12 @@
           'icon' => 'bi bi-people',
           'label' => 'Users Data',
           'active' => request()->routeIs('users'),
+      ],
+      [
+          'href' => route('community'),
+          'icon' => 'bi bi-diagram-3',
+          'label' => 'Community',
+          'active' => request()->routeIs('community'),
       ]
     
     ];

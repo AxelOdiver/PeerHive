@@ -3,6 +3,9 @@
 @section('title', 'Community')
 
 @section('content')
+@php
+  $isCommunityManager = auth()->check() && (auth()->id() === $community->user_id || auth()->user()->role === 'admin');
+@endphp
 <div class="container-fluid py-4">
   <a href="{{ route('community') }}" class="btn btn-primary mb-4">
     <i class="bi bi-arrow-left"></i> Back to Communities
@@ -14,7 +17,7 @@
       <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
         <div class="d-flex justify-content-between align-items-start mb-3">
           <h3 class="fw-bold mb-2">{{ $community->name }}</h3>
-          @if(auth()->check() && auth()->id() === $community->user_id || auth()->user()->role === 'admin')
+          @if($isCommunityManager)
           <button type="button" id="editDescriptionBtn" data-id="{{ $community->id }}" class="btn btn-sm btn-primary justify-content-end d-flex align-items-center ms-auto">Edit</button>
           @endif
         </div>
@@ -23,7 +26,7 @@
         <div id="descriptionViewMode">
           <p class="lead mb-0" id="descriptionText">{{ $community->description }}</p>
         </div>
-        @if(auth()->check() && auth()->id() === $community->user_id || auth()->user()->role === 'admin')
+        @if($isCommunityManager)
         <div id="descriptionEditMode" style="display:none;">
           <textarea name="description" 
           id="descriptionInput"
@@ -40,7 +43,7 @@
         <!-- Tags section -->
         <div class="d-flex align-items-center mt-2 pt-2 flex-wrap gap-2">
           <span class="text-muted small me-1">Tags:</span>
-          @if(auth()->check() && (auth()->id() === $community->user_id || auth()->user()->role === 'admin'))
+          @if($isCommunityManager)
           <button class="btn btn-sm btn-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#editTagsModal">
             <i class="bi bi-pencil-fill me-1"></i> Edit Tags
           </button>
@@ -97,8 +100,8 @@
         <div class="d-flex justify-content-between align-items-start mb-2">
           <h5 class="fw-bold mb-0 text-body-emphasis">{{ $post->title }}</h5>
           
-          <!-- Post Delete Button (only for post owner) -->
-          @if(auth()->check() && auth()->id() === $post->user_id)
+          <!-- Post Delete Button (post owner or admin) -->
+          @if(auth()->check() && (auth()->id() === $post->user_id || auth()->user()->role === 'admin'))
           <button type="button" class="btn btn-sm btn-danger top-0 end-0 text-decoration-none delete-post-btn" title="Delete Post" data-url="{{ route('posts.destroy', $post->id) }}">
             <i class="bi bi-trash"></i>
           </button>
