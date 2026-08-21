@@ -13,6 +13,7 @@ class Community extends Model
         'name',
         'subject',
         'description',
+        'visibility',
         'member_limit',
         'user_id',
         'tags',

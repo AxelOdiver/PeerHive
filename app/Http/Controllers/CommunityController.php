@@ -21,6 +21,7 @@ class CommunityController extends Controller
             'name' => 'required|string|max:255',
             'subject' => 'required|string|in:Coding,Foreign Language,Graphic Designing',
             'member_limit' => 'required|integer|min:3|max:25',
+            'visibility' => 'required|in:public,private',
         ]);
 
         $validated['user_id'] = auth()->id();
@@ -43,6 +44,19 @@ class CommunityController extends Controller
             return redirect()->route('community.show', $community);
         }
 
+        if ($community->visibility === 'private') {
+            
+            $isCreator = auth()->id() === $community->user_id;
+            $isMember = $community->members()->where('user_id', auth()->id())->exists();
+            $isAdmin = auth()->user()->role === 'admin';
+
+            // If they are NOT the creator AND NOT a member, kick them out
+            if (!$isCreator && !$isMember && !$isAdmin) {
+                return redirect()->route('community')
+                    ->with('error', 'This community is private. You must be invited to view it.');
+            }
+        }
+
         $memberCount = $community->members()->count();
 
         if (!$community->members()->where('user_id', $community->user_id)->exists()) {
@@ -59,10 +73,23 @@ class CommunityController extends Controller
             ->route('community.show', $community)
             ->with('success', 'You joined the community.');
     }
+    
     //Load the community details page
     public function show(Community $community)
     {
-        // We load the creator, the posts (newest first), the post authors, and comments
+        //Block non-members from viewing private communities
+        if ($community->visibility === 'private') {
+            $isCreator = auth()->id() === $community->user_id;
+            $isMember = $community->members()->where('user_id', auth()->id())->exists();
+            $isAdmin = auth()->user()->role === 'admin';
+
+            if (!$isCreator && !$isMember && !$isAdmin) {
+                return redirect()->route('dashboard')
+                    ->with('error', 'This community is private. You must be invited to view it.');
+            }
+        }
+
+        //load the creator and the posts (newest first)
         $community->load(['user', 'posts' => function($query) {
             $query->latest(); 
         }, 'posts.user', 'posts.comments']);

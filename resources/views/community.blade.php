@@ -36,24 +36,34 @@
       <p class="text-muted mb-2">{{ str()->limit($community->description ?? 'No description available.', 150) }}</p>
       
       <div class="mt-auto pt-2">
-        <div class="d-flex flex-wrap gap-2 align-items-start mb-3">
-          <span class="badge bg-secondary-subtle text-secondary-emphasis px-3 py-2 rounded-pill">
+        <div class="d-flex flex-wrap gap-2 align-items-start mb-2">
+          <span class="badge bg-secondary px-3 py-2 rounded-pill">
             <i class="bi bi-book-half me-1"></i> {{ $community->subject }}
           </span>
+        
+        @if($community->visibility === 'private')
+          <span class="badge bg-danger text-white rounded-pill px-3 py-2">
+            <i class="bi bi-lock-fill me-1"></i> Private
+          </span>
+          @else
+          <span class="badge bg-success text-white rounded-pill px-3 py-2">
+            <i class="bi bi-globe me-1"></i> Public
+          </span>
+        @endif
         </div>
         
         <span class="badge bg-secondary mb-2 p-2"><i class="bi bi-people-fill me-1"></i>Limit: {{ $community->member_limit }} members</span>
         @if($isMember || $isAdmin)
-          <a href="{{ route('community.show', $community->id) }}" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2 d-block text-center text-decoration-none">
-            View Community
-          </a>
+        <a href="{{ route('community.show', $community->id) }}" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2 d-block text-center text-decoration-none">
+          View Community
+        </a>
         @else
-          <form action="{{ route('community.join', $community) }}" method="POST">
-            @csrf
-            <button type="submit" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2">
-              Join Community
-            </button>
-          </form>
+        <form action="{{ route('community.join', $community) }}" method="POST">
+          @csrf
+          <button type="submit" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2">
+            Join Community
+          </button>
+        </form>
         @endif
       </div>
     </div>
@@ -74,6 +84,11 @@
       <input type="text" class="form-control mt-3" id="editCommunityName" name="name" placeholder="Community Name" required>
       <label for="editCommunityName">Community Name</label>
     </div>
+    
+    <select name="visibility" id="visibilityInput" class="form-select mt-3 p-3" required>
+      <option value="public">Public (Anyone can view and join)</option>
+      <option value="private">Private (Only invited members can view)</option>
+    </select> 
     
     <select name="subject" id="subjectInput" class="form-select mt-3 p-3" required>
       <option value="" selected disabled>Choose a Subject...</option>

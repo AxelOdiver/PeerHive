@@ -1,4 +1,4 @@
-// Helper: build shared SweetAlert options that match the active theme
+// shared SweetAlert options that match the active theme
 function swapSwalOptions(overrides = {}) {
   const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
 

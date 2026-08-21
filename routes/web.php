@@ -13,6 +13,7 @@ use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\CommunityController;
 use App\Http\Controllers\QualificationController;
 use App\Http\Controllers\AdminQualificationController;
+use App\Http\Controllers\CommunityInviteController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -69,6 +70,10 @@ Route::middleware('auth')->group(function () {
     Route::put('/community/{community}', [CommunityController::class, 'update'])->name('community.update');
     Route::put('/community/{id}/tags', [CommunityController::class, 'updateTags'])->name('community.tags.update');
     Route::post('/community/{id}/posts', [CommunityController::class, 'storePost'])->name('community.posts.store');
+    Route::post('/communities/{community}/invite', [CommunityInviteController::class, 'store'])->name('community.invite.store');
+    Route::post('/invites/{invite}/accept', [CommunityInviteController::class, 'accept'])->name('community.invite.accept');
+    Route::post('/invites/{invite}/decline', [CommunityInviteController::class, 'decline'])->name('community.invite.decline');
+    Route::post('/invite', [CommunityInviteController::class, 'sendInvite'])->name('invite.send');
     Route::post('/posts/{id}/comments', [CommunityController::class, 'storeComment'])->name('comments.store');
     Route::delete('/posts/{id}', [CommunityController::class, 'destroyPost'])->name('posts.destroy');
     Route::delete('/comments/{id}', [CommunityController::class, 'destroyComment'])->name('comments.destroy');

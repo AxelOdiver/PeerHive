@@ -97,4 +97,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(Post::class);
     }
+
+    // Fetch all invites for this user that are currently pending
+    public function pendingInvites()
+    {
+        return $this->hasMany(CommunityInvite::class)->where('status', 'pending');
+    }
 }
