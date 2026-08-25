@@ -220,4 +220,24 @@ class CommunityController extends Controller
         $comment->delete();
         return response()->json(['message' => 'Comment deleted successfully.']);
     }
+
+    public function removeMember($communityId, $userId)
+    {
+        $community = \App\Models\Community::findOrFail($communityId);
+
+        // Security check: Only the creator or an admin can remove members
+        if (auth()->id() !== $community->user_id && auth()->user()->role !== 'admin') {
+            return response()->json(['message' => 'You do not have permission to remove members.'], 403);
+        }
+
+        // Prevent the creator from accidentally removing themselves
+        if (auth()->id() == $userId) {
+            return response()->json(['message' => 'You cannot remove yourself from your own community.'], 400);
+        }
+
+        // Instantly remove the student using your existing pivot table
+        $community->members()->detach($userId);
+
+        return response()->json(['message' => 'Member removed successfully.']);
+    }
 }

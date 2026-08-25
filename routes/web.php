@@ -74,6 +74,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/invites/{invite}/accept', [CommunityInviteController::class, 'accept'])->name('community.invite.accept');
     Route::post('/invites/{invite}/decline', [CommunityInviteController::class, 'decline'])->name('community.invite.decline');
     Route::post('/invite', [CommunityInviteController::class, 'sendInvite'])->name('invite.send');
+    Route::get('/users/search', [CommunityInviteController::class, 'searchUsers'])->name('users.search');
+    Route::delete('/community/{community}/member/{user}', [CommunityController::class, 'removeMember'])->name('community.removeMember');
     Route::post('/posts/{id}/comments', [CommunityController::class, 'storeComment'])->name('comments.store');
     Route::delete('/posts/{id}', [CommunityController::class, 'destroyPost'])->name('posts.destroy');
     Route::delete('/comments/{id}', [CommunityController::class, 'destroyComment'])->name('comments.destroy');

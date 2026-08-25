@@ -13,7 +13,9 @@ $isCommunityManager = auth()->check() && (auth()->id() === $community->user_id |
   
   <!-- Main content area with community details -->
   <div class="row align-items-stretch g-3 mb-4">
-    <div class="col-12 col-xl-8">
+    
+    <!-- TOP LEFT: Community Description -->
+    <div class="col-12 col-lg-8">
       <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
         <div class="d-flex justify-content-between align-items-start mb-3">
           <h3 class="fw-bold mb-2">{{ $community->name }}</h3>
@@ -22,17 +24,13 @@ $isCommunityManager = auth()->check() && (auth()->id() === $community->user_id |
           @endif
         </div>
         
-        <!-- Description section with view and edit modes -->
         <div id="descriptionViewMode">
           <p class="lead mb-0" id="descriptionText">{{ $community->description }}</p>
         </div>
+        
         @if($isCommunityManager)
         <div id="descriptionEditMode" style="display:none;">
-          <textarea name="description" 
-          id="descriptionInput"
-          class="form-control form-control-lg" 
-          rows="8" 
-          placeholder="Enter your description">{{ old('description', $community->description) }}</textarea>
+          <textarea name="description" id="descriptionInput" class="form-control form-control-lg" rows="8" placeholder="Enter your description">{{ old('description', $community->description) }}</textarea>
           <div class="d-flex justify-content-end gap-2">
             <button type="button" id="cancelEditBtn" class="btn btn-sm btn-secondary mt-2 px-4">Cancel</button>
             <button type="button" id="saveEditBtn" class="btn btn-sm btn-primary mt-2 px-4">Save</button>
@@ -40,7 +38,6 @@ $isCommunityManager = auth()->check() && (auth()->id() === $community->user_id |
         </div>
         @endif  
         
-        <!-- Tags section -->
         <div class="d-flex align-items-center mt-2 pt-2 flex-wrap gap-2">
           <span class="text-muted small me-1">Tags:</span>
           @if($isCommunityManager)
@@ -50,22 +47,20 @@ $isCommunityManager = auth()->check() && (auth()->id() === $community->user_id |
           @endif
           <div class="d-flex flex-wrap gap-2">
             @if($community->tags && count($community->tags) > 0)
-            @foreach($community->tags as $tag)
-            <span class="badge bg-secondary-subtle text-secondary-emphasis px-3 py-2 rounded-pill">
-              {{ $tag }}
-            </span>
-            @endforeach
+              @foreach($community->tags as $tag)
+              <span class="badge bg-secondary-subtle text-secondary-emphasis px-3 py-2 rounded-pill">{{ $tag }}</span>
+              @endforeach
             @else
-            <span class="text-muted fst-italic small">No tags selected yet.</span>
+              <span class="text-muted fst-italic small">No tags selected yet.</span>
             @endif
           </div>
         </div>
       </div>
     </div>
     
-    <!-- Right column with community details -->
-    <div class="col-12 col-xl-4">
-      <div class="card border-0 shadow-sm rounded-4 p-4">
+    <!-- TOP RIGHT: Community Info -->
+    <div class="col-12 col-lg-4">
+      <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
         <h3 class="fw-bold">{{ $community->name }}</h3>
         <div class="text-muted mb-3">
           <i class="bi bi-person-circle me-1"></i> Created by {{ $community->user?->first_name }} {{ $community->user?->last_name ?? 'Unknown' }}
@@ -77,7 +72,6 @@ $isCommunityManager = auth()->check() && (auth()->id() === $community->user_id |
             <span class="badge bg-secondary-subtle text-secondary-emphasis px-3 py-2 rounded-pill">
               <i class="bi bi-book-half me-1"></i> {{ $community->subject }}
             </span>
-            
             @if($community->visibility === 'private')
             <span class="badge bg-danger text-white rounded-pill px-3 py-2">
               <i class="bi bi-lock-fill me-1"></i> Private
@@ -92,30 +86,67 @@ $isCommunityManager = auth()->check() && (auth()->id() === $community->user_id |
       </div>
     </div>
     
-    <!-- Invite peers section, visible only to community creators -->
-    @if(auth()->id() === $community->user_id || auth()->user()->role === 'admin')
-    <div class="card border-0 shadow-sm rounded-4 mt-4">
-      <div class="card-header border-bottom-0 pt-3 pb-0">
-        <h6 class="mb-0 fw-bold"><i class="bi bi-person-plus-fill me-2"></i>Invite Peers</h6>
-      </div>
-      <div class="card-body">
-        <form action="{{ route('invite.send') }}" method="POST">
-          @csrf
-          <input type="hidden" name="community_id" value="{{ $community->id }}">
-          
-          <div class="mb-3">
-            <label for="peerEmail" class="form-label small text-muted">Student's Email</label>
-            <div class="input-group input-group-sm">
-              <span class="input-group-text border-end-0"><i class="bi bi-envelope"></i></span>
-              <input type="email" class="form-control border-start-0 ps-0" id="peerEmail" name="email" placeholder="student@example.com" required>
+    <!-- BOTTOM LEFT: Members List -->
+    <div class="col-12 col-lg-8">
+      <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+        <h5 class="fw-bold mb-3"><i class="bi bi-people me-2"></i> Members ({{ $community->members->count() ?? 0 }})</h5>
+        
+        <div class="d-flex flex-column gap-2 pe-1" style="max-height: 110px; overflow-y: auto;">
+          @forelse($community->members as $member)
+            <div class="d-flex justify-content-between align-items-center p-2 border border-secondary-subtle rounded-3">
+              <div class="d-flex align-items-center">
+                <div class="bg-primary-subtle rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                  <span class="text-primary fw-bold small">{{ substr($member->first_name, 0, 1) }}</span>
+                </div>
+                <span class="fw-medium small text-truncate" style="max-width: 120px;">
+                  {{ $member->first_name }} {{ $member->last_name }}
+                </span>
+                @if($member->id === $community->user_id)
+                  <span class="badge bg-primary-subtle text-primary ms-2" style="font-size: 0.65rem;">Creator</span>
+                @endif
+              </div>
+              @if($isCommunityManager && $member->id !== $community->user_id)
+                <button class="btn btn-sm btn-danger remove-member-btn px-2 py-1" 
+                        data-url="{{ route('community.removeMember', ['community' => $community->id, 'user' => $member->id]) }}">
+                    <i class="bi bi-person-x"></i>
+                </button>
+              @endif
             </div>
-          </div>
-          <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">Send Invite</button>
-        </form>
+          @empty
+            <p class="text-muted small fst-italic mb-0 text-center py-2">No members have joined yet.</p>
+          @endforelse
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM RIGHT: Invite Peers -->
+    @if($isCommunityManager)
+    <div class="col-12 col-lg-4">
+      <div class="card border-0 shadow-sm rounded-4 p-4 h-100" id="inviteSearchWrapper">
+        <h5 class="fw-bold mb-3"><i class="bi bi-person-plus-fill me-2"></i>Invite Peers</h5>
+        
+        <div class="d-flex flex-column h-100">
+          <form action="{{ route('invite.send') }}" method="POST" class="mt-auto">
+            @csrf
+            <input type="hidden" name="community_id" value="{{ $community->id }}">
+            <input type="hidden" name="user_id" id="inviteUserId" required>
+            
+            <div class="mb-3 position-relative">
+              <label for="inviteSearchInput" class="form-label small text-muted">Search Student</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text border-end-0"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control border-start-0 ps-2" id="inviteSearchInput" placeholder="Search students..." autocomplete="off">
+              </div>
+              <div id="inviteDropdown" class="dropdown-menu w-100 shadow-sm" style="display: none; position: absolute; top: 100%; z-index: 1050;"></div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold rounded-pill">Send Invite</button>
+          </form>
+        </div>
       </div>
     </div>
     @endif
-    
+  </div>
+      
     <!-- Full-width section for posts, files, or chat features -->
     <div class="card border-0 shadow-sm rounded-4 mb-4 mt-4">
       <div class="card-body p-4 border-bottom border-secondary-subtle">

@@ -35,30 +35,77 @@ class CommunityInviteController extends Controller
         return back()->with('success', 'Invitation sent successfully!');
     }
 
-    public function sendInvite(\Illuminate\Http\Request $request)
+    public function searchUsers(Request $request)
+    {
+        $search = $request->get('q');
+        
+        // Search first_name or last_name
+        $users = User::where(function($query) use ($search) {
+                $query->where('first_name', 'like', "%{$search}%")
+                      ->orWhere('last_name', 'like', "%{$search}%");
+            })
+            ->where('id', '!=', auth()->id())
+            ->select('id', 'first_name', 'last_name', 'email') 
+            ->take(5)
+            ->get();
+
+        $formattedUsers = $users->map(function($user) {
+            return [
+                'id' => $user->id,
+                'name' => $user->first_name . ' ' . $user->last_name,
+                'email' => $user->email
+            ];
+        });
+
+        return response()->json($formattedUsers);
+    }
+
+    public function sendInvite(Request $request)
     {
         $request->validate([
-            'email' => 'required|email|exists:users,email',
+            'user_id' => 'required|exists:users,id',
             'community_id' => 'required|exists:communities,id'
         ], [
-            'email.exists' => 'We could not find a student with that email address.'
+            'user_id.required' => 'Please select a student from the search results.'
         ]);
 
-        $invitedUser = \App\Models\User::where('email', $request->email)->first();
+        $invitedUser = User::findOrFail($request->user_id);
 
         if ($invitedUser->id === auth()->id()) {
             return back()->with('error', 'You cannot invite yourself.');
         }
 
-        $existingInvite = \App\Models\CommunityInvite::where('user_id', $invitedUser->id)
+        // 1. Verify TRUE membership by checking the pivot table
+        $community = Community::findOrFail($request->community_id);
+        $isAlreadyMember = $community->members()->where('user_id', $invitedUser->id)->exists();
+
+        // 2. Look up their historical invite record
+        $existingInvite = CommunityInvite::where('user_id', $invitedUser->id)
             ->where('community_id', $request->community_id)
             ->first();
 
         if ($existingInvite) {
-            return back()->with('error', 'This student has already been invited.');
+            // Block if they already have an active invite waiting
+            if ($existingInvite->status === 'pending') {
+                return back()->with('error', 'This student already has a pending invite waiting for a response.');
+            }
+            
+            // Block ONLY if the invite says accepted AND they are actually in the group
+            if ($existingInvite->status === 'accepted' && $isAlreadyMember) {
+                return back()->with('error', 'This student is already a member of the community.');
+            }
+
+            // RECYCLE THE ROW: If they declined previously, OR if they were removed by the creator
+            if ($existingInvite->status === 'declined' || ($existingInvite->status === 'accepted' && !$isAlreadyMember)) {
+                $existingInvite->update([
+                    'status' => 'pending'
+                ]);
+                return back()->with('success', 'Invitation resent successfully!');
+            }
         }
 
-        \App\Models\CommunityInvite::create([
+        // 3. If they have never been invited before, create a brand new row
+        CommunityInvite::create([
             'user_id' => $invitedUser->id,
             'community_id' => $request->community_id,
             'status' => 'pending'

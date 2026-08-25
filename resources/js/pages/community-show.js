@@ -146,43 +146,158 @@ $(document).ready(function () {
             }
         });
     });
-
+    
     // --- DELETE POST OR COMMENT METHOD ---
-  $(document).on('click', '.delete-post-btn, .delete-comment-btn', async function(e) {
-    e.preventDefault(); 
+    $(document).on('click', '.delete-post-btn, .delete-comment-btn', async function(e) {
+        e.preventDefault(); 
+        
+        const $btn = $(this).closest('button');
+        const url = $btn.data('url');
+        
+        // Determine if we clicked a post or a comment for the alert text
+        const itemType = $btn.hasClass('delete-post-btn') ? 'post' : 'comment';
+        
+        const result = await window.confirmAction(
+            `Are you sure you want to delete this ${itemType}? This action cannot be undone.`,
+            `Delete ${itemType.charAt(0).toUpperCase() + itemType.slice(1)}?`
+        );
+        
+        if (result.isConfirmed) {
+            $.ajax({
+                url: url,
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                },
+                success: function (response) {
+                    // Capitalize the first letter for the success toast
+                    const capitalizedType = itemType.charAt(0).toUpperCase() + itemType.slice(1);
+                    window.toast('success', response.message || `${capitalizedType} deleted successfully.`);
+                    
+                    // Reload the page to show the item is gone
+                    setTimeout(() => location.reload(), 1000);
+                },
+                error: function (xhr) {
+                    const errorMessage = xhr.responseJSON?.message || `Failed to delete ${itemType}.`;
+                    window.toast('error', errorMessage);
+                },
+            });
+        }
+    });
     
-    const $btn = $(this).closest('button');
-    const url = $btn.data('url');
+    // --- INVITE PEER SEARCH AJAX ---
+    let searchTimeout = null;
+    const $searchInput = $('#inviteSearchInput');
+    const $userIdInput = $('#inviteUserId');
+    const $dropdown = $('#inviteDropdown');
+    const $searchWrapper = $('#inviteSearchWrapper');
     
-    // Determine if we clicked a post or a comment for the alert text
-    const itemType = $btn.hasClass('delete-post-btn') ? 'post' : 'comment';
-    
-    const result = await window.confirmAction(
-      `Are you sure you want to delete this ${itemType}? This action cannot be undone.`,
-      `Delete ${itemType.charAt(0).toUpperCase() + itemType.slice(1)}?`
-    );
-    
-    if (result.isConfirmed) {
-      $.ajax({
-        url: url,
-        method: 'DELETE',
-        headers: {
-          'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
-        },
-        success: function (response) {
-          // Capitalize the first letter for the success toast
-          const capitalizedType = itemType.charAt(0).toUpperCase() + itemType.slice(1);
-          window.toast('success', response.message || `${capitalizedType} deleted successfully.`);
-          
-          // Reload the page to show the item is gone
-          setTimeout(() => location.reload(), 1000);
-        },
-        error: function (xhr) {
-          const errorMessage = xhr.responseJSON?.message || `Failed to delete ${itemType}.`;
-          window.toast('error', errorMessage);
-        },
-      });
+    // Only run this if the user actually has the invite form rendered on their screen
+    if ($searchInput.length) {
+        $searchInput.on('input', function() {
+            clearTimeout(searchTimeout);
+            let query = $(this).val().trim();
+            
+            // Clear hidden ID if they delete the search text
+            if (query.length === 0) {
+                $userIdInput.val('');
+            }
+            
+            // Wait for at least 2 characters before hitting the database
+            if (query.length < 2) {
+                $dropdown.hide();
+                return;
+            }
+            
+            // Debounce the AJAX call to prevent server spam
+            searchTimeout = setTimeout(() => {
+                $.ajax({
+                    url: '/users/search',
+                    method: 'GET',
+                    data: { q: query },
+                    dataType: 'json',
+                    success: function(users) {
+                        $dropdown.empty();
+                        
+                        if (users.length === 0) {
+                            $dropdown.append('<div class="p-2 text-muted small text-center">No students found.</div>');
+                        } else {
+                            users.forEach(user => {
+                                // Build the dropdown item using jQuery syntax
+                                const $item = $('<a>', {
+                                    href: '#',
+                                    class: 'dropdown-item py-2 border-bottom',
+                                    html: `<div class="fw-bold fs-6">${user.name}</div><div class="small text-muted">${user.email}</div>`
+                                });
+                                
+                                // Click event to select the peer
+                                $item.on('click', function(e) {
+                                    e.preventDefault();
+                                    $searchInput.val(user.name);
+                                    $userIdInput.val(user.id);
+                                    $dropdown.hide();
+                                });
+                                
+                                $dropdown.append($item);
+                            });
+                        }
+                        $dropdown.show();
+                    },
+                    error: function(xhr) {
+                        console.error('Failed to fetch students:', xhr);
+                        window.toast('error', 'Could not load search results.');
+                    }
+                });
+            }, 300);
+        });
+        
+        // Close dropdown if the user clicks anywhere outside of the search wrapper
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('#inviteSearchWrapper').length) {
+                $dropdown.hide();
+            }
+        });
     }
-  });
     
+    // --- REMOVE MEMBER AJAX LOGIC ---
+    $(document).on('click', '.remove-member-btn', async function(e) {
+        e.preventDefault(); 
+        
+        const $btn = $(this);
+        const url = $btn.data('url');
+        
+        // Trigger your custom confirmation alert
+        const result = await window.confirmAction(
+            'Are you sure you want to remove this student from the community?',
+            'Remove Member?'
+        );
+        
+        if (result.isConfirmed) {
+            // Show a loading spinner on the button
+            const originalContent = $btn.html();
+            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+            
+            $.ajax({
+                url: url,
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                },
+                success: function (response) {
+                    window.toast('success', response.message || 'Member removed successfully.');
+                    
+                    // Reload the page to refresh the member list after 1 second
+                    setTimeout(() => location.reload(), 1000);
+                },
+                error: function (xhr) {
+                    const errorMessage = xhr.responseJSON?.message || 'Failed to remove member.';
+                    window.toast('error', errorMessage);
+                    
+                    // Reset button if it fails
+                    $btn.prop('disabled', false).html(originalContent);
+                },
+            });
+        }
+    });
+
 });
