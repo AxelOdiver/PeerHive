@@ -120,6 +120,10 @@ $(document).ready(function() {
         const file = e.target.files[0];
         
         if (file) {
+            // Instantly reveal the remove button without a page refresh
+            $('#removePictureForm').removeClass('d-none');
+            
+            // Create a live preview of the newly selected image
             const reader = new FileReader();
             
             reader.onload = function(event) {
@@ -150,7 +154,7 @@ $(document).ready(function() {
             url: $(this).attr('action'),
             method: 'POST',
             data: formData,
-            processData: false, // Required for file uploads
+            processData: false, 
             contentType: false, // Required for file uploads
             headers: {
                 'Accept': 'application/json',
@@ -168,7 +172,6 @@ $(document).ready(function() {
                         confirmButton: 'btn btn-primary px-4'
                     }
                 }).then(() => {
-                    // Reload the page ONLY after they click "Awesome" to show the yellow "Pending" box
                     window.location.reload(); 
                 });
             },
@@ -176,7 +179,6 @@ $(document).ready(function() {
                 // Catch Laravel Validation Errors (like File Too Large)
                 if (xhr.status === 422) {
                     const errors = xhr.responseJSON.errors;
-                    // Combine all error arrays into a single string
                     const errorMessages = Object.values(errors).map(err => err.join('\n')).join('\n');
 
                     window.Swal.fire({
@@ -195,4 +197,19 @@ $(document).ready(function() {
             }
         });
     });
+
+    $(document).on('click', '#removePictureBtn', async function(e) {
+        e.preventDefault(); 
+        
+        const result = await window.confirmAction(
+            'Are you sure you want to remove your profile picture? This cannot be undone.',
+            'Remove Profile Picture?'
+        );
+        
+        // If they click confirm, submit the form to the backend
+        if (result.isConfirmed) {
+            $('#removePictureForm').submit();
+        }
+    });
+
 });

@@ -240,4 +240,25 @@ class CommunityController extends Controller
 
         return response()->json(['message' => 'Member removed successfully.']);
     }
+
+    public function leaveCommunity($communityId)
+    {
+        $community = \App\Models\Community::findOrFail($communityId);
+        $userId = auth()->id();
+
+        // Prevent the creator from leaving (they should delete the community instead)
+        if ($community->user_id === $userId) {
+            return response()->json(['message' => 'As the creator, you cannot leave the community. You must delete it instead.'], 400);
+        }
+
+        // Verify they are actually a member
+        if (!$community->members()->where('user_id', $userId)->exists()) {
+            return response()->json(['message' => 'You are not a member of this community.'], 400);
+        }
+
+        // Remove the user from the pivot table
+        $community->members()->detach($userId);
+
+        return response()->json(['message' => 'You have successfully left the community.']);
+    }
 }

@@ -227,3 +227,65 @@ div.dt-container .dt-button.btn {
     text-align: center;
   }
 
+  .availability-tile {
+    border: 1px solid var(--bs-border-color);
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    border-radius: 0.75rem;
+    min-height: 140px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, background-color .15s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  
+  .availability-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .08);
+  }
+  
+  .availability-tile.active {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 .2rem rgba(var(--bs-primary-rgb), .15);
+  }
+  
+  .availability-day {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: .5rem;
+  }
+  
+  .availability-status {
+    font-size: .875rem;
+    opacity: .8;
+    margin-bottom: .5rem;
+  }
+  
+  .availability-time {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--bs-primary);
+    word-break: break-word;
+  }
+  
+  .availability-empty {
+    color: var(--bs-secondary-color);
+    font-weight: 500;
+  }
+  
+  @media (max-width: 575.98px) {
+    .availability-tile {
+      min-height: 120px;
+      padding: .875rem;
+    }
+    
+    .availability-day {
+      font-size: .95rem;
+    }
+    
+    .availability-time {
+      font-size: .95rem;
+    }
+  }

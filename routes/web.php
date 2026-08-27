@@ -76,6 +76,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/invite', [CommunityInviteController::class, 'sendInvite'])->name('invite.send');
     Route::get('/users/search', [CommunityInviteController::class, 'searchUsers'])->name('users.search');
     Route::delete('/community/{community}/member/{user}', [CommunityController::class, 'removeMember'])->name('community.removeMember');
+    Route::delete('/community/{community}/leave', [CommunityController::class, 'leaveCommunity'])->name('community.leave');
     Route::post('/posts/{id}/comments', [CommunityController::class, 'storeComment'])->name('comments.store');
     Route::delete('/posts/{id}', [CommunityController::class, 'destroyPost'])->name('posts.destroy');
     Route::delete('/comments/{id}', [CommunityController::class, 'destroyComment'])->name('comments.destroy');
@@ -87,6 +88,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
     Route::get('/profile/show', [ProfileController::class, 'show'])->name('profile.show');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile/picture', [ProfileController::class, 'removePicture'])->name('profile.picture.remove');
 
     // Public profile page for any user
     Route::get('/users/{user}/profile', [ProfileController::class, 'showUser'])->name('users.profile');

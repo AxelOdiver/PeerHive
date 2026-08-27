@@ -23,15 +23,25 @@ $(document).ready(function () {
             return;
         }
 
-        const html = users.map((user) => `
+        const html = users.map((user) => {
+            //TO DETERMINE: If user has profile picture, show it. Otherwise, show initials in a circle with a background color.
+            let avatarHtml = '';
+            if (user.profile_picture) {
+                avatarHtml = `<img src="/storage/${escapeHtml(user.profile_picture)}" alt="${escapeHtml(user.name)}" class="search-avatar rounded-circle object-fit-cover shadow-sm">`;
+            } else {
+                avatarHtml = `<div class="search-avatar bg-primary text-light d-flex align-items-center justify-content-center fw-bold">${escapeHtml(user.initials)}</div>`;
+            }
+
+            return `
             <a href="${user.url}" class="search-item d-flex align-items-center gap-2 text-decoration-none">
-                <div class="search-avatar">${escapeHtml(user.initials)}</div>
+                ${avatarHtml}
                 <div class="search-item-text overflow-hidden">
                     <div class="search-item-title">${escapeHtml(user.name)}</div>
                     <div class="search-item-sub text-truncate">${escapeHtml(user.availability)}</div>
                 </div>
             </a>
-        `).join('');
+            `;
+        }).join('');
 
         openDropdown(html);
     }

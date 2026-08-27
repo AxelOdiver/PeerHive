@@ -223,11 +223,27 @@ $(document).ready(function () {
                             $dropdown.append('<div class="p-2 text-muted small text-center">No students found.</div>');
                         } else {
                             users.forEach(user => {
-                                // Build the dropdown item using jQuery syntax
+                                // 1. Determine which avatar to show (Picture or Initial)
+                                let avatarHtml = '';
+                                if (user.profile_picture) {
+                                    avatarHtml = `<img src="/storage/${user.profile_picture}" alt="${user.name}" class="rounded-circle object-fit-cover shadow-sm" style="width: 32px; height: 32px;">`;
+                                } else {
+                                    avatarHtml = `<div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                                    <span class="text-light fw-bold small">${user.name.charAt(0).toUpperCase()}</span>
+                                                  </div>`;
+                                }
+
+                                // 2. Build the dropdown item using jQuery syntax with the avatar included
                                 const $item = $('<a>', {
                                     href: '#',
-                                    class: 'dropdown-item py-2 border-bottom',
-                                    html: `<div class="fw-bold fs-6">${user.name}</div><div class="small text-muted">${user.email}</div>`
+                                    class: 'dropdown-item py-2 border-bottom d-flex align-items-center gap-3',
+                                    html: `
+                                        ${avatarHtml}
+                                        <div>
+                                            <div class="fw-bold fs-6 mb-0" style="line-height: 1.2;">${user.name}</div>
+                                            <div class="small text-muted">${user.email}</div>
+                                        </div>
+                                    `
                                 });
                                 
                                 // Click event to select the peer
@@ -294,6 +310,45 @@ $(document).ready(function () {
                     window.toast('error', errorMessage);
                     
                     // Reset button if it fails
+                    $btn.prop('disabled', false).html(originalContent);
+                },
+            });
+        }
+    });
+
+    // --- LEAVE COMMUNITY AJAX LOGIC ---
+    $(document).on('click', '.leave-community-btn', async function(e) {
+        e.preventDefault(); 
+        
+        const $btn = $(this);
+        const url = $btn.data('url');
+        
+        const result = await window.confirmAction(
+            'Are you sure you want to leave this community?',
+            'Leave Community?'
+        );
+        
+        if (result.isConfirmed) {
+            const originalContent = $btn.html();
+            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+            
+            $.ajax({
+                url: url,
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                },
+                success: function (response) {
+                    window.toast('success', response.message || 'You have left the community.');
+                    
+                    // Redirect back to the main communities hub after 1.5 seconds
+                    setTimeout(() => {
+                        window.location.href = '/community'; 
+                    }, 1500);
+                },
+                error: function (xhr) {
+                    const errorMessage = xhr.responseJSON?.message || 'Failed to leave community.';
+                    window.toast('error', errorMessage);
                     $btn.prop('disabled', false).html(originalContent);
                 },
             });

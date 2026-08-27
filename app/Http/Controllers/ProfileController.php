@@ -74,4 +74,26 @@ class ProfileController extends Controller
             'user'    => $user,
         ]);
     }
+
+    public function removePicture()
+    {
+        $user = auth()->user();
+
+        // Check if the user actually has a picture to remove
+        if ($user->profile_picture) {
+            
+            // Delete the physical file from the storage folder
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($user->profile_picture);
+            
+            // Clear the column in the database
+            $user->update([
+                'profile_picture' => null
+            ]);
+
+            return back()->with('success', 'Profile picture removed successfully.');
+        }
+
+        return back()->with('error', 'No profile picture found to remove.');
+    }
+    
 }

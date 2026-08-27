@@ -72,6 +72,7 @@ class DashboardController extends Controller
                 'id' => $user->id,
                 'name' => trim("{$user->first_name} {$user->middle_name} {$user->last_name}"),
                 'initials' => strtoupper(substr($user->first_name, 0, 1) . substr($user->last_name, 0, 1)),
+                'profile_picture' => $user->profile_picture,
                 'availability' => $this->formatAvailabilityDays($user),
                 'url' => route('users.profile', $user),
             ]),
