@@ -83,8 +83,8 @@ $(document).ready(function() {
             url: $form.attr('action'),
             method: 'POST',
             data: formData,
-            contentType: false,   // let the browser set multipart boundary
-            processData: false,   // don't let jQuery serialize it
+            contentType: false,   
+            processData: false,  
             headers: {
                 'Accept': 'application/json',
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
