@@ -169,3 +169,38 @@ function refreshSentCount() {
     }
   }
 }
+
+$(document).on('click', '.remove-swap-btn', async function(e) {
+    e.preventDefault(); 
+    
+    const $btn = $(this);
+    const swapId = $btn.data('id'); 
+    const $cardToRemove = $btn.closest('.col-md-6'); 
+    
+    const result = await window.confirmAction(
+      'Are you sure you want to remove this swap connection?',
+      'Remove Swap'
+    );
+    
+    if (result.isConfirmed) {
+      $.ajax({
+        url: `/swap/${swapId}`,
+        method: 'DELETE',
+        headers: {
+          'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+          'Accept': 'application/json'
+        },
+        success: function (response) {
+          window.toast('success', response.message || 'Swap removed successfully.');
+          
+          $cardToRemove.fadeOut(400, function() {
+              $(this).remove();
+          });
+        },
+        error: function (xhr) {
+          const errorMessage = xhr.responseJSON?.message || 'Failed to remove swap.';
+          window.toast('error', errorMessage);
+        },
+      });
+    }
+});

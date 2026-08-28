@@ -10,12 +10,17 @@
   <div class="col-12 col-md-6 col-xl-4 mb-4 favorite-card" id="card-{{ $student->id }}">
     <div class="card border-0 shadow-sm rounded-4 p-3 h-100 w-100">
       <div class="d-flex align-items-start gap-2 gap-sm-3">
-        <a href="{{ route('users.profile', $student->id) }}" class="text-decoration-none flex-shrink-0">
-          <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold bg-primary text-white"
-               style="width: 60px; height: 60px; font-size: 1.5rem;">
+        @if($student->profile_picture)
+          <img src="{{ asset('storage/' . $student->profile_picture) }}" 
+            alt="{{ $student->first_name }}" 
+            class="rounded-circle shadow-sm" 
+            style="width: 60px; height: 60px; object-fit: cover;">
+        @else
+          <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold bg-primary text-white shadow-sm"
+              style="width: 60px; height: 60px; font-size: 1.5rem;">
             {{ strtoupper(substr($student->first_name, 0, 1)) }}{{ strtoupper(substr($student->last_name, 0, 1)) }}
           </div>
-        </a>
+        @endif
 
         <div class="flex-grow-1 min-w-0">
           <div class="d-flex justify-content-between align-items-start mb-1">

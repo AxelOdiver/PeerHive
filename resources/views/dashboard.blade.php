@@ -3,6 +3,8 @@
 @section('title', 'Dashboard')
 
 @section('content')
+
+<!-- Communities and Swap Section -->
 <div class="row d-flex align-items-stretch">
   <div class="col-12 col-md-6 mb-4 d-flex flex-column">
     <h2 class="mb-3 fw-bold">Communities</h2>
@@ -76,7 +78,7 @@
     </div>
   </div>
   
-  {{-- TOP STUDENTS --}}
+  <!-- TOP STUDENTS -->
   <h2 class="mb-3 fw-bold">Top Students</h2>
   <div class="row">
     @foreach($topstudents as $topstudent)
@@ -88,10 +90,17 @@
       <div class="card border-0 shadow-sm rounded-4 p-3 h-100 w-100">
         <div class="d-flex align-items-start gap-2 gap-sm-3">
           <a href="{{ route('users.profile', $topstudent->id) }}" class="text-decoration-none flex-shrink-0">
-            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold bg-primary text-white"
-            style="width: 60px; height: 60px; font-size: 1.5rem;">
-            {{ strtoupper(substr($topstudent->first_name, 0, 1)) }}{{ strtoupper(substr($topstudent->last_name, 0, 1)) }}
-          </div>
+          @if($topstudent->profile_picture)
+            <img src="{{ asset('storage/' . $topstudent->profile_picture) }}" 
+              alt="{{ $topstudent->first_name }}" 
+              class="rounded-circle shadow-sm" 
+              style="width: 60px; height: 60px; object-fit: cover;">
+          @else
+            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold bg-primary text-white shadow-sm"
+                style="width: 60px; height: 60px; font-size: 1.5rem;">
+              {{ strtoupper(substr($topstudent->first_name, 0, 1)) }}{{ strtoupper(substr($topstudent->last_name, 0, 1)) }}
+            </div>
+          @endif
         </a>
         
         <div class="flex-grow-1 min-w-0">
@@ -116,7 +125,7 @@
           </p>
           
           <div class="d-flex align-items-center flex-wrap gap-2 mt-2 mb-3">
-            {{-- Like button --}}
+            <!-- Like button -->
             <div class="d-flex align-items-center">
               <button type="button"
               class="btn btn-sm p-0 shadow-none fs-5 like-btn {{ $isLiked ? 'text-danger' : '' }}"
@@ -127,7 +136,7 @@
             <small class="text-muted fw-semibold ms-1 like-count" data-id="{{ $topstudent->id }}">{{ $topstudent->liked_by_count }}</small>
           </div>
           
-          {{-- Swap count (display only) --}}
+          <!-- Swap count (display only) -->
           <div class="d-flex align-items-center">
             <button type="button" class="btn btn-sm p-0 shadow-none fs-5 open-swap-modal" data-id="{{ $topstudent->id }}" title="Send swap request">
               <i class="bi bi-arrow-left-right"></i>
@@ -135,7 +144,7 @@
             <small class="text-muted fw-semibold ms-1">{{ $topstudent->swaps_count }}</small>
           </div>
           
-          {{-- View profile / comments --}}
+          <!-- View profile / comments -->
           <div class="d-flex align-items-center">
             <a href="{{ route('users.profile', $topstudent->id) }}" class="btn btn-sm p-0 shadow-none fs-5 text-body" title="View profile">
               <i class="bi bi-chat-dots"></i>
@@ -154,7 +163,7 @@
 @endforeach
 </div>
 
-{{-- PEERHIVE STUDENTS --}}
+<!-- PEERHIVE STUDENTS -->
 <h2 class="mb-3 fw-bold">PeerHive Students</h2>
 <div class="row">
   @foreach($students as $student)
@@ -166,10 +175,17 @@
     <div class="card border-0 shadow-sm rounded-4 p-3 h-100 w-100">
       <div class="d-flex align-items-start gap-2 gap-sm-3">
         <a href="{{ route('users.profile', $student->id) }}" class="text-decoration-none flex-shrink-0">
-          <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold bg-primary text-white"
-          style="width: 60px; height: 60px; font-size: 1.5rem;">
-          {{ strtoupper(substr($student->first_name, 0, 1)) }}{{ strtoupper(substr($student->last_name, 0, 1)) }}
-        </div>
+        @if($student->profile_picture)
+          <img src="{{ asset('storage/' . $student->profile_picture) }}" 
+            alt="{{ $student->first_name }}" 
+            class="rounded-circle shadow-sm" 
+            style="width: 60px; height: 60px; object-fit: cover;">
+        @else
+          <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold bg-primary text-white shadow-sm"
+              style="width: 60px; height: 60px; font-size: 1.5rem;">
+            {{ strtoupper(substr($student->first_name, 0, 1)) }}{{ strtoupper(substr($student->last_name, 0, 1)) }}
+          </div>
+        @endif
       </a>
       
       <div class="flex-grow-1 min-w-0">
@@ -194,18 +210,18 @@
         </p>
         
         <div class="d-flex align-items-center flex-wrap gap-2 mt-2 mb-3">
-          {{-- Like button --}}
+          <!-- Like button -->
           <div class="d-flex align-items-center">
             <button type="button"
-            class="btn btn-sm p-0 shadow-none fs-5 like-btn {{ $isLiked ? 'text-danger' : '' }}"
-            data-id="{{ $student->id }}"
-            title="{{ $isLiked ? 'Unlike' : 'Like' }}">
+              class="btn btn-sm p-0 shadow-none fs-5 like-btn {{ $isLiked ? 'text-danger' : '' }}"
+              data-id="{{ $student->id }}"
+              title="{{ $isLiked ? 'Unlike' : 'Like' }}">
             <i class="bi {{ $isLiked ? 'bi-heart-fill' : 'bi-heart' }}"></i>
           </button>
           <small class="text-muted fw-semibold ms-1 like-count" data-id="{{ $student->id }}">{{ $student->liked_by_count }}</small>
         </div>
         
-        {{-- Swap count (show how many swaps they've done) --}}
+        <!-- Swap count (show how many swaps they've done) -->
         <div class="d-flex align-items-center">
           <button type="button" class="btn btn-sm p-0 shadow-none fs-5 open-swap-modal" data-id="{{ $student->id }}" title="Send swap request">
             <i class="bi bi-arrow-left-right"></i>
@@ -213,7 +229,7 @@
           <small class="text-muted fw-semibold ms-1">{{ $student->swaps_count }}</small>
         </div>
         
-        {{-- Comments / profile link --}}
+        <!-- Comments / profile link -->
         <div class="d-flex align-items-center">
           <a href="{{ route('users.profile', $student->id) }}" class="btn btn-sm p-0 shadow-none fs-5 text-body" title="View profile">
             <i class="bi bi-chat-dots"></i>
@@ -222,9 +238,15 @@
         </div>
       </div>
       
-      <button type="button" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2 open-swap-modal" data-id="{{ $student->id }}">
-        Swap
-      </button>
+      @if($topstudent->hasVerifiedEmail())
+        <button type="button" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2 open-swap-modal" data-id="{{ $topstudent->id }}">
+          Swap
+        </button>
+      @else
+        <button type="button" class="btn btn-secondary opacity-50 w-100 rounded-3 text-uppercase fw-bold py-2" disabled title="This user is not verified yet.">
+          <i class="bi bi-shield-lock me-1"></i> Unverified
+        </button>
+      @endif
     </div>
   </div>
 </div>

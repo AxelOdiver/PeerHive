@@ -10,8 +10,6 @@ use Illuminate\Http\Request;
 class SwapController extends Controller
 {
 
-    
-
     public function add(Request $request)
     {
       
@@ -104,19 +102,50 @@ class SwapController extends Controller
 
     public function destroy(Swap $swap)
     {
-        abort_if($swap->requester_id !== auth()->id(), 403);
+        // Check if the logged-in user is EITHER the sender OR the recipient
+        if (auth()->id() !== $swap->requester_id && auth()->id() !== $swap->requested_user_id) {
+            abort(403, 'You do not have permission to remove this swap.');
+        }
 
         $swap->delete();
 
+        // Handle AJAX/JSON requests
         if (request()->expectsJson()) {
             return response()->json([
                 'status' => 'success',
-                'message' => 'Swap request cancelled successfully.',
+                'message' => 'Swap request removed successfully.',
             ]);
         }
 
+        // Handle standard form submissions
         return redirect()
             ->route('swap')
-            ->with('success', 'Swap request cancelled successfully.');
+            ->with('success', 'Swap request removed successfully.');
+    }
+
+    public function store(Request $request)
+    {
+        $targetUser = User::findOrFail($request->target_user_id);
+
+        // Prevent sending to unverified users
+        if (!$targetUser->hasVerifiedEmail()) { 
+            return response()->json([
+                'status' => 'error',
+                'message' => 'This student must verify their account before they can receive swap requests.'
+            ], 403);
+        }
+        
+    }
+
+    public function accept(Swap $swap)
+    {
+        // Prevent unverified users from accepting requests
+        if (!auth()->user()->hasVerifiedEmail()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'You must verify your account before you can accept swap requests.'
+            ], 403);
+        }
+
     }
 }
