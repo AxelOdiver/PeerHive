@@ -43,6 +43,8 @@ class MessageController extends Controller
                     ? strtoupper(substr($name, 0, 2))
                     : strtoupper(substr($firstOther->first_name ?? '', 0, 1) . substr($firstOther->last_name ?? '', 0, 1));
 
+                $profilePicture = $conv->is_group ? null : $firstOther?->profile_picture;
+
                 $last = $conv->latestMessage;
 
                 return [
@@ -50,6 +52,7 @@ class MessageController extends Controller
                     'is_group' => $conv->is_group,
                     'name' => $name ?: 'Conversation',
                     'initials' => $initials,
+                    'profile_picture' => $profilePicture, // PASS TO FRONTEND
                     'last_message' => $last?->body ?? ($last?->attachment_name ? '📎 ' . $last->attachment_name : null),
                     'last_message_at' => $last?->created_at?->timestamp ?? $conv->created_at->timestamp,
                     'unread_count' => $unreadCount,

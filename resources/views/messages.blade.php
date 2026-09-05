@@ -45,8 +45,19 @@
 <x-modal id="newChatModal" title="Start a Conversation">
   <div class="d-flex flex-column gap-2" style="max-height: 300px; overflow-y:auto;">
     @foreach($users as $user)
-    <button type="button" class="btn btn-outline-secondary text-start start-chat-btn" data-user-id="{{ $user->id }}" data-name="{{ $user->first_name }} {{ $user->last_name }}">
-      {{ $user->first_name }} {{ $user->last_name }}
+    <button type="button" class="btn btn-outline-secondary text-start start-chat-btn d-flex align-items-center gap-3 border-0 py-2 px-3" data-user-id="{{ $user->id }}" data-name="{{ $user->first_name }} {{ $user->last_name }}">
+      
+      @if($user->profile_picture)
+        <img src="{{ asset('storage/' . $user->profile_picture) }}" 
+          alt="{{ $user->first_name }}" 
+          class="rounded-circle shadow-sm flex-shrink-0" style="width: 35px; height: 35px; object-fit: cover;">
+      @else
+        <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary text-white fw-bold shadow-sm flex-shrink-0" style="width: 35px; height: 35px; font-size: 0.9rem;">
+          {{ strtoupper(substr($user->first_name, 0, 1)) }}{{ strtoupper(substr($user->last_name, 0, 1)) }}
+        </div>
+      @endif
+
+      <span class="fw-medium text-body">{{ $user->first_name }} {{ $user->last_name }}</span>
     </button>
     @endforeach
   </div>
@@ -59,34 +70,33 @@
       <label for="groupNameInput">Group Name</label>
     </div>
     <p class="text-muted small mb-2">Select members (at least 2):</p>
-    <div id="groupMembersList" class="d-flex flex-column gap-2" style="max-height: 250px; overflow-y: auto;">
+    <div id="groupMembersList" class="d-flex flex-column gap-1" style="max-height: 250px; overflow-y: auto;">
+      
       @foreach($users as $user)
-      <div class="form-check">
-        <input class="form-check-input group-member-checkbox" type="checkbox" value="{{ $user->id }}" id="member{{ $user->id }}">
-        <label class="form-check-label" for="member{{ $user->id }}">
-          {{ $user->first_name }} {{ $user->last_name }}
+      <div class="form-check d-flex align-items-center gap-2 p-2 rounded hover-bg-light">
+        <input class="form-check-input group-member-checkbox m-0" type="checkbox" value="{{ $user->id }}" id="member{{ $user->id }}">
+        <label class="form-check-label d-flex align-items-center gap-3 w-100 m-0" style="cursor: pointer;" for="member{{ $user->id }}">
+          
+          @if($user->profile_picture)
+            <img src="{{ asset('storage/' . $user->profile_picture) }}" 
+              alt="{{ $user->first_name }}" 
+              class="rounded-circle shadow-sm flex-shrink-0" style="width: 30px; height: 30px; object-fit: cover;">
+          @else
+            <div class="rounded-circle d-flex align-items-center justify-content-center bg-secondary text-white fw-bold shadow-sm flex-shrink-0" style="width: 30px; height: 30px; font-size: 0.8rem;">
+              {{ strtoupper(substr($user->first_name, 0, 1)) }}{{ strtoupper(substr($user->last_name, 0, 1)) }}
+            </div>
+          @endif
+          
+          <span class="fw-medium">{{ $user->first_name }} {{ $user->last_name }}</span>
         </label>
       </div>
       @endforeach
+
     </div>
   </form>
   <x-slot:footer>
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
     <button type="button" class="btn btn-primary" id="createGroupBtn">Create Group</button>
   </x-slot:footer>
-</x-modal>
-
-<x-modal id="groupMembersModal" title="Group Members">
-  <div id="groupMembersModalList"></div>
-  <hr>
-  <div class="d-flex gap-2">
-    <select class="form-select" id="addMemberSelect">
-      <option value="" selected disabled>Add a member...</option>
-      @foreach($users as $user)
-      <option value="{{ $user->id }}">{{ $user->first_name }} {{ $user->last_name }}</option>
-      @endforeach
-    </select>
-    <button type="button" class="btn btn-primary" id="addMemberBtn">Add</button>
-  </div>
 </x-modal>
 @endsection

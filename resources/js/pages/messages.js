@@ -98,12 +98,20 @@ $(document).ready(function () {
       const lastMsg = c.last_message ? c.last_message.slice(0, 30) : 'No messages yet';
       const groupIcon = c.is_group ? '<i class="bi bi-people-fill me-1"></i>' : '';
 
+      // Check if the user/group has a profile picture
+      let avatarHtml = '';
+      if (c.profile_picture) {
+          avatarHtml = `<img src="/storage/${c.profile_picture}" alt="${c.name}" class="rounded-circle shadow-sm flex-shrink-0" style="width:40px; height:40px; object-fit:cover;">`;
+      } else {
+          avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center fw-bold bg-primary text-white shadow-sm flex-shrink-0" style="width:40px; height:40px;">
+                          ${c.initials || '?'}
+                        </div>`;
+      }
+
       $conversationsList.append(`
         <a href="#" class="d-flex align-items-center gap-2 p-3 border-bottom text-decoration-none text-body conversation-item ${isSelected ? 'bg-body-tertiary' : ''}"
            data-conversation-id="${c.id}" data-is-group="${c.is_group}" data-name="${c.name}">
-          <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold bg-primary text-white flex-shrink-0" style="width:40px;height:40px;">
-            ${c.initials}
-          </div>
+          ${avatarHtml}
           <div class="flex-grow-1 min-w-0">
             <div class="d-flex justify-content-between align-items-center">
               <span class="${nameClass} text-truncate">${groupIcon}${c.name}</span>
