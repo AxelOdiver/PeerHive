@@ -1,163 +1,92 @@
 @extends('layouts.dashboard')
 
 @section('title', 'Messages')
+@section('page-title', 'Messages')
 
 @section('content')
-<div class="card direct-chat direct-chat-primary mb-4" draggable="false" style="">
-    <div class="card-header" style="cursor: move;">
-      <h3 class="card-title">Direct Chat</h3>
+<div class="card shadow-sm" style="height: 75vh;">
+  <div class="row g-0 h-100">
+    <div class="col-4 border-end h-100 d-flex flex-column">
+      <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0">Messages</h5>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#newChatModal">
+            <i class="bi bi-chat-left-text"></i>
+          </button>
+          <button type="button" class="btn btn-sm btn-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#newGroupModal">
+            <i class="bi bi-people-fill"></i>
+          </button>
+        </div>
+      </div>
+      <div class="flex-grow-1 overflow-auto" id="conversationsList"></div>
+    </div>
 
-      <div class="card-tools">
-        <span title="3 New Messages" class="badge text-bg-primary"> 3 </span>
-        <button type="button" class="btn btn-tool" data-lte-toggle="card-collapse">
-          <i data-lte-icon="expand" class="bi bi-plus-lg"></i>
-          <i data-lte-icon="collapse" class="bi bi-dash-lg"></i>
-        </button>
-        <button type="button" class="btn btn-tool" title="Contacts" data-lte-toggle="chat-pane">
-          <i class="bi bi-chat-text-fill"></i>
-        </button>
-        <button type="button" class="btn btn-tool" data-lte-toggle="card-remove">
-          <i class="bi bi-x-lg"></i>
-        </button>
+    <div class="col-8 h-100 d-flex flex-column">
+      <div class="p-3 border-bottom d-flex justify-content-between align-items-center" id="chatHeader">
+        <span class="text-muted">Select a conversation to start chatting</span>
+      </div>
+      <div class="flex-grow-1 overflow-auto p-3" id="chatMessages"></div>
+      <div class="p-2 border-top" id="chatFooter" style="display:none;">
+        <div id="attachmentPreview" class="px-2 pb-2 small text-muted" style="display:none;"></div>
+        <form id="messageForm" class="d-flex align-items-center gap-2">
+          <input type="hidden" id="activeConversationId" value="">
+          <label class="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center p-0 mb-0 flex-shrink-0" style="width:40px;height:40px;min-width:40px;min-height:40px;cursor:pointer;overflow:hidden;" title="Attach a file">
+            <i class="bi bi-plus-lg"></i>
+            <input type="file" id="attachmentInput" class="d-none">
+          </label>
+          <input type="text" id="messageInput" class="form-control rounded-pill" placeholder="Type a message...">
+          <button type="submit" class="btn btn-primary rounded-pill px-4">Send</button>
+        </form>
       </div>
     </div>
-    <div class="card-body" style="box-sizing: border-box; display: block;">
-      <div class="direct-chat-messages" style="height:400px">
-        <div class="direct-chat-msg">
-          <div class="direct-chat-infos clearfix">
-            <span class="direct-chat-name float-start"> John Paul Castro </span>
-            <span class="direct-chat-timestamp float-end"> 23 Jan 2:00 pm </span>
-          </div>
-          <img class="direct-chat-img" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" alt="message user image" draggable="false">
-          <div class="direct-chat-text">
-            Is this template really for free? That's unbelievable!
-          </div>
-          </div>
-        <div class="direct-chat-msg end">
-          <div class="direct-chat-infos clearfix">
-            <span class="direct-chat-name float-end"> Dominic Belen </span>
-            <span class="direct-chat-timestamp float-start"> 23 Jan 2:05 pm </span>
-          </div>
-          <img class="direct-chat-img" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" alt="message user image" draggable="false">
-          <div class="direct-chat-text">You better believe it!</div>
-          </div>
-        <div class="direct-chat-msg">
-          <div class="direct-chat-infos clearfix">
-            <span class="direct-chat-name float-start"> John Paul Castro </span>
-            <span class="direct-chat-timestamp float-end"> 23 Jan 5:37 pm </span>
-          </div>
-          <img class="direct-chat-img" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" alt="message user image" draggable="false">
-          <div class="direct-chat-text">
-            Working with AdminLTE on a great new app! Wanna join?
-          </div>
-          </div>
-        <div class="direct-chat-msg end">
-          <div class="direct-chat-infos clearfix">
-            <span class="direct-chat-name float-end"> Dominic Belen </span>
-            <span class="direct-chat-timestamp float-start"> 23 Jan 6:10 pm </span>
-          </div>
-          <img class="direct-chat-img" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" alt="message user image" draggable="false">
-          <div class="direct-chat-text">I would love to.</div>
-          </div>
-        </div>
-      <div class="direct-chat-contacts">
-        <ul class="contacts-list">
-          <li>
-            <a href="#" draggable="false">
-              <img class="contacts-list-img" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" alt="User Avatar" draggable="false">
-
-              <div class="contacts-list-info">
-                <span class="contacts-list-name">
-                  Axel Odiver
-                  <small class="contacts-list-date float-end"> 2/28/2023 </small>
-                </span>
-                <span class="contacts-list-msg"> How have you been? I was... </span>
-              </div>
-              </a>
-          </li>
-          <li>
-            <a href="#" draggable="false">
-              <img class="contacts-list-img" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" alt="User Avatar" draggable="false">
-
-              <div class="contacts-list-info">
-                <span class="contacts-list-name">
-                  John Paul Castro
-                  <small class="contacts-list-date float-end"> 2/23/2023 </small>
-                </span>
-                <span class="contacts-list-msg"> I will be waiting for... </span>
-              </div>
-              </a>
-          </li>
-          <li>
-            <a href="#" draggable="false">
-              <img class="contacts-list-img" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" alt="User Avatar" draggable="false">
-
-              <div class="contacts-list-info">
-                <span class="contacts-list-name">
-                  Paul Briones
-                  <small class="contacts-list-date float-end"> 2/20/2023 </small>
-                </span>
-                <span class="contacts-list-msg"> I'll call you back at... </span>
-              </div>
-              </a>
-          </li>
-          <li>
-            <a href="#" draggable="false">
-              <img class="contacts-list-img" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" alt="User Avatar" draggable="false">
-
-              <div class="contacts-list-info">
-                <span class="contacts-list-name">
-                  Axel Odiver
-                  <small class="contacts-list-date float-end"> 2/10/2023 </small>
-                </span>
-                <span class="contacts-list-msg"> Where is your new... </span>
-              </div>
-              </a>
-          </li>
-          <li>
-            <a href="#" draggable="false">
-              <img class="contacts-list-img" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" alt="User Avatar" draggable="false">
-
-              <div class="contacts-list-info">
-                <span class="contacts-list-name">
-                  Dominic Belen
-                  <small class="contacts-list-date float-end"> 1/27/2023 </small>
-                </span>
-                <span class="contacts-list-msg"> Can I take a look at... </span>
-              </div>
-              </a>
-          </li>
-          <li>
-            <a href="#" draggable="false">
-              <img class="contacts-list-img" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y" alt="User Avatar" draggable="false">
-
-              <div class="contacts-list-info">
-                <span class="contacts-list-name">
-                  Paul Briones
-                  <small class="contacts-list-date float-end"> 1/4/2023 </small>
-                </span>
-                <span class="contacts-list-msg"> Never mind I found... </span>
-              </div>
-              </a>
-          </li>
-          </ul>
-        </div>
-      </div>
-    <div class="card-footer border-0 bg-transparent">
-  <div class="bg-body-secondary rounded-4 shadow-sm p-2 d-flex align-items-center">
-    
-    <input 
-      type="text" 
-      name="message" 
-      placeholder="Type your message here..." 
-      class="form-control border-0 bg-transparent shadow-none flex-grow-1"
-    >
-
-    <button type="button" class="btn btn-link text-secondary p-1 me-2">
-      <i class="bi bi-emoji-smile-fill fs-5"></i>
-    </button>
-    
   </div>
 </div>
+
+<x-modal id="newChatModal" title="Start a Conversation">
+  <div class="d-flex flex-column gap-2" style="max-height: 300px; overflow-y:auto;">
+    @foreach($users as $user)
+    <button type="button" class="btn btn-outline-secondary text-start start-chat-btn" data-user-id="{{ $user->id }}" data-name="{{ $user->first_name }} {{ $user->last_name }}">
+      {{ $user->first_name }} {{ $user->last_name }}
+    </button>
+    @endforeach
+  </div>
+</x-modal>
+
+<x-modal id="newGroupModal" title="Create Group Chat">
+  <form id="newGroupForm">
+    <div class="form-floating mb-3">
+      <input type="text" class="form-control" id="groupNameInput" placeholder="Group name">
+      <label for="groupNameInput">Group Name</label>
     </div>
+    <p class="text-muted small mb-2">Select members (at least 2):</p>
+    <div id="groupMembersList" class="d-flex flex-column gap-2" style="max-height: 250px; overflow-y: auto;">
+      @foreach($users as $user)
+      <div class="form-check">
+        <input class="form-check-input group-member-checkbox" type="checkbox" value="{{ $user->id }}" id="member{{ $user->id }}">
+        <label class="form-check-label" for="member{{ $user->id }}">
+          {{ $user->first_name }} {{ $user->last_name }}
+        </label>
+      </div>
+      @endforeach
+    </div>
+  </form>
+  <x-slot:footer>
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <button type="button" class="btn btn-primary" id="createGroupBtn">Create Group</button>
+  </x-slot:footer>
+</x-modal>
+
+<x-modal id="groupMembersModal" title="Group Members">
+  <div id="groupMembersModalList"></div>
+  <hr>
+  <div class="d-flex gap-2">
+    <select class="form-select" id="addMemberSelect">
+      <option value="" selected disabled>Add a member...</option>
+      @foreach($users as $user)
+      <option value="{{ $user->id }}">{{ $user->first_name }} {{ $user->last_name }}</option>
+      @endforeach
+    </select>
+    <button type="button" class="btn btn-primary" id="addMemberBtn">Add</button>
+  </div>
+</x-modal>
 @endsection

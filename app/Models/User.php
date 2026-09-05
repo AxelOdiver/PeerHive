@@ -103,4 +103,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(CommunityInvite::class)->where('status', 'pending');
     }
+
+    public function conversations()
+    {
+        return $this->belongsToMany(Conversation::class)->withPivot('last_read_at')->withTimestamps();
+    }
 }

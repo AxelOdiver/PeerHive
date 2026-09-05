@@ -43,10 +43,37 @@ $(document).ready(function() {
     'users': () => import('./pages/users.js'),
     'community': () => import('./pages/community.js'),
     'community.show': () => import('./pages/community-show.js'),
+    'messages': () => import('./pages/messages.js'),
   };
   
   // Dynamically import only the required page script
   if (pageName && pageModules[pageName]) {
     pageModules[pageName]().catch(err => console.error(`Failed to load page script for ${pageName}:`, err));
+  }
+  
+  window.refreshSidebarMessagesBadge = function () {
+    $.ajax({
+      url: '/messages/unread-count',
+      method: 'GET',
+      success: function (response) {
+        const $badge = $('#sidebarMessagesBadge');
+        if (response.count > 0) {
+          if ($badge.length) {
+            $badge.text(response.count);
+          } else {
+            $('.sidebar-menu .nav-link p:contains("Messages")').append(
+              `<span class="badge bg-danger rounded-pill" id="sidebarMessagesBadge">${response.count}</span>`
+            );
+          }
+        } else {
+          $badge.remove();
+        }
+      }
+    });
+  };
+
+  if ($('#appSidebar').length) {
+    window.refreshSidebarMessagesBadge();
+    setInterval(window.refreshSidebarMessagesBadge, 6000);
   }
 });

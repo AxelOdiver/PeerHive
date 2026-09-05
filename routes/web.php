@@ -16,7 +16,7 @@ use App\Http\Controllers\AdminQualificationController;
 use App\Http\Controllers\CommunityInviteController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\MessageController;
 /*
 |--------------------------------------------------------------------------
 | Authentication Routes (Guest Only)
@@ -82,7 +82,14 @@ Route::middleware('auth')->group(function () {
     Route::delete('/comments/{id}', [CommunityController::class, 'destroyComment'])->name('comments.destroy');
 
     Route::view('/schedule', 'schedule')->name('schedule');
-    Route::view('/messages', 'messages')->name('messages');
+    Route::get('/messages', [MessageController::class, 'index'])->name('messages');
+    Route::get('/messages/unread-count', [MessageController::class, 'unreadCount'])->name('messages.unread-count');
+        Route::get('/messages/conversations', [MessageController::class, 'conversations'])->name('messages.conversations');
+            Route::post('/messages/conversations', [MessageController::class, 'store'])->name('messages.conversations.store');
+                Route::get('/messages/conversations/{conversation}', [MessageController::class, 'fetch'])->name('messages.conversations.fetch');
+                    Route::post('/messages/conversations/{conversation}', [MessageController::class, 'storeMessage'])->name('messages.conversations.message');
+                        Route::post('/messages/conversations/{conversation}/members', [MessageController::class, 'addMember'])->name('messages.conversations.members.add');
+                            Route::delete('/messages/conversations/{conversation}/members/{user}', [MessageController::class, 'removeMember'])->name('messages.conversations.members.remove');
     Route::view('/history', 'history')->name('history');
 
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');

@@ -29,6 +29,19 @@
           'icon' => 'bi bi-chat-dots',
           'label' => 'Messages',
           'active' => request()->routeIs('messages'),
+          'badge' => \App\Models\Conversation::whereHas('users', fn ($q) => $q->where('users.id', auth()->id()))
+              ->with('users')
+              ->get()
+              ->filter(function ($conv) {
+                  $pivot = $conv->users->firstWhere('id', auth()->id())->pivot;
+                  $lastReadAt = $pivot->last_read_at;
+
+                  return $conv->messages()
+                      ->where('sender_id', '!=', auth()->id())
+                      ->when($lastReadAt, fn ($q) => $q->where('created_at', '>', $lastReadAt))
+                      ->exists();
+              })
+              ->count() ?: null,
       ],
       [
           'href' => route('history'),
@@ -114,6 +127,7 @@
             :icon="$item['icon']"
             :label="$item['label']"
             :active="$item['active']"
+            :badge="$item['badge'] ?? null"
           />
         @endforeach
       </ul>
