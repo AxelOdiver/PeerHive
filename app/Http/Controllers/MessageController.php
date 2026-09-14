@@ -43,17 +43,18 @@ class MessageController extends Controller
                     ? strtoupper(substr($name, 0, 2))
                     : strtoupper(substr($firstOther->first_name ?? '', 0, 1) . substr($firstOther->last_name ?? '', 0, 1));
 
-                $profilePicture = $conv->is_group ? null : $firstOther?->profile_picture;
-
                 $last = $conv->latestMessage;
+                $lastPreview = $last?->is_unsent
+                    ? 'Message unsent'
+                    : ($last?->body ?? ($last?->attachment_name ? '📎 ' . $last->attachment_name : null));
 
                 return [
                     'id' => $conv->id,
                     'is_group' => $conv->is_group,
                     'name' => $name ?: 'Conversation',
                     'initials' => $initials,
-                    'profile_picture' => $profilePicture, // PASS TO FRONTEND
-                    'last_message' => $last?->body ?? ($last?->attachment_name ? '📎 ' . $last->attachment_name : null),
+                    'profile_picture' => (!$conv->is_group) ? $firstOther?->profile_picture : null,
+                    'last_message' => $lastPreview,
                     'last_message_at' => $last?->created_at?->timestamp ?? $conv->created_at->timestamp,
                     'unread_count' => $unreadCount,
                 ];
@@ -74,9 +75,8 @@ class MessageController extends Controller
             'member_ids.*' => ['integer', 'exists:users,id'],
         ]);
 
-        $isGroup = filter_var($request->input('is_group'), FILTER_VALIDATE_BOOLEAN);
-
         $authId = auth()->id();
+        $isGroup = filter_var($request->input('is_group'), FILTER_VALIDATE_BOOLEAN);
 
         if ($isGroup) {
             $memberIds = collect($validated['member_ids'] ?? [])->push($authId)->unique()->values();
@@ -128,30 +128,48 @@ class MessageController extends Controller
         return response()->json(['conversation_id' => $conversation->id]);
     }
 
-    public function fetch(Conversation $conversation)
+    public function fetch(Request $request, Conversation $conversation)
     {
         $authId = auth()->id();
         abort_unless($conversation->users->contains('id', $authId), 403);
 
-        $messages = $conversation->messages()->with('sender')->oldest()->get();
+        $perPage = 30;
+        $beforeId = $request->query('before_id');
 
-        $conversation->users()->updateExistingPivot($authId, ['last_read_at' => now()]);
+        $query = $conversation->messages()->with('sender')->orderByDesc('id');
+
+        if ($beforeId) {
+            $query->where('id', '<', $beforeId);
+        }
+
+        $messages = $query->limit($perPage)->get()->reverse()->values();
+
+        $hasMore = $conversation->messages()
+            ->where('id', '<', $messages->first()?->id ?? 0)
+            ->exists();
+
+        if (!$beforeId) {
+            $conversation->users()->updateExistingPivot($authId, ['last_read_at' => now()]);
+        }
 
         return response()->json([
             'is_group' => $conversation->is_group,
+            'has_more' => $hasMore,
             'members' => $conversation->users->map(fn ($u) => [
                 'id' => $u->id,
                 'name' => trim($u->first_name . ' ' . $u->last_name),
             ]),
             'messages' => $messages->map(fn ($m) => [
                 'id' => $m->id,
-                'body' => $m->body,
-                'attachment_url' => $m->attachment_path ? Storage::url($m->attachment_path) : null,
-                'attachment_name' => $m->attachment_name,
-                'attachment_type' => $m->attachment_type,
+                'body' => $m->is_unsent ? null : $m->body,
+                'attachment_url' => (!$m->is_unsent && $m->attachment_path) ? Storage::url($m->attachment_path) : null,
+                'attachment_name' => $m->is_unsent ? null : $m->attachment_name,
+                'attachment_type' => $m->is_unsent ? null : $m->attachment_type,
                 'is_mine' => $m->sender_id === $authId,
                 'sender_name' => $m->sender->first_name,
                 'created_at' => $m->created_at->format('M d, g:i A'),
+                'is_edited' => (bool) $m->edited_at,
+                'is_unsent' => (bool) $m->is_unsent,
             ]),
         ]);
     }
@@ -197,8 +215,46 @@ class MessageController extends Controller
                 'is_mine' => true,
                 'sender_name' => auth()->user()->first_name,
                 'created_at' => $message->created_at->format('M d, g:i A'),
+                'is_edited' => false,
+                'is_unsent' => false,
             ],
         ]);
+    }
+
+    public function editMessage(Request $request, Message $message)
+    {
+        abort_unless($message->sender_id === auth()->id(), 403);
+        abort_if($message->is_unsent, 422, 'Cannot edit an unsent message.');
+
+        $validated = $request->validate([
+            'body' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $message->update([
+            'body' => $validated['body'],
+            'edited_at' => now(),
+        ]);
+
+        return response()->json(['message' => 'Message updated.']);
+    }
+
+    public function deleteMessage(Message $message)
+    {
+        abort_unless($message->sender_id === auth()->id(), 403);
+
+        if ($message->attachment_path) {
+            Storage::disk('public')->delete($message->attachment_path);
+        }
+
+        $message->update([
+            'body' => null,
+            'attachment_path' => null,
+            'attachment_name' => null,
+            'attachment_type' => null,
+            'is_unsent' => true,
+        ]);
+
+        return response()->json(['message' => 'Message unsent.']);
     }
 
     public function addMember(Request $request, Conversation $conversation)

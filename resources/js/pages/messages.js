@@ -11,7 +11,12 @@ $(document).ready(function () {
 
   let chatPollTimer = null;
   let currentConversationId = null;
+  let currentIsGroup = false;
   let selectedFile = null;
+  let oldestLoadedId = null;
+  let hasMoreMessages = false;
+  let isLoadingOlder = false;
+  let isSending = false;
 
   function scrollToBottom() {
     $chatMessages.scrollTop($chatMessages[0].scrollHeight);
@@ -28,22 +33,86 @@ $(document).ready(function () {
     </a>`;
   }
 
-  function renderMessages(data) {
-    $chatMessages.empty();
-    data.messages.forEach(function (m) {
-      const alignClass = m.is_mine ? 'ms-auto bg-primary text-white' : 'me-auto bg-body-tertiary';
-      const senderLabel = (data.is_group && !m.is_mine) ? `<div class="small fw-semibold mb-1">${m.sender_name}</div>` : '';
-      const bodyHtml = m.body ? $('<div>').text(m.body).html() : '';
-      $chatMessages.append(`
-        <div class="mb-2 p-2 rounded-3 ${alignClass}" style="max-width:70%; width:fit-content;">
-          ${senderLabel}
-          <div>${bodyHtml}</div>
-          ${renderAttachment(m)}
-          <small class="d-block opacity-75 mt-1" style="font-size:0.7rem;">${m.created_at}</small>
+  function messageHtml(m, isGroup) {
+    
+        if (m.is_unsent) {
+        return `
+            <div class="message-row d-flex ${m.is_mine ? 'justify-content-end' : 'justify-content-start'} align-items-center mb-2"
+                 data-message-id="${m.id}">
+                <div class="deleted-message-bubble">
+                    You deleted a message
+                </div>
+            </div>
+        `;
+    }
+
+    const alignClass = m.is_mine
+        ? 'bg-primary text-white'
+        : 'bg-body-tertiary';
+
+    const senderLabel = (isGroup && !m.is_mine)
+        ? `<div class="small fw-semibold mb-1">${m.sender_name}</div>`
+        : '';
+
+    const bodyHtml = m.body ? $('<div>').text(m.body).html() : '';
+    const editedTag = m.is_edited ? '<span class="opacity-75 edited-tag" style="font-size:0.7rem;"> (edited)</span>' : '';
+
+    const kebabHtml = m.is_mine ? `
+      <div class="dropdown">
+        <button type="button" class="toolbar-btn" data-bs-toggle="dropdown" aria-expanded="false" title="More">
+          <i class="bi bi-three-dots-vertical" style="font-size:0.85rem;"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+          <li><button type="button" class="dropdown-item edit-message-btn" data-message-id="${m.id}"><i class="bi bi-pencil-fill me-2"></i>Edit</button></li>
+          <li><button type="button" class="dropdown-item text-danger unsend-message-btn" data-message-id="${m.id}"><i class="bi bi-trash-fill me-2"></i>Unsend</button></li>
+        </ul>
+      </div>
+    ` : '';
+
+    const toolbarHtml = `
+      <div class="message-hover-toolbar d-flex gap-1">
+        <button type="button" class="toolbar-btn reply-message-btn" title="Reply"><i class="bi bi-reply-fill" style="font-size:0.8rem;"></i></button>
+        <button type="button" class="toolbar-btn react-message-btn" title="React"><i class="bi bi-emoji-smile-fill" style="font-size:0.8rem;"></i></button>
+        ${kebabHtml}
+      </div>
+    `;
+
+  const rowAlign = m.is_mine ? 'justify-content-end' : 'justify-content-start';
+
+  return `
+    <div class="message-row d-flex ${rowAlign} align-items-center mb-2" data-message-id="${m.id}">
+
+      ${m.is_mine ? `
+        <div class="message-hover-toolbar me-2">
+          ${toolbarButtonsHtml(kebabHtml)}
         </div>
-      `);
-    });
-    scrollToBottom();
+      ` : ''}
+
+      <div class="p-2 rounded-3 ${alignClass} message-bubble" style="max-width:70%; width:fit-content;">
+        ${senderLabel}
+        <div class="message-body">${bodyHtml}</div>
+        ${renderAttachment(m)}
+        <small class="d-block opacity-75 mt-1" style="font-size:0.7rem;">
+          ${m.created_at}${editedTag}
+        </small>
+      </div>
+
+      ${!m.is_mine ? `
+        <div class="message-hover-toolbar ms-2">
+          ${toolbarButtonsHtml('')}
+        </div>
+      ` : ''}
+
+    </div>
+  `;
+  }
+
+  function toolbarButtonsHtml(kebabHtml) {
+    return `
+      <button type="button" class="toolbar-btn reply-message-btn" title="Reply"><i class="bi bi-reply-fill" style="font-size:0.8rem;"></i></button>
+      <button type="button" class="toolbar-btn react-message-btn" title="React"><i class="bi bi-emoji-smile-fill" style="font-size:0.8rem;"></i></button>
+      ${kebabHtml}
+    `;
   }
 
   function loadConversation(conversationId) {
@@ -51,12 +120,51 @@ $(document).ready(function () {
       url: `/messages/conversations/${conversationId}`,
       method: 'GET',
       success: function (response) {
-        renderMessages(response);
+        currentIsGroup = response.is_group;
+        $chatMessages.empty();
+        response.messages.forEach(function (m) {
+          $chatMessages.append(messageHtml(m, response.is_group));
+        });
+        oldestLoadedId = response.messages.length ? response.messages[0].id : null;
+        hasMoreMessages = response.has_more;
+        scrollToBottom();
         refreshConversationsList();
         refreshUnreadBadge();
       }
     });
   }
+
+  function loadOlderMessages(conversationId) {
+    if (isLoadingOlder || !hasMoreMessages || !oldestLoadedId) return;
+    isLoadingOlder = true;
+
+    const prevScrollHeight = $chatMessages[0].scrollHeight;
+
+    $.ajax({
+      url: `/messages/conversations/${conversationId}`,
+      method: 'GET',
+      data: { before_id: oldestLoadedId },
+      success: function (response) {
+        if (response.messages.length) {
+          const html = response.messages.map(m => messageHtml(m, response.is_group)).join('');
+          $chatMessages.prepend(html);
+          oldestLoadedId = response.messages[0].id;
+          $chatMessages.scrollTop($chatMessages[0].scrollHeight - prevScrollHeight);
+        }
+        hasMoreMessages = response.has_more;
+        isLoadingOlder = false;
+      },
+      error: function () {
+        isLoadingOlder = false;
+      }
+    });
+  }
+
+  $chatMessages.on('scroll', function () {
+    if ($chatMessages.scrollTop() < 50) {
+      loadOlderMessages(currentConversationId);
+    }
+  });
 
   function renderChatHeader(conv) {
     let membersBtn = '';
@@ -79,7 +187,11 @@ $(document).ready(function () {
 
     if (chatPollTimer) clearInterval(chatPollTimer);
     chatPollTimer = setInterval(function () {
-      loadConversation(conv.id);
+      if ($chatMessages.scrollTop() + $chatMessages.innerHeight() >= $chatMessages[0].scrollHeight - 100) {
+        loadConversation(conv.id);
+      } else {
+        refreshConversationsList();
+      }
     }, 4000);
   }
 
@@ -98,14 +210,13 @@ $(document).ready(function () {
       const lastMsg = c.last_message ? c.last_message.slice(0, 30) : 'No messages yet';
       const groupIcon = c.is_group ? '<i class="bi bi-people-fill me-1"></i>' : '';
 
-      // Check if the user/group has a profile picture
       let avatarHtml = '';
       if (c.profile_picture) {
-          avatarHtml = `<img src="/storage/${c.profile_picture}" alt="${c.name}" class="rounded-circle shadow-sm flex-shrink-0" style="width:40px; height:40px; object-fit:cover;">`;
+        avatarHtml = `<img src="/storage/${c.profile_picture}" alt="${c.name}" class="rounded-circle shadow-sm flex-shrink-0" style="width:40px; height:40px; object-fit:cover;">`;
       } else {
-          avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center fw-bold bg-primary text-white shadow-sm flex-shrink-0" style="width:40px; height:40px;">
-                          ${c.initials || '?'}
-                        </div>`;
+        avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center fw-bold bg-primary text-white shadow-sm flex-shrink-0" style="width:40px; height:40px;">
+                        ${c.initials || '?'}
+                      </div>`;
       }
 
       $conversationsList.append(`
@@ -165,15 +276,27 @@ $(document).ready(function () {
 
   $messageForm.on('submit', function (e) {
     e.preventDefault();
+
+    if (isSending) return;
+
     const conversationId = $activeConversationId.val();
     const body = $messageInput.val().trim();
 
     if (!conversationId || (!body && !selectedFile)) return;
 
+    isSending = true;
+    $messageForm.find('button[type="submit"]').prop('disabled', true);
+
     const formData = new FormData();
     formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
     if (body) formData.append('body', body);
     if (selectedFile) formData.append('attachment', selectedFile);
+
+    $messageInput.val('');
+    const clearedFile = selectedFile;
+    selectedFile = null;
+    $attachmentInput.val('');
+    $attachmentPreview.hide().empty();
 
     $.ajax({
       url: `/messages/conversations/${conversationId}`,
@@ -181,15 +304,20 @@ $(document).ready(function () {
       data: formData,
       contentType: false,
       processData: false,
-      success: function () {
-        $messageInput.val('');
-        selectedFile = null;
-        $attachmentInput.val('');
-        $attachmentPreview.hide().empty();
-        loadConversation(conversationId);
+      success: function (response) {
+        $chatMessages.append(messageHtml(response.message, currentIsGroup));
+        scrollToBottom();
+        refreshConversationsList();
       },
       error: function (xhr) {
+        $messageInput.val(body);
+        selectedFile = clearedFile;
         if (window.toast) window.toast('error', xhr.responseJSON?.message || 'Failed to send message.');
+      },
+      complete: function () {
+        isSending = false;
+        $messageForm.find('button[type="submit"]').prop('disabled', false);
+        $messageInput.trigger('focus');
       }
     });
   });
@@ -237,14 +365,14 @@ $(document).ready(function () {
         member_ids: memberIds,
       },
       success: function (response) {
-          window.hideModal('newGroupModal');
-          $('#groupNameInput').val('');
-          $('.group-member-checkbox').prop('checked', false);
-          refreshConversationsList();
-          if (window.toast) window.toast('success', 'Group created!');
-          setTimeout(function () {
-              openConversation({ id: response.conversation_id, is_group: true, name: name || 'Group' });
-          }, 300);
+        window.hideModal('newGroupModal');
+        $('#groupNameInput').val('');
+        $('.group-member-checkbox').prop('checked', false);
+        refreshConversationsList();
+        if (window.toast) window.toast('success', 'Group created!');
+        setTimeout(function () {
+          openConversation({ id: response.conversation_id, is_group: true, name: name || 'Group' });
+        }, 300);
       },
       error: function (xhr) {
         if (window.toast) window.toast('error', xhr.responseJSON?.message || 'Failed to create group.');
@@ -315,6 +443,113 @@ $(document).ready(function () {
       },
       error: function (xhr) {
         if (window.toast) window.toast('error', xhr.responseJSON?.message || 'Failed to add member.');
+      }
+    });
+  });
+
+  // Placeholder actions — wire these up later if you want them functional
+  $(document).on('click', '.reply-message-btn, .react-message-btn', function () {
+    if (window.toast) window.toast('success', 'Coming soon!');
+  });
+
+  // Edit message — now updates the bubble directly, no full reload
+  $chatMessages.on('click', '.edit-message-btn', function () {
+    const messageId = $(this).data('message-id');
+    const $bubble = $(this).closest('.message-row');
+    const $bodyDiv = $bubble.find('.message-body');
+    const currentText = $bodyDiv.text().trim();
+    const safeText = $('<div>').text(currentText).html();
+
+    $bodyDiv.html(`
+      <div class="d-flex gap-1 align-items-center">
+        <input type="text" class="form-control form-control-sm edit-message-input" value="${safeText}">
+        <button type="button" class="btn btn-sm btn-light save-edit-btn" data-message-id="${messageId}"><i class="bi bi-check-lg"></i></button>
+        <button type="button" class="btn btn-sm btn-light cancel-edit-btn" data-original-text="${safeText}"><i class="bi bi-x-lg"></i></button>
+      </div>
+    `);
+    $bodyDiv.find('.edit-message-input').trigger('focus');
+  });
+
+  $chatMessages.on('click', '.cancel-edit-btn', function () {
+    const $bodyDiv = $(this).closest('.message-body');
+    const originalText = $(this).data('original-text');
+    $bodyDiv.text(originalText);
+  });
+
+  $chatMessages.on('keypress', '.edit-message-input', function (e) {
+    if (e.which === 13) {
+      e.preventDefault();
+      $(this).closest('.message-body').find('.save-edit-btn').trigger('click');
+    }
+  });
+
+  $chatMessages.on('click', '.save-edit-btn', function () {
+    const messageId = $(this).data('message-id');
+    const $bodyDiv = $(this).closest('.message-body');
+    const newBody = $bodyDiv.find('.edit-message-input').val().trim();
+
+    if (!newBody) return;
+
+    $.ajax({
+      url: `/messages/${messageId}`,
+      method: 'PUT',
+      data: {
+        _token: $('meta[name="csrf-token"]').attr('content'),
+        body: newBody,
+      },
+      success: function () {
+        const isMine = $bubble.find('.bg-primary').length > 0;
+        const alignClass = isMine ? 'ms-auto bg-primary text-white' : 'me-auto bg-body-tertiary';
+        const rowAlign = isMine ? 'justify-content-end' : 'justify-content-start';
+        const timestamp = $bubble.find('small').first().clone().find('.edited-tag').remove().end().text().trim();
+
+        $bubble.replaceWith(`
+          <div class="message-row d-flex ${rowAlign} mb-2" data-message-id="${messageId}">
+            <div class="p-2 rounded-3 ${alignClass} fst-italic opacity-75" style="max-width:70%; width:fit-content;">
+              <div><i class="bi bi-slash-circle me-1"></i>This message was unsent</div>
+              <small class="d-block opacity-75 mt-1" style="font-size:0.7rem;">${timestamp}</small>
+            </div>
+          </div>
+        `);
+        refreshConversationsList();
+      },
+      error: function (xhr) {
+        if (window.toast) window.toast('error', xhr.responseJSON?.message || 'Failed to edit message.');
+      }
+    });
+  });
+
+  // Unsend message — now replaces the bubble directly, no full reload
+  $chatMessages.on('click', '.unsend-message-btn', async function () {
+    const messageId = $(this).data('message-id');
+    const $bubble = $(this).closest('.message-bubble');
+
+    const result = window.confirmAction
+      ? await window.confirmAction('This message will be unsent for everyone.', 'Unsend Message')
+      : { isConfirmed: confirm('Unsend this message?') };
+
+    if (!result.isConfirmed) return;
+
+    $.ajax({
+      url: `/messages/${messageId}`,
+      method: 'DELETE',
+      headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+      success: function () {
+          const $row = $bubble.closest('.message-row');
+
+          $row.replaceWith(`
+              <div class="message-row d-flex justify-content-end align-items-center mb-2"
+                  data-message-id="${messageId}">
+                  <div class="deleted-message-bubble">
+                      You deleted a message
+                  </div>
+              </div>
+          `);
+
+          refreshConversationsList();
+      },
+      error: function (xhr) {
+        if (window.toast) window.toast('error', xhr.responseJSON?.message || 'Failed to unsend message.');
       }
     });
   });
