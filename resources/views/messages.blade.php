@@ -27,9 +27,17 @@
       </div>
       <div class="flex-grow-1 overflow-auto p-3" id="chatMessages"></div>
       <div class="p-2 border-top" id="chatFooter" style="display:none;">
+
+        <div id="replyPreview" class="px-3 py-2 small border-start border-3 border-primary mx-2 mb-2 rounded shadow-sm" style="display:none; position:relative;">
+          <div class="fw-bold text-primary" id="replyPreviewName" style="font-size: 0.75rem;"></div>
+          <div class="text-muted text-truncate" id="replyPreviewBody" style="max-width: 90%; font-size: 0.8rem;"></div>
+          <button type="button" class="btn-close position-absolute top-0 end-0 m-2" style="font-size: 0.5rem;" id="cancelReplyBtn"></button>
+        </div>
+
         <div id="attachmentPreview" class="px-2 pb-2 small text-muted" style="display:none;"></div>
         <form id="messageForm" class="d-flex align-items-center gap-2">
           <input type="hidden" id="activeConversationId" value="">
+          <input type="hidden" id="replyToId" value="">
           <label class="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center p-0 mb-0 flex-shrink-0" style="width:40px;height:40px;min-width:40px;min-height:40px;cursor:pointer;overflow:hidden;" title="Attach a file">
             <i class="bi bi-plus-lg"></i>
             <input type="file" id="attachmentInput" class="d-none">
@@ -43,7 +51,16 @@
 </div>
 
 <x-modal id="newChatModal" title="Start a Conversation">
-  <div class="d-flex flex-column gap-2" style="max-height: 300px; overflow-y:auto;">
+  
+  <!-- NEW: Search Input -->
+  <div class="mb-3 px-1">
+    <div class="input-group">
+      <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search"></i></span>
+      <input type="text" id="newChatSearchInput" class="form-control border-start-0 ps-0" placeholder="Search peers...">
+    </div>
+  </div>
+
+  <div id="newChatUserList" class="d-flex flex-column gap-2" style="max-height: 300px; overflow-y:auto;">
     @foreach($users as $user)
     <button type="button" class="btn btn-outline-secondary text-start start-chat-btn d-flex align-items-center gap-3 border-0 py-2 px-3" data-user-id="{{ $user->id }}" data-name="{{ $user->first_name }} {{ $user->last_name }}">
       
@@ -65,15 +82,24 @@
 
 <x-modal id="newGroupModal" title="Create Group Chat">
   <form id="newGroupForm">
-    <div class="form-floating mb-3">
+    <div class="form-floating mb-3">s
       <input type="text" class="form-control" id="groupNameInput" placeholder="Group name">
       <label for="groupNameInput">Group Name</label>
     </div>
+    
+    <!-- Search Input -->
+    <div class="mb-2">
+      <div class="input-group input-group-sm">
+        <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search"></i></span>
+        <input type="text" id="newGroupSearchInput" class="form-control border-start-0 ps-0" placeholder="Search members...">
+      </div>
+    </div>
+
     <p class="text-muted small mb-2">Select members (at least 2):</p>
     <div id="groupMembersList" class="d-flex flex-column gap-1" style="max-height: 250px; overflow-y: auto;">
       
       @foreach($users as $user)
-      <div class="form-check d-flex align-items-center gap-2 p-2 rounded hover-bg-light">
+      <div class="form-check d-flex align-items-center gap-2 p-2 rounded hover-bg-light group-member-item" data-name="{{ $user->first_name }} {{ $user->last_name }}">
         <input class="form-check-input group-member-checkbox m-0" type="checkbox" value="{{ $user->id }}" id="member{{ $user->id }}">
         <label class="form-check-label d-flex align-items-center gap-3 w-100 m-0" style="cursor: pointer;" for="member{{ $user->id }}">
           

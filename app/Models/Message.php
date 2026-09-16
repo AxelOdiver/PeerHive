@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Storage;
 
 class Message extends Model
 {
-    protected $fillable = ['conversation_id', 'sender_id', 'body', 'attachment_path', 'attachment_name', 'attachment_type'];
+    protected $fillable = ['conversation_id', 'sender_id', 'reply_to_id', 'body', 'attachment_path', 'attachment_name', 'attachment_type', 'edited_at', 'is_unsent'];
 
     public function conversation()
     {
@@ -17,6 +17,11 @@ class Message extends Model
     public function sender()
     {
         return $this->belongsTo(User::class, 'sender_id');
+    }
+
+    public function repliedTo()
+    {
+        return $this->belongsTo(Message::class, 'reply_to_id');
     }
 
     public function getAttachmentUrlAttribute()

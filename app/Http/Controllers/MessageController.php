@@ -136,7 +136,7 @@ class MessageController extends Controller
         $perPage = 30;
         $beforeId = $request->query('before_id');
 
-        $query = $conversation->messages()->with('sender')->orderByDesc('id');
+        $query = $conversation->messages()->with(['sender', 'repliedTo.sender'])->orderByDesc('id');
 
         if ($beforeId) {
             $query->where('id', '<', $beforeId);
@@ -170,6 +170,10 @@ class MessageController extends Controller
                 'created_at' => $m->created_at->format('M d, g:i A'),
                 'is_edited' => (bool) $m->edited_at,
                 'is_unsent' => (bool) $m->is_unsent,
+                'reply_to' => ($m->reply_to_id && $m->repliedTo && !$m->repliedTo->is_unsent) ? [
+                    'sender_name' => $m->repliedTo->sender->first_name,
+                    'body' => strlen($m->repliedTo->body) > 50 ? substr($m->repliedTo->body, 0, 50) . '...' : ($m->repliedTo->body ?: 'Attachment'),
+                ] : null,
             ]),
         ]);
     }
@@ -182,6 +186,7 @@ class MessageController extends Controller
         $validated = $request->validate([
             'body' => ['nullable', 'string', 'max:2000'],
             'attachment' => ['nullable', 'file', 'max:10240'],
+            'reply_to_id' => ['nullable', 'integer', 'exists:messages,id'],
         ]);
 
         if (empty($validated['body']) && !$request->hasFile('attachment')) {
@@ -191,6 +196,7 @@ class MessageController extends Controller
         $data = [
             'conversation_id' => $conversation->id,
             'sender_id' => $authId,
+            'reply_to_id' => $validated['reply_to_id'] ?? null,
             'body' => $validated['body'] ?? null,
         ];
 
@@ -202,6 +208,7 @@ class MessageController extends Controller
         }
 
         $message = Message::create($data);
+        $message->load('repliedTo.sender');
         $conversation->touch();
         $conversation->users()->updateExistingPivot($authId, ['last_read_at' => now()]);
 
@@ -217,6 +224,10 @@ class MessageController extends Controller
                 'created_at' => $message->created_at->format('M d, g:i A'),
                 'is_edited' => false,
                 'is_unsent' => false,
+                'reply_to' => ($message->reply_to_id && $message->repliedTo && !$message->repliedTo->is_unsent) ? [
+                    'sender_name' => $message->repliedTo->sender->first_name,
+                    'body' => strlen($message->repliedTo->body) > 50 ? substr($message->repliedTo->body, 0, 50) . '...' : ($message->repliedTo->body ?: 'Attachment'),
+                ] : null,
             ],
         ]);
     }

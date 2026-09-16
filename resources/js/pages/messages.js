@@ -57,6 +57,18 @@ $(document).ready(function () {
     const bodyHtml = m.body ? $('<div>').text(m.body).html() : '';
     const editedTag = m.is_edited ? '<span class="opacity-75 edited-tag" style="font-size:0.7rem;"> (edited)</span>' : '';
 
+    const safeDataBody = $('<div>').text(m.body || (m.attachment_name ? 'Attachment' : '')).html();
+    const replyPreviewHtml = m.reply_to ? `
+      <div class="mb-2 p-2 rounded bg-white bg-opacity-25 border-start border-3 border-${m.is_mine ? 'light' : 'primary'} shadow-sm">
+        <div class="d-flex align-items-center gap-1 fw-bold mb-1" style="font-size: 0.75rem;">
+          <i class="bi bi-reply-fill"></i> Replying to ${m.reply_to.sender_name}
+        </div>
+        <div class="text-truncate opacity-100 fst-italic" style="font-size: 0.75rem; max-width: 250px;">
+          "${m.reply_to.body}"
+        </div>
+      </div>
+    ` : '';
+
     const kebabHtml = m.is_mine ? `
       <div class="dropdown">
         <button type="button" class="toolbar-btn" data-bs-toggle="dropdown" aria-expanded="false" title="More">
@@ -80,7 +92,7 @@ $(document).ready(function () {
   const rowAlign = m.is_mine ? 'justify-content-end' : 'justify-content-start';
 
   return `
-    <div class="message-row d-flex ${rowAlign} align-items-center mb-2" data-message-id="${m.id}">
+    <div class="message-row d-flex ${rowAlign} align-items-center mb-2" data-message-id="${m.id}" data-sender="${m.sender_name}" data-body="${safeDataBody}">
 
       ${m.is_mine ? `
         <div class="message-hover-toolbar me-2">
@@ -90,6 +102,7 @@ $(document).ready(function () {
 
       <div class="p-2 rounded-3 ${alignClass} message-bubble" style="max-width:70%; width:fit-content;">
         ${senderLabel}
+        ${replyPreviewHtml} 
         <div class="message-body">${bodyHtml}</div>
         ${renderAttachment(m)}
         <small class="d-block opacity-75 mt-1" style="font-size:0.7rem;">
@@ -102,7 +115,6 @@ $(document).ready(function () {
           ${toolbarButtonsHtml('')}
         </div>
       ` : ''}
-
     </div>
   `;
   }
@@ -291,6 +303,8 @@ $(document).ready(function () {
     formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
     if (body) formData.append('body', body);
     if (selectedFile) formData.append('attachment', selectedFile);
+    const replyToId = $('#replyToId').val();
+    if (replyToId) formData.append('reply_to_id', replyToId);
 
     $messageInput.val('');
     const clearedFile = selectedFile;
@@ -308,6 +322,7 @@ $(document).ready(function () {
         $chatMessages.append(messageHtml(response.message, currentIsGroup));
         scrollToBottom();
         refreshConversationsList();
+        $('#cancelReplyBtn').trigger('click');
       },
       error: function (xhr) {
         $messageInput.val(body);
@@ -447,9 +462,26 @@ $(document).ready(function () {
     });
   });
 
-  // Placeholder actions — wire these up later if you want them functional
-  $(document).on('click', '.reply-message-btn, .react-message-btn', function () {
-    if (window.toast) window.toast('success', 'Coming soon!');
+  $chatMessages.on('click', '.reply-message-btn', function () {
+    const $row = $(this).closest('.message-row');
+    const messageId = $row.data('message-id');
+    const senderName = $row.data('sender') || 'User';
+    const bodyText = $row.data('body') || 'Attachment';
+
+    $('#replyToId').val(messageId);
+    $('#replyPreviewName').text('Replying to ' + senderName);
+    $('#replyPreviewBody').text(bodyText);
+    $('#replyPreview').slideDown(150);
+    $('#messageInput').trigger('focus');
+  });
+
+  $('#cancelReplyBtn').on('click', function () {
+    $('#replyToId').val('');
+    $('#replyPreview').slideUp(150);
+  });
+
+  $(document).on('click', '.react-message-btn', function () {
+    if (window.toast) window.toast('success', 'Reactions coming soon!');
   });
 
   // Edit message — now updates the bubble directly, no full reload
@@ -552,6 +584,41 @@ $(document).ready(function () {
         if (window.toast) window.toast('error', xhr.responseJSON?.message || 'Failed to unsend message.');
       }
     });
+  });
+
+  // --- Search Filter for Single Chat Modal ---
+  $('#newChatSearchInput').on('input', function () {
+    const searchTerm = $(this).val().toLowerCase();
+
+    $('#newChatUserList .start-chat-btn').each(function () {
+      const userName = $(this).data('name').toLowerCase();
+      
+      if (userName.includes(searchTerm)) {
+        $(this).removeClass('d-none').addClass('d-flex');
+      } else {
+        $(this).removeClass('d-flex').addClass('d-none');
+      }
+    });
+  });
+
+  // --- Search Filter for Group Chat Modal ---
+  $('#newGroupSearchInput').on('input', function () {
+    const searchTerm = $(this).val().toLowerCase();
+
+    $('#groupMembersList .group-member-item').each(function () {
+      const userName = $(this).data('name').toLowerCase();
+      
+      if (userName.includes(searchTerm)) {
+        $(this).removeClass('d-none').addClass('d-flex');
+      } else {
+        $(this).removeClass('d-flex').addClass('d-none');
+      }
+    });
+  });
+
+  // Clear the search bars when the modals are closed
+  $('#newChatModal, #newGroupModal').on('hidden.bs.modal', function () {
+    $('#newChatSearchInput, #newGroupSearchInput').val('').trigger('input');
   });
 
   refreshConversationsList();
