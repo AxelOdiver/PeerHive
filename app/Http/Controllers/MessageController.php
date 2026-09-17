@@ -300,8 +300,9 @@ class MessageController extends Controller
     {
         $userId = auth()->id();
 
-        $count = Conversation::whereHas('users', fn ($q) => $q->where('users.id', $userId))
-            ->with('users')
+        // Get all conversations with unread messages
+        $unreadConversations = Conversation::whereHas('users', fn ($q) => $q->where('users.id', $userId))
+            ->with(['users', 'latestMessage'])
             ->get()
             ->filter(function ($conv) use ($userId) {
                 $pivot = $conv->users->firstWhere('id', $userId)->pivot;
@@ -311,9 +312,32 @@ class MessageController extends Controller
                     ->where('sender_id', '!=', $userId)
                     ->when($lastReadAt, fn ($q) => $q->where('created_at', '>', $lastReadAt))
                     ->exists();
-            })
-            ->count();
+            });
 
-        return response()->json(['count' => $count]);
+        $count = $unreadConversations->count();
+
+        // Map them into brief notification summaries
+        $notifications = $unreadConversations->map(function ($conv) use ($userId) {
+            $otherUsers = $conv->users->where('id', '!=', $userId)->values();
+            $firstOther = $otherUsers->first();
+            
+            $name = $conv->is_group 
+                ? ($conv->name ?: 'Group') 
+                : trim(($firstOther->first_name ?? '') . ' ' . ($firstOther->last_name ?? ''));
+            
+            $last = $conv->latestMessage;
+            $text = $last?->is_unsent ? 'Message unsent' : ($last?->body ?? 'Attachment');
+            
+            return [
+                'name' => $name,
+                'text' => strlen($text) > 40 ? substr($text, 0, 40) . '...' : $text,
+                'time' => $last?->created_at->diffForHumans() ?? '',
+            ];
+        })->values();
+
+        return response()->json([
+            'count' => $count,
+            'notifications' => $notifications
+        ]);
     }
 }

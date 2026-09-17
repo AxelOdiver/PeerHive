@@ -35,17 +35,21 @@
           <span class="position-relative d-inline-block">
             <i class="bi bi-bell-fill fs-5"></i>
             
-            @if(auth()->user()->pendingInvites->count() > 0)
-            <span class="position-absolute badge rounded-pill bg-danger" 
-            style="top: 0px; right: -6px; font-size: 0.6rem; padding: 0.2em 0.4em;">
-            {{ auth()->user()->pendingInvites->count() }}
+            @php $inviteCount = auth()->user()->pendingInvites->count(); @endphp
+            
+            <!-- UNIFIED NOTIFICATION BADGE -->
+            <span id="globalNotificationBadge" 
+                  class="position-absolute badge rounded-pill bg-danger {{ $inviteCount > 0 ? '' : 'd-none' }}" 
+                  style="top: 0px; right: -6px; font-size: 0.6rem; padding: 0.2em 0.4em;" 
+                  data-invite-count="{{ $inviteCount }}">
+              {{ $inviteCount > 0 ? $inviteCount : '0' }}
+            </span>
           </span>
-          @endif
-        </span>
-      </a>
+        </a>
       
       <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="width: 320px;">
         <li><h6 class="dropdown-header fw-bold">Notifications</h6></li>
+        <div id="messageNotificationsList"></div>
         
         @forelse(auth()->user()->pendingInvites as $invite)
         <li>
@@ -69,7 +73,7 @@
           </div>
         </li>
         @empty
-        <li><span class="dropdown-item text-muted small">No new notifications.</span></li>
+        <li id="noNotificationsMsg"><span class="dropdown-item text-muted small">No new notifications.</span></li>
         @endforelse
       </ul>
     </li>
