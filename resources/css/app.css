@@ -376,3 +376,36 @@ div.dt-container .dt-button.btn {
     font-size: 0.875rem;
     font-style: italic;
 }
+
+.chat-wrapper {
+  height: calc(100vh - 140px);
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .chat-sidebar, .chat-main {
+    height: 100%;
+    min-height: 0; 
+  }
+}
+
+@media (max-width: 767.98px) {
+  .chat-sidebar {
+    height: 40%;
+    border-right: none !important;
+    border-bottom: 1px solid #dee2e6;
+    min-height: 0;
+  }
+  .chat-main {
+    height: 60%;
+    min-height: 0;
+  }
+}
+
+#conversationsList, #chatMessages {
+  min-height: 0;
+}
+
+body, html, .app-main {
+    overflow-y: hidden !important;
+  }

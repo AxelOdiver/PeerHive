@@ -4,9 +4,11 @@
 @section('page-title', 'Messages')
 
 @section('content')
-<div class="card shadow-sm" style="height: 75vh;">
+<div class="card shadow-sm chat-wrapper">
   <div class="row g-0 h-100">
-    <div class="col-4 border-end h-100 d-flex flex-column">
+    
+    <!-- Left Side: Conversation List -->
+    <div class="col-md-4 col-lg-3 border-end chat-sidebar d-flex flex-column bg-body rounded-start">
       <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
         <h5 class="fw-bold mb-0">Messages</h5>
         <div class="d-flex gap-2">
@@ -21,7 +23,8 @@
       <div class="flex-grow-1 overflow-auto" id="conversationsList"></div>
     </div>
 
-    <div class="col-8 h-100 d-flex flex-column">
+    <!-- Right Side: Active Chat -->
+    <div class="col-md-8 col-lg-9 chat-main d-flex flex-column bg-body rounded-end">
       <div class="p-3 border-bottom d-flex justify-content-between align-items-center" id="chatHeader">
         <span class="text-muted">Select a conversation to start chatting</span>
       </div>
@@ -47,11 +50,11 @@
         </form>
       </div>
     </div>
+    
   </div>
 </div>
 
 <x-modal id="newChatModal" title="Start a Conversation">
-  
   <!-- NEW: Search Input -->
   <div class="mb-3 px-1">
     <div class="input-group">
@@ -82,7 +85,7 @@
 
 <x-modal id="newGroupModal" title="Create Group Chat">
   <form id="newGroupForm">
-    <div class="form-floating mb-3">s
+    <div class="form-floating mb-3">
       <input type="text" class="form-control" id="groupNameInput" placeholder="Group name">
       <label for="groupNameInput">Group Name</label>
     </div>
@@ -123,6 +126,19 @@
   <x-slot:footer>
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
     <button type="button" class="btn btn-primary" id="createGroupBtn">Create Group</button>
+  </x-slot:footer>
+</x-modal>
+
+<!-- (You can remove this deleteChatModal block if you switched entirely to SweetAlert2 for deletion) -->
+<x-modal id="deleteChatModal" title="Delete Conversation">
+  <p class="mb-0">Are you sure you want to delete your chat with <strong id="deleteChatName"></strong>?</p>
+  <p class="text-danger small mt-1 mb-0"><i class="bi bi-exclamation-triangle-fill"></i> This action cannot be undone and will delete all messages.</p>
+  
+  <input type="hidden" id="deleteConversationId">
+  
+  <x-slot:footer>
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <button type="button" class="btn btn-danger" id="confirmDeleteChatBtn">Delete</button>
   </x-slot:footer>
 </x-modal>
 @endsection

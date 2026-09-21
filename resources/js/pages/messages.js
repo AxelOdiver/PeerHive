@@ -179,11 +179,20 @@ $(document).ready(function () {
   });
 
   function renderChatHeader(conv) {
-    let membersBtn = '';
+    let buttons = '';
+    
     if (conv.is_group) {
-      membersBtn = `<button type="button" class="btn btn-sm btn-outline-secondary" id="viewMembersBtn" data-conversation-id="${conv.id}"><i class="bi bi-people-fill"></i> Members</button>`;
+      buttons += `<button type="button" class="btn btn-sm btn-outline-secondary me-2" id="viewMembersBtn" data-conversation-id="${conv.id}"><i class="bi bi-people-fill"></i> Members</button>`;
     }
-    $chatHeader.html(`<span class="fw-semibold">${conv.name}</span>${membersBtn}`);
+    
+    buttons += `<button type="button" class="btn btn-sm btn-danger" id="deleteChatBtn" data-conversation-id="${conv.id}" data-name="${conv.name}" title="Delete Conversation"><i class="bi bi-trash-fill"></i></button>`;
+    
+    $chatHeader.html(`
+      <div class="d-flex justify-content-between align-items-center w-100">
+        <span class="fw-semibold">${conv.name}</span>
+        <div>${buttons}</div>
+      </div>
+    `);
   }
 
   function openConversation(conv) {
@@ -338,6 +347,7 @@ $(document).ready(function () {
   });
 
   $(document).on('click', '.start-chat-btn', function () {
+    $(this).blur();
     const userId = $(this).data('user-id');
     const name = $(this).data('name');
 
@@ -551,7 +561,7 @@ $(document).ready(function () {
     });
   });
 
-  // Unsend message — now replaces the bubble directly, no full reload
+  // Unsend message
   $chatMessages.on('click', '.unsend-message-btn', async function () {
     const messageId = $(this).data('message-id');
     const $bubble = $(this).closest('.message-bubble');
@@ -582,6 +592,44 @@ $(document).ready(function () {
       },
       error: function (xhr) {
         if (window.toast) window.toast('error', xhr.responseJSON?.message || 'Failed to unsend message.');
+      }
+    });
+  });
+
+  // --- Delete Conversation ---
+  $(document).on('click', '#deleteChatBtn', async function (e) {
+    e.preventDefault();
+    const conversationId = $(this).data('conversation-id');
+    const name = $(this).data('name');
+
+    const result = window.confirmAction
+      ? await window.confirmAction(`Are you sure you want to delete your chat with ${name}?`, 'Are you sure?')
+      : { isConfirmed: confirm(`Are you sure you want to delete your chat with ${name}?`) };
+
+    if (!result.isConfirmed) return;
+
+    $.ajax({
+      url: `/messages/conversations/${conversationId}`,
+      method: 'DELETE',
+      headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+      success: function () {
+        refreshConversationsList();
+        
+        if (String(currentConversationId) === String(conversationId)) {
+          $chatMessages.empty();
+          $chatHeader.empty();$chatFooter.hide();
+          currentConversationId = null;
+          $activeConversationId.val('');
+          
+          if (typeof chatPollTimer !== 'undefined') {
+             clearInterval(chatPollTimer);
+          }
+        }
+        
+        if (window.toast) window.toast('success', 'Conversation deleted.');
+      },
+      error: function (xhr) {
+        if (window.toast) window.toast('error', xhr.responseJSON?.message || 'Failed to delete conversation.');
       }
     });
   });

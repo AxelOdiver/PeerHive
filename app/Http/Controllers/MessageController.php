@@ -340,4 +340,17 @@ class MessageController extends Controller
             'notifications' => $notifications
         ]);
     }
+
+    public function destroyConversation(Conversation $conversation)
+    {
+        // Ensure only participants can delete it
+        abort_unless($conversation->users->contains('id', auth()->id()), 403);
+
+        // Delete all messages and detach users first to avoid foreign key errors
+        $conversation->messages()->delete();
+        $conversation->users()->detach();
+        $conversation->delete();
+
+        return response()->json(['message' => 'Conversation deleted successfully.']);
+    }
 }
