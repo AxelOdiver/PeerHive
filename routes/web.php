@@ -91,6 +91,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/messages/conversations/{conversation}', [MessageController::class, 'storeMessage'])->name('messages.conversations.message');
     Route::post('/messages/conversations/{conversation}/members', [MessageController::class, 'addMember'])->name('messages.conversations.members.add');
     Route::delete('/messages/conversations/{conversation}/members/{user}', [MessageController::class, 'removeMember'])->name('messages.conversations.members.remove');
+    Route::post('/messages/{message}/reactions', [MessageController::class, 'react'])->name('messages.react');
+    Route::get('/messages/conversations/{conversation}/info', [MessageController::class, 'info'])->name('messages.info');
+    Route::put('/messages/conversations/{conversation}/mute', [MessageController::class, 'mute'])->name('messages.mute');
+    Route::delete('/messages/conversations/{conversation}/leave', [MessageController::class, 'leave'])->name('messages.leave');
     Route::put('/messages/{message}', [MessageController::class, 'editMessage'])->name('messages.edit');
     Route::delete('/messages/{message}', [MessageController::class, 'deleteMessage'])->name('messages.delete');
     Route::view('/history', 'history')->name('history');

@@ -19,6 +19,11 @@ class Message extends Model
         return $this->belongsTo(User::class, 'sender_id');
     }
 
+    public function reactions()
+    {
+        return $this->hasMany(MessageReaction::class);
+    }
+
     public function repliedTo()
     {
         return $this->belongsTo(Message::class, 'reply_to_id');

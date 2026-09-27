@@ -7,6 +7,8 @@ use App\Models\Message;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class MessageController extends Controller
 {
@@ -57,6 +59,7 @@ class MessageController extends Controller
                     'last_message' => $lastPreview,
                     'last_message_at' => $last?->created_at?->timestamp ?? $conv->created_at->timestamp,
                     'unread_count' => $unreadCount,
+                    'is_muted' => $conv->isMutedFor($userId),
                 ];
             })
             ->sortByDesc('last_message_at')
@@ -136,25 +139,46 @@ class MessageController extends Controller
         $perPage = 30;
         $beforeId = $request->query('before_id');
 
-        $query = $conversation->messages()->with(['sender', 'repliedTo.sender'])->orderByDesc('id');
+        $request->validate(['q' => ['nullable', 'string', 'max:200'], 'before_id' => ['nullable', 'integer', 'min:1'], 'around_id' => ['nullable', 'integer', 'min:1'], 'after_id' => ['nullable', 'integer', 'min:1']]);
+        $search = trim((string) $request->query('q'));
+        $query = $conversation->messages()->with(['sender', 'repliedTo.sender', 'reactions'])->orderByDesc('id');
+        if ($search !== '') {
+            $query->where('is_unsent', false)->where(function ($q) use ($search) {
+                $q->where('body', 'like', '%'.$search.'%')->orWhere('attachment_name', 'like', '%'.$search.'%');
+            });
+        }
 
-        if ($beforeId) {
+        $totalResults = $search !== '' ? (clone $query)->count() : null;
+        $aroundId = $request->integer('around_id');
+        $afterId = $request->integer('after_id');
+        if ($aroundId) {
+            abort_unless($conversation->messages()->whereKey($aroundId)->exists(), 404);
+            $startId = $conversation->messages()->where('id', '<=', $aroundId)->orderByDesc('id')->limit(16)->pluck('id')->last();
+            $query->where('id', '>=', $startId)->reorder('id');
+        } elseif ($afterId) {
+            $query->where('id', '>', $afterId)->reorder('id');
+        } elseif ($beforeId) {
             $query->where('id', '<', $beforeId);
         }
 
-        $messages = $query->limit($perPage)->get()->reverse()->values();
+        $page = $query->limit($perPage + 1)->get();
+        $hasMore = $page->count() > $perPage;
+        $messages = $page->take($perPage)->sortBy('id')->values();
+        if ($aroundId || $afterId) {
+            $hasMore = $conversation->messages()->where('id', '<', $messages->first()?->id ?? 0)->exists();
+        }
+        $hasNewer = $messages->isNotEmpty() && $conversation->messages()->where('id', '>', $messages->last()->id)->exists();
 
-        $hasMore = $conversation->messages()
-            ->where('id', '<', $messages->first()?->id ?? 0)
-            ->exists();
-
-        if (!$beforeId) {
+        if (!$beforeId && !$aroundId && !$afterId && $search === '') {
             $conversation->users()->updateExistingPivot($authId, ['last_read_at' => now()]);
         }
 
         return response()->json([
             'is_group' => $conversation->is_group,
             'has_more' => $hasMore,
+            'has_newer' => $hasNewer,
+            'total_results' => $totalResults,
+            'is_muted' => $conversation->isMutedFor($authId),
             'members' => $conversation->users->map(fn ($u) => [
                 'id' => $u->id,
                 'name' => trim($u->first_name . ' ' . $u->last_name),
@@ -170,9 +194,12 @@ class MessageController extends Controller
                 'created_at' => $m->created_at->format('M d, g:i A'),
                 'is_edited' => (bool) $m->edited_at,
                 'is_unsent' => (bool) $m->is_unsent,
+                'reactions' => $m->is_unsent ? [] : $m->reactions->groupBy('emoji')->map(fn ($items, $emoji) => [
+                    'emoji' => $emoji, 'count' => $items->count(), 'is_mine' => $items->contains('user_id', $authId),
+                ])->values(),
                 'reply_to' => ($m->reply_to_id && $m->repliedTo && !$m->repliedTo->is_unsent) ? [
                     'sender_name' => $m->repliedTo->sender->first_name,
-                    'body' => strlen($m->repliedTo->body) > 50 ? substr($m->repliedTo->body, 0, 50) . '...' : ($m->repliedTo->body ?: 'Attachment'),
+                    'body' => mb_strimwidth($m->repliedTo->body ?: 'Attachment', 0, 80, '…'),
                 ] : null,
             ]),
         ]);
@@ -186,7 +213,7 @@ class MessageController extends Controller
         $validated = $request->validate([
             'body' => ['nullable', 'string', 'max:2000'],
             'attachment' => ['nullable', 'file', 'max:10240'],
-            'reply_to_id' => ['nullable', 'integer', 'exists:messages,id'],
+            'reply_to_id' => ['nullable', 'integer', Rule::exists('messages', 'id')->where('conversation_id', $conversation->id)->where('is_unsent', 0)],
         ]);
 
         if (empty($validated['body']) && !$request->hasFile('attachment')) {
@@ -226,7 +253,7 @@ class MessageController extends Controller
                 'is_unsent' => false,
                 'reply_to' => ($message->reply_to_id && $message->repliedTo && !$message->repliedTo->is_unsent) ? [
                     'sender_name' => $message->repliedTo->sender->first_name,
-                    'body' => strlen($message->repliedTo->body) > 50 ? substr($message->repliedTo->body, 0, 50) . '...' : ($message->repliedTo->body ?: 'Attachment'),
+                    'body' => mb_strimwidth($message->repliedTo->body ?: 'Attachment', 0, 80, '…'),
                 ] : null,
             ],
         ]);
@@ -235,6 +262,7 @@ class MessageController extends Controller
     public function editMessage(Request $request, Message $message)
     {
         abort_unless($message->sender_id === auth()->id(), 403);
+        abort_unless($message->conversation->users()->where('users.id', auth()->id())->exists(), 403);
         abort_if($message->is_unsent, 422, 'Cannot edit an unsent message.');
 
         $validated = $request->validate([
@@ -252,11 +280,13 @@ class MessageController extends Controller
     public function deleteMessage(Message $message)
     {
         abort_unless($message->sender_id === auth()->id(), 403);
+        abort_unless($message->conversation->users()->where('users.id', auth()->id())->exists(), 403);
 
         if ($message->attachment_path) {
             Storage::disk('public')->delete($message->attachment_path);
         }
 
+        $message->reactions()->delete();
         $message->update([
             'body' => null,
             'attachment_path' => null,
@@ -300,8 +330,8 @@ class MessageController extends Controller
     {
         $userId = auth()->id();
 
-        // Get all conversations with unread messages
-        $unreadConversations = Conversation::whereHas('users', fn ($q) => $q->where('users.id', $userId))
+        // Muted conversations retain unread counts in the list, but do not alert.
+        $unreadConversations = Conversation::whereHas('users', fn ($q) => $q->where('users.id', $userId)->where(fn ($mute) => $mute->where('conversation_user.is_muted', false)->orWhere('conversation_user.muted_until', '<=', now())))
             ->with(['users', 'latestMessage'])
             ->get()
             ->filter(function ($conv) use ($userId) {
@@ -339,6 +369,68 @@ class MessageController extends Controller
             'count' => $count,
             'notifications' => $notifications
         ]);
+    }
+
+
+    public function react(Request $request, Message $message)
+    {
+        abort_unless($message->conversation->users()->where('users.id', auth()->id())->exists(), 403);
+        $validated = $request->validate([
+            'emoji' => ['required', Rule::in(['👍', '❤️', '😂', '🎉', '😮', '😢'])],
+        ]);
+        DB::transaction(function () use ($message, $validated) {
+            $locked = Message::whereKey($message->id)->lockForUpdate()->firstOrFail();
+            abort_if($locked->is_unsent, 422, 'Cannot react to an unsent message.');
+            $reaction = $locked->reactions()->where('user_id', auth()->id())->where('emoji', $validated['emoji'])->first();
+            if ($reaction) {
+                $reaction->delete();
+            } else {
+                $locked->reactions()->create(['user_id' => auth()->id(), 'emoji' => $validated['emoji']]);
+            }
+        });
+        return response()->json(['reactions' => $message->reactions()->get()->groupBy('emoji')->map(fn ($items, $emoji) => [
+            'emoji' => $emoji, 'count' => $items->count(), 'is_mine' => $items->contains('user_id', auth()->id()),
+        ])->values()]);
+    }
+
+    public function info(Conversation $conversation)
+    {
+        abort_unless($conversation->users->contains('id', auth()->id()), 403);
+        $pivot = $conversation->users->firstWhere('id', auth()->id())->pivot;
+        return response()->json([
+            'is_group' => $conversation->is_group,
+            'is_muted' => $conversation->isMutedFor(auth()->id()),
+            'muted_until' => $pivot->muted_until ? \Illuminate\Support\Carbon::parse($pivot->muted_until)->toIso8601String() : null,
+            'members' => $conversation->users->map(fn ($user) => [
+                'id' => $user->id,
+                'name' => trim($user->first_name.' '.$user->last_name),
+                'profile_picture' => $user->profile_picture ? Storage::url($user->profile_picture) : null,
+                'profile_url' => route('users.profile', $user),
+            ]),
+        ]);
+    }
+
+    public function mute(Request $request, Conversation $conversation)
+    {
+        abort_unless($conversation->users()->where('users.id', auth()->id())->exists(), 403);
+        $validated = $request->validate([
+            'is_muted' => ['required', 'boolean'],
+            'duration' => ['nullable', Rule::in(['15', '60', '480', '1440', 'forever'])],
+        ]);
+        $duration = $validated['duration'] ?? 'forever';
+        $until = $validated['is_muted'] && $duration !== 'forever' ? now()->addMinutes((int) $duration) : null;
+        $conversation->users()->updateExistingPivot(auth()->id(), [
+            'is_muted' => $validated['is_muted'], 'muted_until' => $until,
+        ]);
+        return response()->json(['is_muted' => (bool) $validated['is_muted'], 'muted_until' => $until]);
+    }
+
+    public function leave(Conversation $conversation)
+    {
+        abort_unless($conversation->users()->where('users.id', auth()->id())->exists(), 403);
+        abort_unless($conversation->is_group, 422);
+        $conversation->users()->detach(auth()->id());
+        return response()->json(['message' => 'You left the group.']);
     }
 
     public function destroyConversation(Conversation $conversation)
