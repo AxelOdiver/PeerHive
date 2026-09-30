@@ -11,8 +11,8 @@
         <i class="nav-icon {{ $icon }}"></i>
         <p class="d-flex align-items-center gap-2">
             {{ $label }}
-            @if($badge)
-            <span class="badge bg-danger rounded-pill" id="sidebarMessagesBadge">{{ $badge }}</span>
+            @if($label === 'Messages')
+            <span class="badge bg-danger rounded-pill {{ $badge ? '' : 'd-none' }}" id="sidebarMessagesBadge">{{ $badge ?? 0 }}</span>
             @endif
         </p>
     </a>

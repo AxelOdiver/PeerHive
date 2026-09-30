@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
+use App\Support\ChatPresence;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
@@ -24,14 +26,14 @@ class MessageController extends Controller
 
         $conversations = Conversation::whereHas('users', fn ($q) => $q->where('users.id', $userId))
             ->with(['users', 'latestMessage.sender'])
-            ->get()
-            ->map(function ($conv) use ($userId) {
+            ->get();
+        $presence = ChatPresence::forUsers($conversations->flatMap(fn ($conv) => $conv->users));
+        $conversations = $conversations->filter(fn ($conv) => $conv->visibleTo($userId))->map(function ($conv) use ($userId, $presence) {
                 $pivot = $conv->users->firstWhere('id', $userId)->pivot;
-                $lastReadAt = $pivot->last_read_at;
 
-                $unreadCount = $conv->messages()
+                $unreadCount = $conv->messages()->visibleTo($userId)
                     ->where('sender_id', '!=', $userId)
-                    ->when($lastReadAt, fn ($q) => $q->where('created_at', '>', $lastReadAt))
+                    ->where('id', '>', max($pivot->last_read_message_id, $pivot->cleared_through_message_id))
                     ->count();
 
                 $otherUsers = $conv->users->where('id', '!=', $userId)->values();
@@ -45,7 +47,8 @@ class MessageController extends Controller
                     ? strtoupper(substr($name, 0, 2))
                     : strtoupper(substr($firstOther->first_name ?? '', 0, 1) . substr($firstOther->last_name ?? '', 0, 1));
 
-                $last = $conv->latestMessage;
+                $last = $conv->messages()->visibleTo($userId)->where('id', '>', $conv->clearedThrough($userId))->latest('id')->first();
+                if ($last && $last->id <= $pivot->cleared_through_message_id) $last = null;
                 $lastPreview = $last?->is_unsent
                     ? 'Message unsent'
                     : ($last?->body ?? ($last?->attachment_name ? '📎 ' . $last->attachment_name : null));
@@ -60,6 +63,7 @@ class MessageController extends Controller
                     'last_message_at' => $last?->created_at?->timestamp ?? $conv->created_at->timestamp,
                     'unread_count' => $unreadCount,
                     'is_muted' => $conv->isMutedFor($userId),
+                    'presence' => !$conv->is_group && $firstOther ? $presence[$firstOther->id] : null,
                 ];
             })
             ->sortByDesc('last_message_at')
@@ -71,7 +75,7 @@ class MessageController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'user_id' => ['required_unless:is_group,1,true', 'nullable', 'integer', 'exists:users,id'],
             'is_group' => ['nullable', 'in:0,1,true,false'],
             'name' => ['nullable', 'string', 'max:255'],
             'member_ids' => ['nullable', 'array'],
@@ -122,6 +126,7 @@ class MessageController extends Controller
             ->first(fn ($c) => $c->users->count() === 2);
 
         if ($existing) {
+            $existing->users()->updateExistingPivot($authId, ['is_hidden' => false]);
             return response()->json(['conversation_id' => $existing->id]);
         }
 
@@ -141,7 +146,9 @@ class MessageController extends Controller
 
         $request->validate(['q' => ['nullable', 'string', 'max:200'], 'before_id' => ['nullable', 'integer', 'min:1'], 'around_id' => ['nullable', 'integer', 'min:1'], 'after_id' => ['nullable', 'integer', 'min:1']]);
         $search = trim((string) $request->query('q'));
-        $query = $conversation->messages()->with(['sender', 'repliedTo.sender', 'reactions'])->orderByDesc('id');
+        $clearedThrough = $conversation->clearedThrough($authId);
+        $visibleMessages = $conversation->messages()->visibleTo($authId)->where('id', '>', $clearedThrough);
+        $query = (clone $visibleMessages)->with(['sender', 'repliedTo' => fn ($q) => $q->visibleTo($authId)->with('sender'), 'reactions'])->orderByDesc('id');
         if ($search !== '') {
             $query->where('is_unsent', false)->where(function ($q) use ($search) {
                 $q->where('body', 'like', '%'.$search.'%')->orWhere('attachment_name', 'like', '%'.$search.'%');
@@ -152,8 +159,8 @@ class MessageController extends Controller
         $aroundId = $request->integer('around_id');
         $afterId = $request->integer('after_id');
         if ($aroundId) {
-            abort_unless($conversation->messages()->whereKey($aroundId)->exists(), 404);
-            $startId = $conversation->messages()->where('id', '<=', $aroundId)->orderByDesc('id')->limit(16)->pluck('id')->last();
+            abort_unless((clone $visibleMessages)->whereKey($aroundId)->exists(), 404);
+            $startId = (clone $visibleMessages)->where('id', '<=', $aroundId)->orderByDesc('id')->limit(16)->pluck('id')->last();
             $query->where('id', '>=', $startId)->reorder('id');
         } elseif ($afterId) {
             $query->where('id', '>', $afterId)->reorder('id');
@@ -165,13 +172,11 @@ class MessageController extends Controller
         $hasMore = $page->count() > $perPage;
         $messages = $page->take($perPage)->sortBy('id')->values();
         if ($aroundId || $afterId) {
-            $hasMore = $conversation->messages()->where('id', '<', $messages->first()?->id ?? 0)->exists();
+            $hasMore = (clone $visibleMessages)->where('id', '<', $messages->first()?->id ?? 0)->exists();
         }
-        $hasNewer = $messages->isNotEmpty() && $conversation->messages()->where('id', '>', $messages->last()->id)->exists();
+        $hasNewer = $messages->isNotEmpty() && (clone $visibleMessages)->where('id', '>', $messages->last()->id)->exists();
 
-        if (!$beforeId && !$aroundId && !$afterId && $search === '') {
-            $conversation->users()->updateExistingPivot($authId, ['last_read_at' => now()]);
-        }
+        // Reads are acknowledged explicitly by the focused chat after messages are displayed.
 
         return response()->json([
             'is_group' => $conversation->is_group,
@@ -185,6 +190,7 @@ class MessageController extends Controller
             ]),
             'messages' => $messages->map(fn ($m) => [
                 'id' => $m->id,
+                'client_message_id' => $m->sender_id === $authId ? $m->client_message_id : null,
                 'body' => $m->is_unsent ? null : $m->body,
                 'attachment_url' => (!$m->is_unsent && $m->attachment_path) ? Storage::url($m->attachment_path) : null,
                 'attachment_name' => $m->is_unsent ? null : $m->attachment_name,
@@ -197,7 +203,7 @@ class MessageController extends Controller
                 'reactions' => $m->is_unsent ? [] : $m->reactions->groupBy('emoji')->map(fn ($items, $emoji) => [
                     'emoji' => $emoji, 'count' => $items->count(), 'is_mine' => $items->contains('user_id', $authId),
                 ])->values(),
-                'reply_to' => ($m->reply_to_id && $m->repliedTo && !$m->repliedTo->is_unsent) ? [
+                'reply_to' => ($m->reply_to_id > $clearedThrough && $m->repliedTo && !$m->repliedTo->is_unsent) ? [
                     'sender_name' => $m->repliedTo->sender->first_name,
                     'body' => mb_strimwidth($m->repliedTo->body ?: 'Attachment', 0, 80, '…'),
                 ] : null,
@@ -211,37 +217,54 @@ class MessageController extends Controller
         abort_unless($conversation->users->contains('id', $authId), 403);
 
         $validated = $request->validate([
+            'client_message_id' => ['nullable', 'uuid'],
             'body' => ['nullable', 'string', 'max:2000'],
             'attachment' => ['nullable', 'file', 'max:10240'],
-            'reply_to_id' => ['nullable', 'integer', Rule::exists('messages', 'id')->where('conversation_id', $conversation->id)->where('is_unsent', 0)],
+            'reply_to_id' => ['nullable', 'integer', Rule::exists('messages', 'id')->where('conversation_id', $conversation->id)->where('is_unsent', 0)->where(fn ($q) => $q->where('id', '>', $conversation->clearedThrough($authId)))],
         ]);
 
-        if (empty($validated['body']) && !$request->hasFile('attachment')) {
+        if (trim((string) ($validated['body'] ?? '')) === '' && !$request->hasFile('attachment')) {
             return response()->json(['message' => 'Message cannot be empty.'], 422);
         }
 
-        $data = [
-            'conversation_id' => $conversation->id,
-            'sender_id' => $authId,
-            'reply_to_id' => $validated['reply_to_id'] ?? null,
-            'body' => $validated['body'] ?? null,
-        ];
-
-        if ($request->hasFile('attachment')) {
-            $file = $request->file('attachment');
-            $data['attachment_path'] = $file->store('message_attachments', 'public');
-            $data['attachment_name'] = $file->getClientOriginalName();
-            $data['attachment_type'] = $file->getClientMimeType();
-        }
-
-        $message = Message::create($data);
-        $message->load('repliedTo.sender');
-        $conversation->touch();
-        $conversation->users()->updateExistingPivot($authId, ['last_read_at' => now()]);
+        $file = $request->file('attachment');
+        $fingerprint = hash('sha256', json_encode([
+            $conversation->id, $validated['body'] ?? null, $validated['reply_to_id'] ?? null,
+            $file ? hash_file('sha256', $file->getRealPath()) : null, $file?->getClientOriginalName(),
+        ]));
+        $message = DB::transaction(function () use ($conversation, $authId, $validated, $file, $fingerprint) {
+            User::whereKey($authId)->lockForUpdate()->firstOrFail();
+            Conversation::whereKey($conversation->id)->lockForUpdate()->firstOrFail();
+            $key = $validated['client_message_id'] ?? null;
+            if ($key) {
+                $existing = Message::where('sender_id', $authId)->where('client_message_id', $key)->first();
+                if ($existing) {
+                    abort_unless(hash_equals($existing->request_hash, $fingerprint), 409, 'This send reference was already used for a different message.');
+                    return $existing;
+                }
+            }
+            $data = [
+                'conversation_id' => $conversation->id, 'sender_id' => $authId,
+                'reply_to_id' => $validated['reply_to_id'] ?? null, 'body' => $validated['body'] ?? null,
+                'client_message_id' => $key, 'request_hash' => $fingerprint,
+            ];
+            if ($file) {
+                $data['attachment_path'] = $file->store('message_attachments', 'public');
+                $data['attachment_name'] = $file->getClientOriginalName();
+                $data['attachment_type'] = $file->getClientMimeType();
+            }
+            $created = Message::create($data);
+            $conversation->users()->updateExistingPivot($authId, ['is_hidden' => false]);
+            $conversation->touch();
+            return $created;
+        });
+        $message->load(['repliedTo' => fn ($q) => $q->visibleTo($authId)->with('sender')]);
+        Cache::forget('typing:'.$conversation->id.':'.$authId);
 
         return response()->json([
             'message' => [
                 'id' => $message->id,
+                'client_message_id' => $message->client_message_id,
                 'body' => $message->body,
                 'attachment_url' => $message->attachment_path ? Storage::url($message->attachment_path) : null,
                 'attachment_name' => $message->attachment_name,
@@ -249,8 +272,8 @@ class MessageController extends Controller
                 'is_mine' => true,
                 'sender_name' => auth()->user()->first_name,
                 'created_at' => $message->created_at->format('M d, g:i A'),
-                'is_edited' => false,
-                'is_unsent' => false,
+                'is_edited' => (bool) $message->edited_at,
+                'is_unsent' => (bool) $message->is_unsent,
                 'reply_to' => ($message->reply_to_id && $message->repliedTo && !$message->repliedTo->is_unsent) ? [
                     'sender_name' => $message->repliedTo->sender->first_name,
                     'body' => mb_strimwidth($message->repliedTo->body ?: 'Attachment', 0, 80, '…'),
@@ -275,6 +298,13 @@ class MessageController extends Controller
         ]);
 
         return response()->json(['message' => 'Message updated.']);
+    }
+
+    public function deleteMessageForMe(Message $message)
+    {
+        abort_unless($message->conversation->users()->where('users.id', auth()->id())->exists(), 403);
+        DB::table('message_deletions')->insertOrIgnore(['message_id' => $message->id, 'user_id' => auth()->id()]);
+        return response()->json(['message' => 'Message deleted for you.']);
     }
 
     public function deleteMessage(Message $message)
@@ -336,11 +366,11 @@ class MessageController extends Controller
             ->get()
             ->filter(function ($conv) use ($userId) {
                 $pivot = $conv->users->firstWhere('id', $userId)->pivot;
-                $lastReadAt = $pivot->last_read_at;
+                if (!$conv->visibleTo($userId)) return false;
 
-                return $conv->messages()
+                return $conv->messages()->visibleTo($userId)
                     ->where('sender_id', '!=', $userId)
-                    ->when($lastReadAt, fn ($q) => $q->where('created_at', '>', $lastReadAt))
+                    ->where('id', '>', max($pivot->last_read_message_id, $pivot->cleared_through_message_id))
                     ->exists();
             });
 
@@ -355,7 +385,7 @@ class MessageController extends Controller
                 ? ($conv->name ?: 'Group') 
                 : trim(($firstOther->first_name ?? '') . ' ' . ($firstOther->last_name ?? ''));
             
-            $last = $conv->latestMessage;
+            $last = $conv->messages()->visibleTo($userId)->where('id', '>', $conv->clearedThrough($userId))->latest('id')->first();
             $text = $last?->is_unsent ? 'Message unsent' : ($last?->body ?? 'Attachment');
             
             return [
@@ -435,14 +465,15 @@ class MessageController extends Controller
 
     public function destroyConversation(Conversation $conversation)
     {
-        // Ensure only participants can delete it
         abort_unless($conversation->users->contains('id', auth()->id()), 403);
-
-        // Delete all messages and detach users first to avoid foreign key errors
-        $conversation->messages()->delete();
-        $conversation->users()->detach();
-        $conversation->delete();
-
-        return response()->json(['message' => 'Conversation deleted successfully.']);
+        DB::transaction(function () use ($conversation) {
+            Conversation::whereKey($conversation->id)->lockForUpdate()->firstOrFail();
+            $lastId = $conversation->messages()->max('id') ?? 0;
+            $conversation->users()->updateExistingPivot(auth()->id(), [
+                'cleared_through_message_id' => $lastId, 'is_hidden' => true,
+            ]);
+        });
+        Cache::forget('typing:'.$conversation->id.':'.auth()->id());
+        return response()->json(['message' => 'Conversation deleted for you. Other members keep their messages.']);
     }
 }

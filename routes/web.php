@@ -17,6 +17,7 @@ use App\Http\Controllers\CommunityInviteController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\MessagingActivityController;
 /*
 |--------------------------------------------------------------------------
 | Authentication Routes (Guest Only)
@@ -82,6 +83,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/comments/{id}', [CommunityController::class, 'destroyComment'])->name('comments.destroy');
 
     Route::view('/schedule', 'schedule')->name('schedule');
+    Route::post('/presence/heartbeat', [MessagingActivityController::class, 'heartbeat'])->middleware('throttle:6,1')->name('presence.heartbeat');
+    Route::get('/messages/conversations/{conversation}/state', [MessagingActivityController::class, 'state'])->name('messages.state');
+    Route::post('/messages/conversations/{conversation}/typing', [MessagingActivityController::class, 'typing'])->middleware('throttle:60,1')->name('messages.typing');
+    Route::post('/messages/conversations/{conversation}/read', [MessagingActivityController::class, 'read'])->middleware('throttle:60,1')->name('messages.read');
     Route::get('/messages', [MessageController::class, 'index'])->name('messages');
     Route::get('/messages/unread-count', [MessageController::class, 'unreadCount'])->name('messages.unread-count');
     Route::get('/messages/conversations', [MessageController::class, 'conversations'])->name('messages.conversations');
@@ -95,6 +100,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/messages/conversations/{conversation}/info', [MessageController::class, 'info'])->name('messages.info');
     Route::put('/messages/conversations/{conversation}/mute', [MessageController::class, 'mute'])->name('messages.mute');
     Route::delete('/messages/conversations/{conversation}/leave', [MessageController::class, 'leave'])->name('messages.leave');
+    Route::delete('/messages/{message}/for-me', [MessageController::class, 'deleteMessageForMe'])->name('messages.delete-for-me');
     Route::put('/messages/{message}', [MessageController::class, 'editMessage'])->name('messages.edit');
     Route::delete('/messages/{message}', [MessageController::class, 'deleteMessage'])->name('messages.delete');
     Route::view('/history', 'history')->name('history');

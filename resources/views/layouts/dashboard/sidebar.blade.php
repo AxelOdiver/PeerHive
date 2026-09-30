@@ -34,11 +34,11 @@
               ->get()
               ->filter(function ($conv) {
                   $pivot = $conv->users->firstWhere('id', auth()->id())->pivot;
-                  $lastReadAt = $pivot->last_read_at;
+                  if ($conv->isMutedFor(auth()->id()) || !$conv->visibleTo(auth()->id())) return false;
 
                   return $conv->messages()
                       ->where('sender_id', '!=', auth()->id())
-                      ->when($lastReadAt, fn ($q) => $q->where('created_at', '>', $lastReadAt))
+                      ->where('id', '>', max($pivot->last_read_message_id, $pivot->cleared_through_message_id))
                       ->exists();
               })
               ->count() ?: null,

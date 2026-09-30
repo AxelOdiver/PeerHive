@@ -9,7 +9,7 @@
     
     <!-- Left Side: Conversation List -->
     <div class="border-end chat-sidebar d-flex flex-column bg-body rounded-start">
-      <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+      <div class="chat-column-header p-3 border-bottom d-flex justify-content-between align-items-center">
         <h5 class="fw-bold mb-0">Messages</h5>
         <div class="d-flex gap-2">
           <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#newChatModal">
@@ -25,11 +25,12 @@
 
     <!-- Right Side: Active Chat -->
     <div class="chat-main d-flex flex-column bg-body rounded-end">
-      <div class="p-3 border-bottom d-flex justify-content-between align-items-center" id="chatHeader">
+      <div class="chat-column-header p-3 border-bottom d-flex justify-content-between align-items-center" id="chatHeader">
         <span class="text-muted">Select a conversation to start chatting</span>
       </div>
       <button type="button" id="backToLatestBtn" class="btn btn-sm btn-outline-primary m-2" style="display:none;">Back to latest messages</button>
       <div class="flex-grow-1 overflow-auto p-3" id="chatMessages"></div>
+      <div id="typingIndicator" class="px-3 py-1 text-muted small" role="status" aria-live="polite" style="display:none;"><span id="typingNames"></span><span class="typing-dots" aria-hidden="true"><span>●</span><span>●</span><span>●</span></span></div>
       <div class="p-2 border-top" id="chatFooter" style="display:none;">
 
         <div id="replyPreview" class="px-3 py-2 small border-start border-3 border-primary mx-2 mb-2 rounded shadow-sm" style="display:none; position:relative;">
@@ -46,7 +47,7 @@
             <i class="bi bi-plus-lg"></i>
             <input type="file" id="attachmentInput" class="d-none">
           </label>
-          <input type="text" id="messageInput" class="form-control rounded-pill" placeholder="Type a message...">
+          <input type="text" id="messageInput" maxlength="2000" class="form-control rounded-pill" placeholder="Type a message...">
           <button type="submit" class="btn btn-primary rounded-pill px-4">Send</button>
         </form>
       </div>
@@ -165,18 +166,6 @@
   </x-slot:footer>
 </x-modal>
 
-<!-- (You can remove this deleteChatModal block if you switched entirely to SweetAlert2 for deletion) -->
-<x-modal id="deleteChatModal" title="Delete Conversation">
-  <p class="mb-0">Are you sure you want to delete your chat with <strong id="deleteChatName"></strong>?</p>
-  <p class="text-danger small mt-1 mb-0"><i class="bi bi-exclamation-triangle-fill"></i> This action cannot be undone and will delete all messages.</p>
-  
-  <input type="hidden" id="deleteConversationId">
-  
-  <x-slot:footer>
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-    <button type="button" class="btn btn-danger" id="confirmDeleteChatBtn">Delete</button>
-  </x-slot:footer>
-</x-modal>
 <x-modal id="groupMembersModal" title="Group Members">
   <div id="groupMembersModalList"></div>
   <div class="input-group mt-3">

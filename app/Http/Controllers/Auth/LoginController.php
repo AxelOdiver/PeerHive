@@ -30,6 +30,7 @@ class LoginController extends Controller
         }
 
         $user = Auth::user();
+        \Illuminate\Support\Facades\Cache::forget('presence:'.auth()->id());
         Auth::logout();
 
         // ── Check for a trusted-device cookie ──────────────────────────
@@ -83,6 +84,7 @@ class LoginController extends Controller
 
     public function destroy(Request $request)
     {
+        \Illuminate\Support\Facades\Cache::forget('presence:'.auth()->id());
         Auth::logout();
 
         $request->session()->invalidate();

@@ -16,7 +16,8 @@ $(document).ready(function () {
   let oldestLoadedId = null;
   let hasMoreMessages = false;
   let isLoadingOlder = false;
-  let isSending = false;
+  const outgoing = [];
+  const hiddenMessageIds = new Set();
   let searchTerm = '';
   let searchTimer = null;
   let viewVersion = 0;
@@ -28,6 +29,17 @@ $(document).ready(function () {
   let navigatingHistory = false;
   let activeConversation = null;
   let infoVersion = 0;
+  let activityPending = false;
+  let activityMembers = [];
+  let activityReceivedAt = 0;
+  let typingTimer = null;
+  let typingSentAt = 0;
+  let typingConversation = null;
+  let readTimer = null;
+  let readPending = false;
+  const acknowledgedReads = new Map();
+  let messageRequestPending = false;
+
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
   const requestError = xhr => window.toast?.('error', xhr.responseJSON?.message || 'Something went wrong. Please try again.');
   function reactionsHtml(reactions = []) {
@@ -50,6 +62,7 @@ $(document).ready(function () {
   }
 
   function messageHtml(m, isGroup) {
+    if (hiddenMessageIds.has(Number(m.id))) return '';
     
         if (m.is_unsent) {
         return `
@@ -85,22 +98,23 @@ $(document).ready(function () {
       </div>
     ` : '';
 
-    const kebabHtml = m.is_mine ? `
+    const kebabHtml = `
       <div class="dropdown">
         <button type="button" class="toolbar-btn" data-bs-toggle="dropdown" aria-expanded="false" title="More">
           <i class="bi bi-three-dots-vertical" style="font-size:0.85rem;"></i>
         </button>
         <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-          <li><button type="button" class="dropdown-item edit-message-btn" data-message-id="${m.id}"><i class="bi bi-pencil-fill me-2"></i>Edit</button></li>
-          <li><button type="button" class="dropdown-item text-danger unsend-message-btn" data-message-id="${m.id}"><i class="bi bi-trash-fill me-2"></i>Unsend</button></li>
+          ${m.is_mine ? `<li><button type="button" class="dropdown-item edit-message-btn" data-message-id="${m.id}"><i class="bi bi-pencil-fill me-2"></i>Edit</button></li>
+          <li><button type="button" class="dropdown-item text-danger unsend-message-btn" data-message-id="${m.id}"><i class="bi bi-trash-fill me-2"></i>Unsend for everyone</button></li>` : ''}
+          <li><button type="button" class="dropdown-item text-danger delete-message-for-me" data-message-id="${m.id}"><i class="bi bi-trash me-2"></i>Delete for me</button></li>
         </ul>
       </div>
-    ` : '';
+    `;
 
   const rowAlign = m.is_mine ? 'justify-content-end' : 'justify-content-start';
 
   return `
-    <div class="message-row d-flex ${rowAlign} align-items-center mb-2" data-message-id="${m.id}" data-sender="${escapeHtml(m.sender_name)}" data-body="${safeDataBody}">
+    <div class="message-row d-flex ${rowAlign} align-items-center mb-2" data-message-id="${m.id}" data-client-message-id="${escapeHtml(m.client_message_id || '')}" data-is-mine="${m.is_mine}" data-sender="${escapeHtml(m.sender_name)}" data-body="${safeDataBody}">
 
       ${m.is_mine ? `
         <div class="message-hover-toolbar me-2">
@@ -117,11 +131,12 @@ $(document).ready(function () {
         <small class="d-block opacity-75 mt-1" style="font-size:0.7rem;">
           ${m.created_at}${editedTag}
         </small>
+        ${m.is_mine ? '<div class="message-read-receipt small mt-1" aria-label="Read receipt"></div>' : ''}
       </div>
 
       ${!m.is_mine ? `
         <div class="message-hover-toolbar ms-2">
-          ${toolbarButtonsHtml('')}
+          ${toolbarButtonsHtml(kebabHtml)}
         </div>
       ` : ''}
     </div>
@@ -141,7 +156,9 @@ $(document).ready(function () {
     `;
   }
 
-  function loadConversation(conversationId, aroundId = null) {
+  function loadConversation(conversationId, aroundId = null, refresh = false) {
+    if (refresh && messageRequestPending) return;
+    messageRequestPending = true;
     const version = viewVersion;
     navigatingHistory = Boolean(aroundId);
     $.ajax({
@@ -152,14 +169,20 @@ $(document).ready(function () {
         if (version !== viewVersion || String(conversationId) !== String(currentConversationId)) return;
         if (!aroundId && $chatMessages.find('.edit-message-input, .dropdown-menu.show').length) return;
         currentIsGroup = response.is_group;
-        $chatMessages.empty();
+        const wasAtBottom = atBottom();
+        if (!refresh) $chatMessages.empty();
+        else $chatMessages.children('p').remove();
         response.messages.forEach(function (m) {
-          $chatMessages.append(messageHtml(m, response.is_group));
+          const $existing = $chatMessages.find(`[data-message-id="${m.id}"]`);
+          if ($existing.length) $existing.replaceWith(messageHtml(m, response.is_group));
+          else $chatMessages.append(messageHtml(m, response.is_group));
         });
         if (!response.messages.length) $chatMessages.html('<p class="text-muted text-center p-3">' + (searchTerm ? 'No matching messages.' : 'No messages yet. Say hello!') + '</p>');
         hasNewerMessages = response.has_newer;
-        oldestLoadedId = response.messages.length ? response.messages[0].id : null;
-        hasMoreMessages = response.has_more;
+        if (!refresh) {
+          oldestLoadedId = response.messages.length ? response.messages[0].id : null;
+          hasMoreMessages = response.has_more;
+        }
         if (aroundId) {
           const target = $chatMessages.find(`[data-message-id="${aroundId}"]`)[0];
           if (target) {
@@ -168,12 +191,14 @@ $(document).ready(function () {
             const panel = $chatMessages[0];
             panel.scrollTop += target.getBoundingClientRect().top - panel.getBoundingClientRect().top - (panel.clientHeight - target.offsetHeight) / 2;
           }
-        } else scrollToBottom();
+        } else if (!refresh || wasAtBottom) scrollToBottom();
         requestAnimationFrame(() => { if (version === viewVersion) navigatingHistory = false; });
+        renderActivity();
+        scheduleRead();
         refreshConversationsList();
-        refreshUnreadBadge();
       },
-      error: requestError
+      error: requestError,
+      complete: () => { messageRequestPending = false; }
     });
   }
 
@@ -198,6 +223,7 @@ $(document).ready(function () {
         }
         hasMoreMessages = response.has_more;
         isLoadingOlder = false;
+        renderActivity(); scheduleRead();
       },
       error: function () {
         isLoadingOlder = false;
@@ -206,6 +232,7 @@ $(document).ready(function () {
   }
 
   $chatMessages.on('scroll', function () {
+    scheduleRead();
     if (navigatingHistory) return;
     if (viewingHistory && $chatMessages.scrollTop() + $chatMessages.innerHeight() >= $chatMessages[0].scrollHeight - 50) loadNewerMessages();
     if ($chatMessages.scrollTop() < 50) {
@@ -217,13 +244,16 @@ $(document).ready(function () {
     const buttons = '<button type="button" class="btn btn-sm btn-outline-secondary rounded-circle" id="chatInfoBtn" aria-label="Conversation information" title="Conversation information"><i class="bi bi-info-circle-fill"></i></button>';
     $chatHeader.html(`
       <div class="d-flex justify-content-between align-items-center w-100">
-        <span class="fw-semibold">${escapeHtml(conv.name)}</span>
+        <div><span class="fw-semibold">${escapeHtml(conv.name)}</span><small id="chatPresenceStatus" class="d-block text-muted"></small></div>
         <div class="d-flex flex-wrap gap-1 justify-content-end">${buttons}</div>
       </div>
     `);
   }
 
   function openConversation(conv) {
+    stopTyping();
+    activityMembers = [];
+    $('#typingIndicator').hide();
     viewVersion++;
     searchTerm = '';
     clearTimeout(searchTimer);
@@ -244,17 +274,22 @@ $(document).ready(function () {
     $activeConversationId.val(conv.id);
     renderChatHeader(conv);
     $chatFooter.show();
+    renderOutgoing();
 
     $('.conversation-item').removeClass('bg-body-tertiary');
     $(`.conversation-item[data-conversation-id="${conv.id}"]`).addClass('bg-body-tertiary');
 
     loadConversation(conv.id);
+    refreshActivity();
 
     if (chatPollTimer) clearInterval(chatPollTimer);
     chatPollTimer = setInterval(function () {
+      if (document.hidden) return;
+      refreshActivity();
+      scheduleRead();
       if (viewingHistory || $chatMessages.find('.edit-message-input, .dropdown-menu.show').length) return;
       if ($chatMessages.scrollTop() + $chatMessages.innerHeight() >= $chatMessages[0].scrollHeight - 100) {
-        loadConversation(conv.id);
+        loadConversation(conv.id, null, true);
       } else {
         refreshConversationsList();
       }
@@ -290,7 +325,7 @@ $(document).ready(function () {
         <div class="conversation-list-row d-flex align-items-center border-bottom">
         <a href="#" class="d-flex flex-grow-1 min-w-0 align-items-center gap-2 p-3 text-decoration-none text-body conversation-item ${isSelected ? 'bg-body-tertiary' : ''}"
            data-conversation-id="${c.id}" data-is-group="${c.is_group}" data-name="${escapeHtml(c.name)}">
-          ${avatarHtml}
+          <span class="chat-avatar-wrap flex-shrink-0">${avatarHtml}${c.presence?.is_online ? '<span class="online-dot" role="img" aria-label="Online"></span>' : ''}</span>
           <div class="flex-grow-1 min-w-0">
             <div class="d-flex justify-content-between align-items-center">
               <span class="${nameClass} text-truncate">${groupIcon}${escapeHtml(c.name)}${c.is_muted ? ' <i class="bi bi-bell-slash" title="Muted"></i>' : ''}</span>
@@ -302,7 +337,9 @@ $(document).ready(function () {
         <div class="dropdown pe-2">
           <button type="button" class="btn btn-sm rounded-circle conversation-options" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-label="Options for ${escapeHtml(c.name)}"><i class="bi bi-three-dots"></i></button>
           <ul class="dropdown-menu dropdown-menu-end shadow rounded-4">
-            ${`<li><button type="button" class="dropdown-item mute-group-btn" data-conversation-id="${c.id}" data-muted="${c.is_muted}"><i class="bi bi-bell-slash me-2"></i>${c.is_muted ? 'Unmute notifications' : 'Mute notifications'}</button></li>`}${c.is_group ? `<li><button type="button" class="dropdown-item text-danger leave-group-btn" data-conversation-id="${c.id}"><i class="bi bi-box-arrow-right me-2"></i>Leave group</button></li>` : `<li><button type="button" class="dropdown-item text-danger delete-chat-btn" data-conversation-id="${c.id}" data-name="${escapeHtml(c.name)}"><i class="bi bi-trash me-2"></i>Delete conversation</button></li>`}
+            <li><button type="button" class="dropdown-item mute-group-btn" data-conversation-id="${c.id}" data-muted="${c.is_muted}"><i class="bi bi-bell-slash me-2"></i>${c.is_muted ? 'Unmute notifications' : 'Mute notifications'}</button></li>
+            ${c.is_group ? `<li><button type="button" class="dropdown-item text-danger leave-group-btn" data-conversation-id="${c.id}"><i class="bi bi-box-arrow-right me-2"></i>Leave group</button></li>` : ''}
+            <li><button type="button" class="dropdown-item text-danger delete-chat-btn" data-conversation-id="${c.id}" data-name="${escapeHtml(c.name)}"><i class="bi bi-trash me-2"></i>Delete for me</button></li>
           </ul>
         </div>
         </div>
@@ -316,6 +353,8 @@ $(document).ready(function () {
       method: 'GET',
       success: function (response) {
         renderConversations(response.conversations);
+        const active = response.conversations.find(c => String(c.id) === String(currentConversationId));
+        if (active && !active.is_group) $('#chatPresenceStatus').text(presenceLabel(active.presence));
       }
     });
   }
@@ -349,62 +388,87 @@ $(document).ready(function () {
     $attachmentPreview.hide().empty();
   });
 
-  $messageForm.on('submit', function (e) {
-    e.preventDefault();
-
-    if (isSending) return;
-
-    const conversationId = $activeConversationId.val();
-    const body = $messageInput.val().trim();
-
-    if (!conversationId || (!body && !selectedFile)) return;
-
-    isSending = true;
-    $messageForm.find('button[type="submit"]').prop('disabled', true);
-
+  $messageInput.on('keydown', function (event) {
+    if (event.key === 'Enter' && (event.originalEvent?.repeat || event.originalEvent?.isComposing)) event.preventDefault();
+  });
+  function newSendId() {
+    if (globalThis.crypto.randomUUID) return globalThis.crypto.randomUUID();
+    const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
+    const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+    return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
+  }
+  function renderOutgoing() {
+    $chatMessages.find('.pending-message-row').remove();
+    if (viewingHistory) return;
+    const pending = outgoing.filter(item => String(item.conversationId) === String(currentConversationId)
+      && !$chatMessages.find('[data-client-message-id="' + item.id + '"]').length);
+    if (pending.length) $chatMessages.children('p').remove();
+    pending.forEach(item => {
+      const status = item.failed
+        ? '<button type="button" class="btn btn-link text-danger p-0 small retry-outgoing" data-id="' + item.id + '"><i class="bi bi-exclamation-circle me-1"></i>Not sent · Retry</button>'
+        : '<span class="text-body-secondary" role="status" aria-label="Sending">Sending…</span>';
+      $chatMessages.append('<div class="pending-message-row d-flex flex-column align-items-end mb-2" data-pending-id="' + item.id + '"><div class="p-2 rounded-3 bg-primary text-white message-bubble" style="max-width:70%;width:fit-content">'
+        + (item.replyText ? '<div class="small border-start border-3 ps-2 mb-2 opacity-75">' + escapeHtml(item.replyText) + '</div>' : '')
+        + '<div class="message-body">' + escapeHtml(item.body) + '</div>'
+        + (item.file ? '<div class="small mt-1"><i class="bi bi-paperclip"></i> ' + escapeHtml(item.file.name) + '</div>' : '')
+        + '</div><div class="mt-1" style="font-size:0.7rem">' + status + '</div></div>');
+    });
+  }
+  function sendNext(conversationId) {
+    const item = outgoing.find(item => String(item.conversationId) === String(conversationId));
+    if (!item || item.sending || item.failed) return;
+    item.sending = true; renderOutgoing();
     const formData = new FormData();
     formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
-    if (body) formData.append('body', body);
-    if (selectedFile) formData.append('attachment', selectedFile);
-    const replyToId = $('#replyToId').val();
-    if (replyToId) formData.append('reply_to_id', replyToId);
-
-    $messageInput.val('');
-    const clearedFile = selectedFile;
-    selectedFile = null;
-    $attachmentInput.val('');
-    $attachmentPreview.hide().empty();
-
+    formData.append('client_message_id', item.id);
+    if (item.body) formData.append('body', item.body);
+    if (item.file) formData.append('attachment', item.file);
+    if (item.replyToId) formData.append('reply_to_id', item.replyToId);
     $.ajax({
-      url: `/messages/conversations/${conversationId}`,
-      method: 'POST',
-      data: formData,
-      contentType: false,
-      processData: false,
-      success: function (response) {
-        if (String(conversationId) !== String(currentConversationId)) { refreshConversationsList(); return; }
-        if (viewingHistory) { $('#backToLatestBtn').trigger('click'); }
-        else {
-          $chatMessages.children('p').remove();
-          $chatMessages.find(`[data-message-id="${response.message.id}"]`).remove();
-          $chatMessages.append(messageHtml(response.message, currentIsGroup));
+      url: '/messages/conversations/' + conversationId, method: 'POST', data: formData,
+      contentType: false, processData: false,
+      success: response => {
+        outgoing.splice(outgoing.indexOf(item), 1);
+        $chatMessages.find('[data-pending-id="' + item.id + '"]').remove();
+        if (String(conversationId) === String(currentConversationId)) {
+          if (viewingHistory) $('#backToLatestBtn').trigger('click');
+          else {
+            $chatMessages.children('p').remove();
+            const $existing = $chatMessages.find('[data-message-id="' + response.message.id + '"]');
+            if ($existing.length) $existing.replaceWith(messageHtml(response.message, currentIsGroup));
+            else $chatMessages.append(messageHtml(response.message, currentIsGroup));
+            renderOutgoing(); scrollToBottom();
+          }
+          renderActivity(); scheduleRead();
         }
-        scrollToBottom();
         refreshConversationsList();
-        $('#cancelReplyBtn').trigger('click');
       },
-      error: function (xhr) {
-        if (String(conversationId) !== String(currentConversationId)) { requestError(xhr); return; }
-        $messageInput.val(body);
-        selectedFile = clearedFile;
-        if (window.toast) window.toast('error', xhr.responseJSON?.message || 'Failed to send message.');
+      error: xhr => {
+        item.failed = true;
+        if (window.toast) window.toast('error', xhr.responseJSON?.message || 'Message could not be confirmed. Use Retry beside it to try again.');
       },
-      complete: function () {
-        isSending = false;
-        $messageForm.find('button[type="submit"]').prop('disabled', false);
-        $messageInput.trigger('focus');
-      }
+      complete: () => { item.sending = false; renderOutgoing(); sendNext(conversationId); }
     });
+  }
+  $(document).on('click', '.retry-outgoing', function () {
+    const item = outgoing.find(item => item.id === $(this).attr('data-id'));
+    if (!item || item.sending) return;
+    item.failed = false; sendNext(item.conversationId);
+  });
+  $messageForm.on('submit', function (event) {
+    event.preventDefault();
+    const conversationId = $activeConversationId.val(), body = $messageInput.val().trim();
+    if (!conversationId || (!body && !selectedFile)) return;
+    if (selectedFile && selectedFile.size > 10240 * 1024) { window.toast?.('error', 'Attachments must be 10 MB or smaller.'); return; }
+    const item = { id: newSendId(), conversationId, body, file: selectedFile, replyToId: $('#replyToId').val(), replyText: $('#replyToId').val() ? $('#replyPreviewBody').text() : '' };
+    // Consume this draft synchronously: extra Enter presses see an empty composer.
+    $messageInput.val(''); selectedFile = null; $attachmentInput.val(''); $attachmentPreview.hide().empty();
+    $('#replyToId').val(''); $('#replyPreview').hide();
+    stopTyping(); outgoing.push(item);
+    if (viewingHistory) $('#backToLatestBtn').trigger('click');
+    renderOutgoing(); scrollToBottom(); sendNext(conversationId);
+    $messageInput.trigger('focus');
   });
 
   $(document).on('click', '.start-chat-btn', function () {
@@ -621,6 +685,25 @@ $(document).ready(function () {
     });
   });
 
+  $chatMessages.on('click', '.delete-message-for-me', async function () {
+    const id = Number($(this).data('message-id'));
+    const conversationId = currentConversationId;
+    const result = window.confirmAction
+      ? await window.confirmAction('This message will disappear only for you. Other people will still see it.', 'Delete for me')
+      : { isConfirmed: confirm('Delete this message only for you?') };
+    if (!result.isConfirmed) return;
+    $.ajax({
+      url: '/messages/' + id + '/for-me', method: 'DELETE',
+      headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+      success: () => {
+        hiddenMessageIds.add(id);
+        $chatMessages.find('[data-message-id="' + id + '"]').remove();
+        if (String(conversationId) === String(currentConversationId)) loadConversation(conversationId);
+        refreshConversationsList(); refreshUnreadBadge();
+      }, error: requestError
+    });
+  });
+
   // Unsend message
   $chatMessages.on('click', '.unsend-message-btn', async function () {
     const messageId = $(this).data('message-id');
@@ -664,7 +747,7 @@ $(document).ready(function () {
     const name = $(this).data('name');
 
     const result = window.confirmAction
-      ? await window.confirmAction(`Are you sure you want to delete your chat with ${name}?`, 'Are you sure?')
+      ? await window.confirmAction(`Delete your chat history with ${name} for you? Other members keep their messages. New messages will bring the chat back.`, 'Delete for me?')
       : { isConfirmed: confirm(`Are you sure you want to delete your chat with ${name}?`) };
 
     if (!result.isConfirmed) return;
@@ -674,9 +757,10 @@ $(document).ready(function () {
       method: 'DELETE',
       headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
       success: function () {
-        refreshConversationsList();
+        refreshConversationsList(); refreshUnreadBadge();
         
         if (String(currentConversationId) === String(conversationId)) {
+          stopTyping(); activityMembers = []; $('#typingIndicator').hide();
           viewVersion++; closeDetails(); activeConversation = null; $('#backToLatestBtn').hide();
           $chatMessages.empty();
           $chatHeader.empty();$chatFooter.hide();
@@ -688,7 +772,7 @@ $(document).ready(function () {
           }
         }
         
-        if (window.toast) window.toast('success', 'Conversation deleted.');
+        if (window.toast) window.toast('success', 'Conversation deleted for you.');
       },
       error: function (xhr) {
         if (window.toast) window.toast('error', xhr.responseJSON?.message || 'Failed to delete conversation.');
@@ -795,6 +879,7 @@ $(document).ready(function () {
         if (version !== viewVersion || String(id) !== String(currentConversationId)) return;
         response.messages.forEach(m => $chatMessages.append(messageHtml(m, response.is_group)));
         hasNewerMessages = response.has_newer;
+        renderActivity(); scheduleRead();
       }, error: requestError,
       complete: () => { if (version === viewVersion) loadingNewer = false; }
     });
@@ -861,6 +946,7 @@ $(document).ready(function () {
       headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
       success: () => {
         if (String(id) === String(currentConversationId)) {
+          stopTyping(); activityMembers = []; $('#typingIndicator').hide();
           viewVersion++; clearInterval(chatPollTimer); clearTimeout(searchTimer);
           currentConversationId = null; $activeConversationId.val('');
           hasMoreMessages = false; oldestLoadedId = null;
@@ -873,6 +959,103 @@ $(document).ready(function () {
     });
   });
 
+
+  function atBottom() {
+    return $chatMessages.scrollTop() + $chatMessages.innerHeight() >= $chatMessages[0].scrollHeight - 80;
+  }
+  function presenceLabel(presence) {
+    if (presence?.is_online) return 'Online';
+    if (!presence?.last_seen_at) return 'Offline';
+    const seconds = Math.max(1, Math.floor((Date.now() - new Date(presence.last_seen_at).getTime()) / 1000));
+    if (!Number.isFinite(seconds)) return 'Offline';
+    const [unit, size] = seconds >= 604800 ? ['week', 604800] : seconds >= 86400 ? ['day', 86400] : seconds >= 3600 ? ['hour', 3600] : seconds >= 60 ? ['minute', 60] : ['second', 1];
+    const count = Math.floor(seconds / size);
+    return 'Last seen ' + count + ' ' + unit + (count === 1 ? '' : 's') + ' ago';
+  }
+  function renderActivity() {
+    if (!currentConversationId) return;
+    if (!currentIsGroup && activityMembers.length) $('#chatPresenceStatus').text(presenceLabel(activityMembers[0]));
+    if (currentIsGroup) {
+      const online = activityMembers.filter(m => m.is_online).length;
+      $('#chatPresenceStatus').text(online ? online + ' other ' + (online === 1 ? 'member online' : 'members online') : 'Group conversation');
+    }
+    const typing = Date.now() - activityReceivedAt < 8000 ? activityMembers.filter(m => m.is_typing).map(m => m.name) : [];
+    $('#typingIndicator').toggle(typing.length > 0);
+    $('#typingNames').text(typing.length ? typing.join(', ') + (typing.length === 1 ? ' is typing' : ' are typing') : '');
+    $chatMessages.find('.message-read-receipt').empty();
+    const grouped = new Map();
+    activityMembers.forEach(member => {
+      if (!member.last_read_message_id) return;
+      const key = String(member.last_read_message_id);
+      grouped.set(key, [...(grouped.get(key) || []), member.name]);
+    });
+    grouped.forEach((names, id) => {
+      $chatMessages.find(`[data-message-id="${id}"] .message-read-receipt`).text('✓ Seen by ' + names.join(', '));
+    });
+  }
+  function refreshActivity() {
+    if (!currentConversationId || document.hidden || activityPending) return;
+    const id = currentConversationId;
+    activityPending = true;
+    $.ajax({
+      url: `/messages/conversations/${id}/state`,
+      success: response => {
+        if (String(id) !== String(currentConversationId) || document.hidden) return;
+        activityMembers = response.members; activityReceivedAt = Date.now(); renderActivity();
+      },
+      error: () => { if (String(id) === String(currentConversationId)) $('#typingIndicator').hide(); },
+      complete: () => { activityPending = false; }
+    });
+  }
+  function sendTyping(id, typing) {
+    if (!id) return;
+    $.ajax({ url: `/messages/conversations/${id}/typing`, method: 'POST',
+      data: { is_typing: typing ? 1 : 0, _token: $('meta[name="csrf-token"]').attr('content') } });
+  }
+  function stopTyping() {
+    clearTimeout(typingTimer);
+    if (typingConversation) sendTyping(typingConversation, false);
+    typingConversation = null; typingSentAt = 0;
+  }
+  $messageInput.on('input', function () {
+    if (!currentConversationId || document.hidden || !document.hasFocus() || !$(this).val().trim()) { stopTyping(); return; }
+    if (!typingConversation || Date.now() - typingSentAt >= 3000) {
+      typingConversation = currentConversationId; typingSentAt = Date.now();
+      sendTyping(currentConversationId, true);
+    }
+    clearTimeout(typingTimer); typingTimer = setTimeout(stopTyping, 2500);
+  });
+  $messageInput.on('blur', stopTyping);
+  function scheduleRead() {
+    clearTimeout(readTimer); readTimer = setTimeout(acknowledgeVisible, 300);
+  }
+  function acknowledgeVisible() {
+    if (!currentConversationId || readPending || document.hidden || !document.hasFocus() || $('.modal.show').length || navigatingHistory) return;
+    const panel = $chatMessages[0].getBoundingClientRect();
+    const visibleTop = Math.max(panel.top, 0), visibleBottom = Math.min(panel.bottom, window.innerHeight);
+    if (visibleBottom <= visibleTop) return;
+    let lastVisible = 0;
+    $chatMessages.find('.message-row').each(function () {
+      const rect = this.getBoundingClientRect();
+      if (rect.bottom > visibleTop && rect.top < visibleBottom) lastVisible = Math.max(lastVisible, Number(this.dataset.messageId));
+    });
+    const id = currentConversationId;
+    if (!lastVisible || lastVisible <= (acknowledgedReads.get(String(id)) || 0)) return;
+    readPending = true;
+    $.ajax({ url: `/messages/conversations/${id}/read`, method: 'POST',
+      data: { message_id: lastVisible, _token: $('meta[name="csrf-token"]').attr('content') },
+      success: () => { acknowledgedReads.set(String(id), lastVisible); refreshConversationsList(); refreshUnreadBadge(); },
+      complete: () => { readPending = false; }
+    });
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { stopTyping(); $('#typingIndicator').hide(); }
+    else { refreshActivity(); scheduleRead(); refreshConversationsList(); }
+  });
+  window.addEventListener('blur', stopTyping);
+  window.addEventListener('focus', () => { refreshActivity(); scheduleRead(); });
+  window.addEventListener('pagehide', stopTyping);
+
   refreshConversationsList();
-  setInterval(refreshConversationsList, 5000);
+  setInterval(() => { if (!document.hidden) refreshConversationsList(); }, 10000);
 });

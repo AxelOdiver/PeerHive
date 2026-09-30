@@ -36,7 +36,11 @@
 
     // --- 2. Global Unread Messages & Notifications (Waits for HTML to load) ---
     document.addEventListener("DOMContentLoaded", function () {
+      const escapeNotification = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
+      let badgeRequestPending = false;
       function fetchUnreadMessageCount() {
+        if (document.hidden || badgeRequestPending) return;
+        badgeRequestPending = true;
         fetch('/messages/unread-count')
           .then(response => response.json())
           .then(data => {
@@ -44,7 +48,7 @@
             
             // CHANGED: Grab the new global badge instead of the separate message badge
             const globalBadge = document.getElementById('globalNotificationBadge');
-            const sidebarBadge = document.getElementById('sidebarMessageBadge');
+            const sidebarBadge = document.getElementById('sidebarMessagesBadge');
             
             // 1. Calculate and update the Unified Top Nav Badge (Invites + Messages)
             if (globalBadge) {
@@ -85,11 +89,11 @@
                     <li>
                       <a href="/messages" class="dropdown-item border-bottom py-2 px-3 text-decoration-none">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                          <strong class="small text-primary">${notif.name}</strong>
+                          <strong class="small text-primary">${escapeNotification(notif.name)}</strong>
                           <span class="badge bg-primary ms-2" style="font-size: 0.55rem;">New Message</span>
                         </div>
-                        <p class="mb-1 text-muted small text-truncate" style="max-width: 95%;">${notif.text}</p>
-                        <small class="text-muted" style="font-size: 0.65rem;">${notif.time}</small>
+                        <p class="mb-1 text-muted small text-truncate" style="max-width: 95%;">${escapeNotification(notif.text)}</p>
+                        <small class="text-muted" style="font-size: 0.65rem;">${escapeNotification(notif.time)}</small>
                       </a>
                     </li>
                   `;
@@ -100,7 +104,8 @@
               }
             }
           })
-          .catch(error => console.error('Error fetching unread count:', error));
+          .catch(error => console.error('Error fetching unread count:', error))
+          .finally(() => { badgeRequestPending = false; });
       }
 
       fetchUnreadMessageCount();
@@ -112,7 +117,7 @@
   @vite(['resources/css/app.css', 'resources/js/app.js'])
   @stack('styles')
 </head>
-<body class="layout-fixed sidebar-expand-lg bg-body-tertiary" data-page="{{ Route::currentRouteName() }}" @if(session('error')) data-error-message="{{ session('error') }}" @elseif(session('success')) data-success-message="{{ session('success') }}" @endif>
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary" data-authenticated="true" data-page="{{ Route::currentRouteName() }}" @if(session('error')) data-error-message="{{ session('error') }}" @elseif(session('success')) data-success-message="{{ session('success') }}" @endif>
   <div class="app-wrapper">
     @include('layouts.dashboard.topnav')
     @include('layouts.dashboard.sidebar')

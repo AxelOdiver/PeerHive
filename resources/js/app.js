@@ -51,29 +51,7 @@ $(document).ready(function() {
     pageModules[pageName]().catch(err => console.error(`Failed to load page script for ${pageName}:`, err));
   }
   
-  window.refreshSidebarMessagesBadge = function () {
-    $.ajax({
-      url: '/messages/unread-count',
-      method: 'GET',
-      success: function (response) {
-        const $badge = $('#sidebarMessagesBadge');
-        if (response.count > 0) {
-          if ($badge.length) {
-            $badge.text(response.count);
-          } else {
-            $('.sidebar-menu .nav-link p:contains("Messages")').append(
-              `<span class="badge bg-danger rounded-pill" id="sidebarMessagesBadge">${response.count}</span>`
-            );
-          }
-        } else {
-          $badge.remove();
-        }
-      }
-    });
-  };
-
-  if ($('#appSidebar').length) {
-    window.refreshSidebarMessagesBadge();
-    setInterval(window.refreshSidebarMessagesBadge, 6000);
+  if (document.body.dataset.authenticated === 'true') {
+    import('./presence.js').then(module => module.startPresence());
   }
 });
