@@ -1,23 +1,10 @@
+import './password-toggle.js';
 // Login page - password toggle and form submission
 $(document).ready(function() {
   const $form = $('#form');
   const $submitButton = $('#loginSubmitBtn');
   const $submitSpinner = $('#loginSubmitSpinner');
   const $submitText = $('#loginSubmitText');
-
-  // Password show/hide toggle
-  $(document).on('click', '.toggle-password', function() {
-    const $input = $(this).closest('.input-group').find('input');
-    const $icon = $(this).find('i');
-
-    if ($input.attr('type') === 'password') {
-      $input.attr('type', 'text');
-      $icon.removeClass('bi-eye-slash-fill').addClass('bi-eye-fill');
-    } else {
-      $input.attr('type', 'password');
-      $icon.removeClass('bi-eye-fill').addClass('bi-eye-slash-fill');
-    }
-  });
 
   // Submit form logic
   function clearErrors() {
@@ -29,7 +16,7 @@ $(document).ready(function() {
   function setSubmitting(isSubmitting) {
     $submitButton.prop('disabled', isSubmitting);
     $submitSpinner.toggleClass('d-none', !isSubmitting);
-    $submitText.text(isSubmitting ? 'Logging in...' : 'Login');
+    $submitText.text(isSubmitting ? 'Logging in...' : 'Log in');
   }
 
   $form.on('submit', function(e) {

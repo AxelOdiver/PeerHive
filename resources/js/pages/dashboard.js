@@ -1,3 +1,33 @@
+// Manual tutorial: swipe, arrow keys, or use the visible controls.
+const tutorial = document.getElementById('peerHiveWalkthrough');
+if (tutorial) {
+  const carousel = new window.bootstrap.Carousel(tutorial, { interval: false, wrap: false, touch: true, keyboard: true });
+  const slides = [...tutorial.querySelectorAll('.carousel-item')];
+  const dots = [...tutorial.querySelectorAll('[data-tutorial-slide]')];
+  const previous = document.getElementById('tutorialPrevious');
+  const next = document.getElementById('tutorialNext');
+  previous.addEventListener('click', () => carousel.prev());
+  next.addEventListener('click', () => carousel.next());
+  dots.forEach((dot, index) => dot.addEventListener('click', () => carousel.to(index)));
+  tutorial.addEventListener('slide.bs.carousel', event => {
+    dots.forEach((dot, index) => {
+      dot.classList.toggle('is-active', index === event.to);
+      dot.setAttribute('aria-current', index === event.to ? 'step' : 'false');
+    });
+  });
+  tutorial.addEventListener('slid.bs.carousel', event => {
+    previous.disabled = event.to === 0;
+    next.disabled = event.to === slides.length - 1;
+    slides.forEach((slide, index) => slide.setAttribute('aria-hidden', String(index !== event.to)));
+    dots.forEach((dot, index) => {
+      dot.classList.toggle('is-active', index === event.to);
+      dot.setAttribute('aria-current', index === event.to ? 'step' : 'false');
+    });
+    if (document.activeElement === previous && previous.disabled) next.focus();
+    if (document.activeElement === next && next.disabled) previous.focus();
+  });
+}
+
 // Favorite (bookmark) toggle
 $(document).on('click', '.fav-btn', function () {
   const btn = $(this);

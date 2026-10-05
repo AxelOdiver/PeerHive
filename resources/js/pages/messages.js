@@ -1,4 +1,16 @@
 $(document).ready(function () {
+  // Markup lives in messages.blade.php. Values are already escaped by callers;
+  // some slots intentionally contain rendered child templates.
+  const templateCache = new Map();
+  function renderTemplate(id, values = []) {
+    if (!templateCache.has(id)) {
+      const template = document.getElementById(id);
+      if (!template) throw new Error('Missing message template: ' + id);
+      templateCache.set(id, template.textContent);
+    }
+    return templateCache.get(id).replace(/\[\[slot(\d+)\]\]/g, (_, index) => String(values[Number(index)]));
+  }
+
   const $conversationsList = $('#conversationsList');
   const $chatMessages = $('#chatMessages');
   const $chatHeader = $('#chatHeader');
@@ -8,6 +20,16 @@ $(document).ready(function () {
   const $messageInput = $('#messageInput');
   const $attachmentInput = $('#attachmentInput');
   const $attachmentPreview = $('#attachmentPreview');
+
+  // Phones show one pane at a time; desktop keeps the conversation list beside the chat.
+  const messagingColumns = document.querySelector('.messaging-columns');
+  $chatHeader.on('click', '#mobileChatBack', function () {
+    stopTyping();
+    closeDetails();
+    messagingColumns.classList.remove('mobile-chat-open');
+    refreshConversationsList();
+    document.querySelector('.conversation-item')?.focus();
+  });
 
   let chatPollTimer = null;
   let currentConversationId = null;
@@ -43,7 +65,7 @@ $(document).ready(function () {
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
   const requestError = xhr => window.toast?.('error', xhr.responseJSON?.message || 'Something went wrong. Please try again.');
   function reactionsHtml(reactions = []) {
-    return reactions.map(r => `<button type="button" class="btn btn-sm ${r.is_mine ? 'btn-light' : 'btn-outline-secondary'} reaction-choice" data-emoji="${escapeHtml(r.emoji)}" aria-pressed="${r.is_mine}" title="Toggle ${escapeHtml(r.emoji)} reaction">${escapeHtml(r.emoji)} ${r.count}</button>`).join('');
+    return reactions.map(r => renderTemplate('message-template-reactions-html-1', [r.is_mine ? 'btn-light' : 'btn-outline-secondary', escapeHtml(r.emoji), r.is_mine, escapeHtml(r.emoji), escapeHtml(r.emoji), r.count])).join('');
   }
 
   function scrollToBottom() {
@@ -54,25 +76,16 @@ $(document).ready(function () {
     if (!m.attachment_url) return '';
     const isImage = m.attachment_type && m.attachment_type.startsWith('image/');
     if (isImage) {
-      return `<a href="${escapeHtml(m.attachment_url)}" target="_blank"><img src="${escapeHtml(m.attachment_url)}" class="img-fluid rounded-3 mt-1" style="max-width:220px;"></a>`;
+      return renderTemplate('message-template-render-attachment-1', [escapeHtml(m.attachment_url), escapeHtml(m.attachment_url)]);
     }
-    return `<a href="${escapeHtml(m.attachment_url)}" target="_blank" class="d-flex align-items-center gap-2 mt-1 text-decoration-none ${m.is_mine ? 'text-white' : 'text-body'}">
-      <i class="bi bi-file-earmark-arrow-down fs-5"></i> <span>${escapeHtml(m.attachment_name)}</span>
-    </a>`;
+    return renderTemplate('message-template-render-attachment-2', [escapeHtml(m.attachment_url), m.is_mine ? 'text-white' : 'text-body', escapeHtml(m.attachment_name)]);
   }
 
   function messageHtml(m, isGroup) {
     if (hiddenMessageIds.has(Number(m.id))) return '';
     
         if (m.is_unsent) {
-        return `
-            <div class="message-row d-flex ${m.is_mine ? 'justify-content-end' : 'justify-content-start'} align-items-center mb-2"
-                 data-message-id="${m.id}">
-                <div class="deleted-message-bubble">
-                    This message was unsent
-                </div>
-            </div>
-        `;
+        return renderTemplate('message-template-message-html-1', [m.is_mine ? 'justify-content-end' : 'justify-content-start', m.id]);
     }
 
     const alignClass = m.is_mine
@@ -80,80 +93,24 @@ $(document).ready(function () {
         : 'bg-body-tertiary';
 
     const senderLabel = (isGroup && !m.is_mine)
-        ? `<div class="small fw-semibold mb-1">${escapeHtml(m.sender_name)}</div>`
+        ? renderTemplate('message-template-sender-label-1', [escapeHtml(m.sender_name)])
         : '';
 
-    const bodyHtml = m.body ? $('<div>').text(m.body).html() : '';
-    const editedTag = m.is_edited ? '<span class="opacity-75 edited-tag" style="font-size:0.7rem;"> (edited)</span>' : '';
+    const bodyHtml = m.body ? $(renderTemplate('message-template-body-html-1')).text(m.body).html() : '';
+    const editedTag = m.is_edited ? renderTemplate('message-template-edited-tag-1') : '';
 
     const safeDataBody = escapeHtml(m.body || (m.attachment_name ? 'Attachment' : ''));
-    const replyPreviewHtml = m.reply_to ? `
-      <div class="mb-2 p-2 rounded bg-white bg-opacity-25 border-start border-3 border-${m.is_mine ? 'light' : 'primary'} shadow-sm">
-        <div class="d-flex align-items-center gap-1 fw-bold mb-1" style="font-size: 0.75rem;">
-          <i class="bi bi-reply-fill"></i> Replying to ${escapeHtml(m.reply_to.sender_name)}
-        </div>
-        <div class="text-truncate opacity-100 fst-italic" style="font-size: 0.75rem; max-width: 250px;">
-          "${escapeHtml(m.reply_to.body)}"
-        </div>
-      </div>
-    ` : '';
+    const replyPreviewHtml = m.reply_to ? renderTemplate('message-template-reply-preview-html-1', [m.is_mine ? 'light' : 'primary', escapeHtml(m.reply_to.sender_name), escapeHtml(m.reply_to.body)]) : '';
 
-    const kebabHtml = `
-      <div class="dropdown">
-        <button type="button" class="toolbar-btn" data-bs-toggle="dropdown" aria-expanded="false" title="More">
-          <i class="bi bi-three-dots-vertical" style="font-size:0.85rem;"></i>
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-          ${m.is_mine ? `<li><button type="button" class="dropdown-item edit-message-btn" data-message-id="${m.id}"><i class="bi bi-pencil-fill me-2"></i>Edit</button></li>
-          <li><button type="button" class="dropdown-item text-danger unsend-message-btn" data-message-id="${m.id}"><i class="bi bi-trash-fill me-2"></i>Unsend for everyone</button></li>` : ''}
-          <li><button type="button" class="dropdown-item text-danger delete-message-for-me" data-message-id="${m.id}"><i class="bi bi-trash me-2"></i>Delete for me</button></li>
-        </ul>
-      </div>
-    `;
+    const kebabHtml = renderTemplate('message-template-kebab-html-1', [m.is_mine ? renderTemplate('message-template-kebab-html-2', [m.id, m.id]) : '', m.id]);
 
   const rowAlign = m.is_mine ? 'justify-content-end' : 'justify-content-start';
 
-  return `
-    <div class="message-row d-flex ${rowAlign} align-items-center mb-2" data-message-id="${m.id}" data-client-message-id="${escapeHtml(m.client_message_id || '')}" data-is-mine="${m.is_mine}" data-sender="${escapeHtml(m.sender_name)}" data-body="${safeDataBody}">
-
-      ${m.is_mine ? `
-        <div class="message-hover-toolbar me-2">
-          ${toolbarButtonsHtml(kebabHtml)}
-        </div>
-      ` : ''}
-
-      <div class="p-2 rounded-3 ${alignClass} message-bubble" style="max-width:70%; width:fit-content;">
-        ${senderLabel}
-        ${replyPreviewHtml} 
-        <div class="message-body">${bodyHtml}</div>
-        ${renderAttachment(m)}
-        <div class="message-reactions d-flex flex-wrap gap-1 mt-1">${reactionsHtml(m.reactions)}</div>
-        <small class="d-block opacity-75 mt-1" style="font-size:0.7rem;">
-          ${m.created_at}${editedTag}
-        </small>
-        ${m.is_mine ? '<div class="message-read-receipt small mt-1" aria-label="Read receipt"></div>' : ''}
-      </div>
-
-      ${!m.is_mine ? `
-        <div class="message-hover-toolbar ms-2">
-          ${toolbarButtonsHtml(kebabHtml)}
-        </div>
-      ` : ''}
-    </div>
-  `;
+  return renderTemplate('message-template-message-html-2', [rowAlign, m.id, escapeHtml(m.client_message_id || ''), m.is_mine, escapeHtml(m.sender_name), safeDataBody, m.is_mine ? renderTemplate('message-template-message-html-3', [toolbarButtonsHtml(kebabHtml)]) : '', alignClass, senderLabel, replyPreviewHtml, bodyHtml, renderAttachment(m), reactionsHtml(m.reactions), m.created_at, editedTag, m.is_mine ? renderTemplate('message-template-message-html-4') : '', !m.is_mine ? renderTemplate('message-template-message-html-5', [toolbarButtonsHtml(kebabHtml)]) : '']);
   }
 
   function toolbarButtonsHtml(kebabHtml) {
-    return `
-      <button type="button" class="toolbar-btn reply-message-btn" title="Reply"><i class="bi bi-reply-fill" style="font-size:0.8rem;"></i></button>
-      <div class="dropdown">
-        <button type="button" class="toolbar-btn" data-bs-toggle="dropdown" aria-expanded="false" title="React" aria-label="React to message"><i class="bi bi-emoji-smile-fill"></i></button>
-        <div class="dropdown-menu reaction-picker shadow rounded-pill p-1" role="group" aria-label="Choose a reaction">
-          <div class="d-flex">${['👍', '❤️', '😂', '🎉', '😮', '😢'].map(emoji => `<button type="button" class="btn btn-sm reaction-choice rounded-circle" data-emoji="${emoji}" aria-label="React with ${emoji}">${emoji}</button>`).join('')}</div>
-        </div>
-      </div>
-      ${kebabHtml}
-    `;
+    return renderTemplate('message-template-toolbar-buttons-html-1', [['👍', '❤️', '😂', '🎉', '😮', '😢'].map(emoji => renderTemplate('message-template-toolbar-buttons-html-2', [emoji, emoji, emoji])).join(''), kebabHtml]);
   }
 
   function loadConversation(conversationId, aroundId = null, refresh = false) {
@@ -177,7 +134,7 @@ $(document).ready(function () {
           if ($existing.length) $existing.replaceWith(messageHtml(m, response.is_group));
           else $chatMessages.append(messageHtml(m, response.is_group));
         });
-        if (!response.messages.length) $chatMessages.html('<p class="text-muted text-center p-3">' + (searchTerm ? 'No matching messages.' : 'No messages yet. Say hello!') + '</p>');
+        if (!response.messages.length) $chatMessages.html(renderTemplate('message-template-load-conversation-1', [searchTerm ? 'No matching messages.' : 'No messages yet. Say hello!']));
         hasNewerMessages = response.has_newer;
         if (!refresh) {
           oldestLoadedId = response.messages.length ? response.messages[0].id : null;
@@ -241,16 +198,12 @@ $(document).ready(function () {
   });
 
   function renderChatHeader(conv) {
-    const buttons = '<button type="button" class="btn btn-sm btn-outline-secondary rounded-circle" id="chatInfoBtn" aria-label="Conversation information" title="Conversation information"><i class="bi bi-info-circle-fill"></i></button>';
-    $chatHeader.html(`
-      <div class="d-flex justify-content-between align-items-center w-100">
-        <div><span class="fw-semibold">${escapeHtml(conv.name)}</span><small id="chatPresenceStatus" class="d-block text-muted"></small></div>
-        <div class="d-flex flex-wrap gap-1 justify-content-end">${buttons}</div>
-      </div>
-    `);
+    const buttons = renderTemplate('message-template-buttons-1');
+    $chatHeader.html(renderTemplate('message-template-render-chat-header-1', [escapeHtml(conv.name), buttons]));
   }
 
   function openConversation(conv) {
+    messagingColumns.classList.add('mobile-chat-open');
     stopTyping();
     activityMembers = [];
     $('#typingIndicator').hide();
@@ -260,11 +213,14 @@ $(document).ready(function () {
     closeDetails();
     viewingHistory = false; hasNewerMessages = false; loadingNewer = false;
     $('#backToLatestBtn').hide();
-    $('#cancelReplyBtn').trigger('click');
-    $messageInput.val('');
-    selectedFile = null;
-    $attachmentInput.val('');
-    $attachmentPreview.hide().empty();
+    // Returning from the mobile conversation list must preserve the active draft.
+    if (String(currentConversationId) !== String(conv.id)) {
+      $('#cancelReplyBtn').trigger('click');
+      $messageInput.val('');
+      selectedFile = null;
+      $attachmentInput.val('');
+      $attachmentPreview.hide().empty();
+    }
     oldestLoadedId = null;
     hasMoreMessages = false;
     isLoadingOlder = false;
@@ -301,49 +257,25 @@ $(document).ready(function () {
     $conversationsList.empty();
 
     if (!conversations.length) {
-      $conversationsList.append('<p class="text-muted text-center p-4">No conversations yet.</p>');
+      $conversationsList.append(renderTemplate('message-template-render-conversations-1'));
       return;
     }
 
     conversations.forEach(function (c) {
       const isSelected = currentConversationId && String(currentConversationId) === String(c.id);
       const nameClass = c.unread_count > 0 ? 'fw-bold' : 'fw-semibold';
-      const badge = c.unread_count > 0 ? `<span class="badge bg-danger rounded-pill ms-2">${c.unread_count}</span>` : '';
+      const badge = c.unread_count > 0 ? renderTemplate('message-template-badge-1', [c.unread_count]) : '';
       const lastMsg = c.last_message ? c.last_message.slice(0, 30) : 'No messages yet';
-      const groupIcon = c.is_group ? '<i class="bi bi-people-fill me-1"></i>' : '';
+      const groupIcon = c.is_group ? renderTemplate('message-template-group-icon-1') : '';
 
       let avatarHtml = '';
       if (c.profile_picture) {
-        avatarHtml = `<img src="/storage/${c.profile_picture}" alt="${escapeHtml(c.name)}" class="rounded-circle shadow-sm flex-shrink-0" style="width:40px; height:40px; object-fit:cover;">`;
+        avatarHtml = renderTemplate('message-template-render-conversations-2', [c.profile_picture, escapeHtml(c.name)]);
       } else {
-        avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center fw-bold bg-primary text-white shadow-sm flex-shrink-0" style="width:40px; height:40px;">
-                        ${escapeHtml(c.initials || '?')}
-                      </div>`;
+        avatarHtml = renderTemplate('message-template-render-conversations-3', [escapeHtml(c.initials || '?')]);
       }
 
-      $conversationsList.append(`
-        <div class="conversation-list-row d-flex align-items-center border-bottom">
-        <a href="#" class="d-flex flex-grow-1 min-w-0 align-items-center gap-2 p-3 text-decoration-none text-body conversation-item ${isSelected ? 'bg-body-tertiary' : ''}"
-           data-conversation-id="${c.id}" data-is-group="${c.is_group}" data-name="${escapeHtml(c.name)}">
-          <span class="chat-avatar-wrap flex-shrink-0">${avatarHtml}${c.presence?.is_online ? '<span class="online-dot" role="img" aria-label="Online"></span>' : ''}</span>
-          <div class="flex-grow-1 min-w-0">
-            <div class="d-flex justify-content-between align-items-center">
-              <span class="${nameClass} text-truncate">${groupIcon}${escapeHtml(c.name)}${c.is_muted ? ' <i class="bi bi-bell-slash" title="Muted"></i>' : ''}</span>
-              ${badge}
-            </div>
-            <small class="text-muted text-truncate d-block">${escapeHtml(lastMsg)}</small>
-          </div>
-        </a>
-        <div class="dropdown pe-2">
-          <button type="button" class="btn btn-sm rounded-circle conversation-options" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-label="Options for ${escapeHtml(c.name)}"><i class="bi bi-three-dots"></i></button>
-          <ul class="dropdown-menu dropdown-menu-end shadow rounded-4">
-            <li><button type="button" class="dropdown-item mute-group-btn" data-conversation-id="${c.id}" data-muted="${c.is_muted}"><i class="bi bi-bell-slash me-2"></i>${c.is_muted ? 'Unmute notifications' : 'Mute notifications'}</button></li>
-            ${c.is_group ? `<li><button type="button" class="dropdown-item text-danger leave-group-btn" data-conversation-id="${c.id}"><i class="bi bi-box-arrow-right me-2"></i>Leave group</button></li>` : ''}
-            <li><button type="button" class="dropdown-item text-danger delete-chat-btn" data-conversation-id="${c.id}" data-name="${escapeHtml(c.name)}"><i class="bi bi-trash me-2"></i>Delete for me</button></li>
-          </ul>
-        </div>
-        </div>
-      `);
+      $conversationsList.append(renderTemplate('message-template-render-conversations-4', [isSelected ? 'bg-body-tertiary' : '', c.id, c.is_group, escapeHtml(c.name), avatarHtml, c.presence?.is_online ? renderTemplate('message-template-render-conversations-5') : '', nameClass, groupIcon, escapeHtml(c.name), c.is_muted ? renderTemplate('message-template-render-conversations-6') : '', badge, escapeHtml(lastMsg), escapeHtml(c.name), c.id, c.is_muted, c.is_muted ? 'Unmute notifications' : 'Mute notifications', c.is_group ? renderTemplate('message-template-render-conversations-7', [c.id]) : '', c.id, escapeHtml(c.name)]));
     });
   }
 
@@ -375,7 +307,7 @@ $(document).ready(function () {
   $attachmentInput.on('change', function () {
     selectedFile = this.files[0] || null;
     if (selectedFile) {
-      $attachmentPreview.show().html(`<i class="bi bi-paperclip me-1"></i>${escapeHtml(selectedFile.name)} <a href="#" id="clearAttachmentBtn" class="ms-2 text-danger">Remove</a>`);
+      $attachmentPreview.show().html(renderTemplate('message-template-fragment-1', [escapeHtml(selectedFile.name)]));
     } else {
       $attachmentPreview.hide().empty();
     }
@@ -406,13 +338,9 @@ $(document).ready(function () {
     if (pending.length) $chatMessages.children('p').remove();
     pending.forEach(item => {
       const status = item.failed
-        ? '<button type="button" class="btn btn-link text-danger p-0 small retry-outgoing" data-id="' + item.id + '"><i class="bi bi-exclamation-circle me-1"></i>Not sent · Retry</button>'
-        : '<span class="text-body-secondary" role="status" aria-label="Sending">Sending…</span>';
-      $chatMessages.append('<div class="pending-message-row d-flex flex-column align-items-end mb-2" data-pending-id="' + item.id + '"><div class="p-2 rounded-3 bg-primary text-white message-bubble" style="max-width:70%;width:fit-content">'
-        + (item.replyText ? '<div class="small border-start border-3 ps-2 mb-2 opacity-75">' + escapeHtml(item.replyText) + '</div>' : '')
-        + '<div class="message-body">' + escapeHtml(item.body) + '</div>'
-        + (item.file ? '<div class="small mt-1"><i class="bi bi-paperclip"></i> ' + escapeHtml(item.file.name) + '</div>' : '')
-        + '</div><div class="mt-1" style="font-size:0.7rem">' + status + '</div></div>');
+        ? renderTemplate('message-template-status-1', [item.id])
+        : renderTemplate('message-template-status-2');
+      $chatMessages.append(renderTemplate('message-template-render-outgoing-1', [item.id, item.replyText ? renderTemplate('message-template-render-outgoing-2', [escapeHtml(item.replyText)]) : '', escapeHtml(item.body), item.file ? renderTemplate('message-template-render-outgoing-3', [escapeHtml(item.file.name)]) : '', status]));
     });
   }
   function sendNext(conversationId) {
@@ -540,14 +468,7 @@ $(document).ready(function () {
       success: function (response) {
         let html = '';
         response.members.forEach(function (m) {
-          html += `
-            <div class="d-flex justify-content-between align-items-center py-1">
-              <span>${escapeHtml(m.name)}</span>
-              <button type="button" class="btn btn-sm btn-outline-danger remove-member-btn" data-user-id="${m.id}" data-conversation-id="${conversationId}">
-                <i class="bi bi-x-lg"></i>
-              </button>
-            </div>
-          `;
+          html += renderTemplate('message-template-fragment-2', [escapeHtml(m.name), m.id, conversationId]);
         });
         $('#groupMembersModalList').html(html);
         window.showModal('groupMembersModal');
@@ -635,13 +556,7 @@ $(document).ready(function () {
     const currentText = $bodyDiv.text().trim();
     const safeText = escapeHtml(currentText);
 
-    $bodyDiv.addClass('is-editing').html(`
-      <div class="message-edit-controls d-flex gap-1 align-items-center">
-        <input type="text" class="form-control form-control-sm edit-message-input" value="${safeText}">
-        <button type="button" class="btn btn-sm btn-light save-edit-btn" data-message-id="${messageId}"><i class="bi bi-check-lg"></i></button>
-        <button type="button" class="btn btn-sm btn-light cancel-edit-btn" data-original-text="${safeText}"><i class="bi bi-x-lg"></i></button>
-      </div>
-    `);
+    $bodyDiv.addClass('is-editing').html(renderTemplate('message-template-fragment-3', [safeText, messageId, safeText]));
     $bodyDiv.find('.edit-message-input').trigger('focus');
   });
 
@@ -676,7 +591,7 @@ $(document).ready(function () {
         $bodyDiv.removeClass('is-editing').text(newBody);
         const $row = $bodyDiv.closest('.message-row');
         $row.attr('data-body', newBody).data('body', newBody);
-        if (!$row.find('.edited-tag').length) $row.find('small').append('<span class="edited-tag"> (edited)</span>');
+        if (!$row.find('.edited-tag').length) $row.find('small').append(renderTemplate('message-template-fragment-4'));
         refreshConversationsList();
       },
       error: function (xhr) {
@@ -722,14 +637,7 @@ $(document).ready(function () {
       success: function () {
           const $row = $bubble.closest('.message-row');
 
-          $row.replaceWith(`
-              <div class="message-row d-flex justify-content-end align-items-center mb-2"
-                  data-message-id="${messageId}">
-                  <div class="deleted-message-bubble">
-                      You deleted a message
-                  </div>
-              </div>
-          `);
+          $row.replaceWith(renderTemplate('message-template-fragment-5', [messageId]));
 
           if (String($('#replyToId').val()) === String(messageId)) $('#cancelReplyBtn').trigger('click');
           refreshConversationsList();
@@ -764,6 +672,7 @@ $(document).ready(function () {
           viewVersion++; closeDetails(); activeConversation = null; $('#backToLatestBtn').hide();
           $chatMessages.empty();
           $chatHeader.empty();$chatFooter.hide();
+          messagingColumns.classList.remove('mobile-chat-open');
           currentConversationId = null;
           $activeConversationId.val('');
           
@@ -838,9 +747,9 @@ $(document).ready(function () {
         if (!append) $results.empty();
         $('#chatSearchCount').text(`${response.total_results} ${response.total_results === 1 ? 'result' : 'results'}`);
         response.messages.slice().reverse().forEach(m => {
-          $results.append(`<button type="button" class="chat-search-result btn w-100 text-start d-flex gap-2 p-3 rounded-0" data-message-id="${m.id}"><span class="search-avatar bg-secondary-subtle rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"><i class="bi bi-person-fill"></i></span><span class="min-w-0"><strong class="d-block">${escapeHtml(m.sender_name)}</strong><span class="d-block text-truncate">${escapeHtml(m.body || m.attachment_name || 'Attachment')}</span><small class="text-muted">${escapeHtml(m.created_at)}</small></span></button>`);
+          $results.append(renderTemplate('message-template-search-messages-1', [m.id, escapeHtml(m.sender_name), escapeHtml(m.body || m.attachment_name || 'Attachment'), escapeHtml(m.created_at)]));
         });
-        if (!response.total_results) $results.html('<p class="text-muted p-3">No matching messages.</p>');
+        if (!response.total_results) $results.html(renderTemplate('message-template-search-messages-2'));
         searchCursor = response.messages[0]?.id;
         $('#moreSearchResultsBtn').toggle(response.has_more).prop('disabled', false);
       }, error: xhr => { if (version === searchVersion) { $('#chatSearchCount').text('Search failed. Try again.'); $('#moreSearchResultsBtn').prop('disabled', false); requestError(xhr); } }
@@ -892,22 +801,13 @@ $(document).ready(function () {
     closeSearch();
     const id = currentConversationId, version = ++infoVersion, conv = activeConversation;
     $('#chatDetailsPanel, #chatInfoPanel').show();
-    $('#chatInfoContent').html('<p class="text-muted">Loading conversation…</p>');
+    $('#chatInfoContent').html(renderTemplate('message-template-show-conversation-info-1'));
     $.ajax({
       url: `/messages/conversations/${id}/info`,
       success: response => {
         if (version !== infoVersion || String(id) !== String(currentConversationId)) return;
-        const members = response.members.map(m => `<a class="d-flex align-items-center gap-2 py-2 text-body text-decoration-none" href="${escapeHtml(m.profile_url)}">${m.profile_picture ? `<img class="info-member-avatar rounded-circle" src="${escapeHtml(m.profile_picture)}" alt="">` : '<i class="bi bi-person-circle fs-4"></i>'}<span>${escapeHtml(m.name)}</span></a>`).join('');
-        $('#chatInfoContent').html(`
-          <div class="text-center mb-4"><div class="info-conversation-avatar rounded-circle bg-primary-subtle text-primary mx-auto mb-3"><i class="bi ${response.is_group ? 'bi-people-fill' : 'bi-person-fill'}"></i></div><h5>${escapeHtml(conv.name)}</h5><p class="text-muted small">${response.is_group ? response.members.length + ' members' : 'Direct conversation'}</p></div>
-          <div class="d-flex justify-content-center gap-4 mb-4">
-            <button type="button" class="btn mute-group-btn" data-conversation-id="${id}" data-muted="${response.is_muted}"><i class="bi ${response.is_muted ? 'bi-bell-slash-fill' : 'bi-bell'} info-action-icon"></i>${response.is_muted ? 'Unmute' : 'Mute'}</button>
-            <button type="button" class="btn" id="searchChatBtn"><i class="bi bi-search info-action-icon"></i>Search</button>
-          </div>
-          <details class="border-top py-3" open><summary class="fw-semibold">Chat info</summary><p class="small text-muted mt-2">${response.is_muted ? (response.muted_until ? 'Notifications muted until ' + escapeHtml(new Date(response.muted_until).toLocaleString()) + '.' : 'Notifications muted until you turn them back on.') : 'Notifications are on.'}</p></details>
-          <details class="border-top py-3"><summary class="fw-semibold">${response.is_group ? 'Chat members' : 'People'}</summary>${members}${response.is_group ? `<button class="btn btn-sm btn-outline-secondary mt-2" id="viewMembersBtn" data-conversation-id="${id}">Manage members</button>` : ''}</details>
-          ${response.is_group ? `<details class="border-top py-3"><summary class="fw-semibold">Conversation settings</summary><button type="button" class="btn text-danger leave-group-btn mt-2" data-conversation-id="${id}">Leave group</button></details>` : ''}
-        `);
+        const members = response.members.map(m => renderTemplate('message-template-members-1', [escapeHtml(m.profile_url), m.profile_picture ? renderTemplate('message-template-members-2', [escapeHtml(m.profile_picture)]) : renderTemplate('message-template-members-3'), escapeHtml(m.name)])).join('');
+        $('#chatInfoContent').html(renderTemplate('message-template-show-conversation-info-2', [response.is_group ? 'bi-people-fill' : 'bi-person-fill', escapeHtml(conv.name), response.is_group ? response.members.length + ' members' : 'Direct conversation', id, response.is_muted, response.is_muted ? 'bi-bell-slash-fill' : 'bi-bell', response.is_muted ? 'Unmute' : 'Mute', response.is_muted ? (response.muted_until ? 'Notifications muted until ' + escapeHtml(new Date(response.muted_until).toLocaleString()) + '.' : 'Notifications muted until you turn them back on.') : 'Notifications are on.', response.is_group ? 'Chat members' : 'People', members, response.is_group ? renderTemplate('message-template-show-conversation-info-3', [id]) : '', response.is_group ? renderTemplate('message-template-show-conversation-info-4', [id]) : '']));
       }, error: xhr => { if (version === infoVersion) $('#chatInfoContent').text('Could not load conversation information. Please reopen the panel to retry.'); requestError(xhr); }
     });
   }
@@ -953,6 +853,7 @@ $(document).ready(function () {
           $chatMessages.empty(); $chatFooter.hide(); closeDetails(); activeConversation = null; $('#backToLatestBtn').hide();
           $('#cancelReplyBtn').trigger('click');
           $chatHeader.text('Select a conversation to start chatting');
+          messagingColumns.classList.remove('mobile-chat-open');
         }
         refreshConversationsList(); refreshUnreadBadge();
       }, error: requestError
@@ -970,7 +871,7 @@ $(document).ready(function () {
     if (!Number.isFinite(seconds)) return 'Offline';
     const [unit, size] = seconds >= 604800 ? ['week', 604800] : seconds >= 86400 ? ['day', 86400] : seconds >= 3600 ? ['hour', 3600] : seconds >= 60 ? ['minute', 60] : ['second', 1];
     const count = Math.floor(seconds / size);
-    return 'Last seen ' + count + ' ' + unit + (count === 1 ? '' : 's') + ' ago';
+    return 'Active ' + count + ' ' + unit + (count === 1 ? '' : 's') + ' ago';
   }
   function renderActivity() {
     if (!currentConversationId) return;

@@ -8,6 +8,26 @@
     height: 2.25rem;
 }
 
+.tutorial-icon { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 16px; background: rgba(var(--bs-primary-rgb), .12); color: var(--bs-primary); font-size: 1.6rem; }
+.tutorial-card .carousel-inner { min-height: 220px; }
+.tutorial-controls { display: grid !important; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+.tutorial-controls > .btn { width: 100%; max-width: 112px; height: 44px; display: inline-flex; align-items: center; justify-content: center; padding-inline: 6px; }
+#tutorialNext { justify-self: end; }
+.tutorial-dots { justify-content: center; }
+.tutorial-dot { width: 24px; height: 44px; border: 0; border-radius: 50%; padding: 0; display: grid; place-items: center; background: transparent; cursor: pointer; transition: background-color .2s ease; }
+.tutorial-dot span { width: 8px; height: 8px; border-radius: 6px; background: var(--bs-secondary-color); opacity: .5; transition: width .6s cubic-bezier(.22, 1, .36, 1), background-color .6s ease, opacity .6s ease; pointer-events: none; }
+.tutorial-dot.is-active span { width: 22px; border-radius: 6px; background: var(--bs-primary); opacity: 1; }
+.tutorial-dot:hover { background: rgba(var(--bs-primary-rgb), .1); }
+.tutorial-dot:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: -4px; }
+@media (prefers-reduced-motion: reduce) {
+  .tutorial-card .carousel-item, .tutorial-dot, .tutorial-dot span { transition: none; }
+}
+@media (max-width: 575.98px) {
+  .tutorial-card { padding: 16px !important; }
+  .tutorial-card .carousel-inner { min-height: 235px; }
+  .tutorial-controls > .btn { font-size: .75rem; }
+}
+
 .sidebar-user {
     margin: 0.5rem 0.5rem 0;
 }
@@ -406,9 +426,6 @@ div.dt-container .dt-button.btn {
   min-height: 0;
 }
 
-body, html, .app-main {
-    overflow-y: hidden !important;
-  }
 .message-row:focus-within .message-hover-toolbar { display: flex; }
 .message-hover-toolbar { display: flex; opacity: 0; }
 .message-row:hover .message-hover-toolbar, .message-row:focus-within .message-hover-toolbar { opacity: 1; }
@@ -449,9 +466,13 @@ body, html, .app-main {
   .chat-details-panel { width: 250px; }
 }
 @media (max-width: 767.98px) {
-  .messaging-columns { flex-wrap: wrap; overflow-y: auto; }
-  .messaging-columns > .chat-sidebar { width: 100%; height: 30%; }
-  .messaging-columns > .chat-main { flex: auto; width: 100%; height: 70%; }
+  .chat-wrapper { height: calc(100dvh - 130px); min-height: 300px; }
+  .messaging-columns { flex-wrap: nowrap; position: relative; overflow: hidden; }
+  .messaging-columns > .chat-sidebar { width: 100%; height: 100%; border: 0 !important; }
+  .messaging-columns > .chat-main { display: none !important; width: 100%; height: 100%; }
+  .messaging-columns.mobile-chat-open > .chat-sidebar { display: none !important; }
+  .messaging-columns.mobile-chat-open > .chat-main { display: flex !important; }
+  .messaging-columns > .chat-details-panel { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; }
   .chat-details-panel { width: 100%; height: 380px; flex-shrink: 0; border-top: 1px solid var(--bs-border-color); }
 }
 
@@ -469,3 +490,27 @@ body, html, .app-main {
 .chat-column-header { height: 80px; min-height: 80px; flex: 0 0 80px; box-sizing: border-box; }
 #chatHeader > div, #chatHeader > div > div:first-child { min-width: 0; }
 #chatHeader .fw-semibold, #chatPresenceStatus { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Let the shared header fit narrow phones without squeezing its controls offscreen. */
+.app-header .navbar-nav:first-child { flex: 1; min-width: 0; }
+#searchWrapper { width: 300px; max-width: 100%; min-width: 0; flex-shrink: 1; }
+.app-header .navbar-nav:last-child { flex-shrink: 0; }
+.app-header .dropdown-menu { max-width: calc(100vw - 24px); }
+
+@media (max-width: 767.98px) {
+  #globalSearch, #messageInput { font-size: 16px; }
+  #messageForm { min-width: 0; }
+  #messageInput { min-width: 0; }
+  #messageForm button[type="submit"] { padding-inline: 12px !important; }
+  .chat-column-header { height: 64px; min-height: 64px; flex-basis: 64px; }
+  body[data-page="dashboard"] .student-card { padding: 12px !important; border-radius: 12px !important; }
+  body[data-page="dashboard"] .student-card img.rounded-circle,
+  body[data-page="dashboard"] .student-card div.rounded-circle { width: 44px !important; height: 44px !important; font-size: 1rem !important; }
+  body[data-page="dashboard"] .student-card h5 { font-size: 1rem; overflow-wrap: anywhere; white-space: normal; }
+  body[data-page="dashboard"] .student-card .min-w-0 { min-width: 0; }
+  body[data-page="dashboard"] .student-card .mt-2.mb-3 { margin-top: 4px !important; margin-bottom: 6px !important; }
+  body[data-page="dashboard"] .student-card .btn-swap,
+  body[data-page="dashboard"] .student-card button[disabled] { width: auto !important; padding: 5px 16px !important; font-size: .8rem; }
+  body[data-page="dashboard"] .student-card .fav-btn { padding: 6px !important; }
+  body[data-page="dashboard"] .student-card-column { margin-bottom: 12px !important; }
+}

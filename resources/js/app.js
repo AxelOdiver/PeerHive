@@ -36,6 +36,7 @@ $(document).ready(function() {
     'favorites.index': () => import('./pages/favorites.js'),
     'login': () => import('./pages/auth.js'),
     'register': () => import('./pages/register.js'),
+    'password.reset': () => import('./pages/reset-password.js'),
     'swap': () => import('./pages/swap.js'),
     'schedule': () => import('./pages/schedule.js'),
     'profile': () => Promise.all([import('./pages/profile/edit.js'), import('./pages/schedule.js')]),

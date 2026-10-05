@@ -59,23 +59,40 @@
   </div>
   
   <div class="col-12 col-md-6 mb-4 mt-2 mt-md-0 d-flex flex-column">
-    <h2 class="mb-3 fw-bold">Swap, learn, grow</h2>
-    <div class="card card-hover border-0 shadow-sm rounded-2 p-4 card-border-dark overflow-hidden h-100 d-flex flex-column">
-      <div class="flex-grow-1">
-        <p><a href="#" class="fw-bold btn btn-link link-body-emphasis text-decoration-none pb-1 p-0">Most Collaborated</a></p>
-        <p class="text-muted" style="font-size: 1.1rem;">
-          Discover the most accomplished and influential professionals
-        </p>
+    <h2 class="mb-3 fw-bold">How PeerHive works</h2>
+    @php
+      $walkthrough = [
+        ['icon' => 'bi-search', 'title' => 'Find your learning partner', 'text' => 'Browse the students below or use search to find a peer. Open their profile to explore their skills and interests.', 'tip' => 'Start with a skill you want to learn.'],
+        ['icon' => 'bi-arrow-left-right', 'title' => 'Send a swap request', 'text' => 'Tap Swap on a student card. Introduce yourself and explain what you would like to learn and what you can share.', 'tip' => 'Verify your email before sending a request.'],
+        ['icon' => 'bi-chat-dots', 'title' => 'Start a conversation', 'text' => 'Open Messages to connect with your peer. Discuss your learning goals and decide how you will work together.', 'tip' => 'On your phone, tap a chat to open it.'],
+        ['icon' => 'bi-calendar-check', 'title' => 'Make time to learn', 'text' => 'Set your weekly availability in Schedule. Use Messages to agree with your peer on a time that suits you both.', 'tip' => 'Choose a day and set your available hours.'],
+        ['icon' => 'bi-people', 'title' => 'Learn with a community', 'text' => 'Explore Community to find groups around your interests. Join a group to connect, ask questions, and share what you know.', 'tip' => 'Private communities may require an invitation.'],
+      ];
+    @endphp
+    <section id="peerHiveWalkthrough" class="card border-0 shadow-sm rounded-2 h-100 p-4 carousel slide tutorial-card" aria-label="How PeerHive works" aria-roledescription="carousel" tabindex="0">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="small fw-semibold text-primary">Your quick start guide</span>
       </div>
-      <div class="d-flex align-items-center gap-0 mt-auto">
-        <button class="btn btn-sm shadow-none fs-4"><i class="bi bi-heart"></i></button>
-        <small class="text-muted fw-semibold p-2 me-2">20k+</small>
-        <button class="btn btn-sm shadow-none fs-4"><i class="bi bi-arrow-left-right"></i></button>
-        <small class="text-muted fw-semibold p-2 me-2">500+</small>
-        <button class="btn btn-sm shadow-none fs-4"><i class="bi bi-chat-dots"></i></button>
-        <small class="text-muted fw-semibold p-2 me-2">1k+</small>
+      <div class="carousel-inner flex-grow-1" aria-live="polite">
+        @foreach($walkthrough as $step)
+          <article class="carousel-item {{ $loop->first ? 'active' : '' }}" role="group" aria-roledescription="slide" aria-label="{{ $loop->iteration }} of {{ count($walkthrough) }}" @if(!$loop->first) aria-hidden="true" @endif>
+            <div class="tutorial-icon mb-3"><i class="bi {{ $step['icon'] }}" aria-hidden="true"></i></div>
+            <h3 class="h5 fw-bold">{{ $step['title'] }}</h3>
+            <p class="text-muted mb-3">{{ $step['text'] }}</p>
+            <p class="small mb-0"><i class="bi bi-lightbulb text-warning me-1" aria-hidden="true"></i>{{ $step['tip'] }}</p>
+          </article>
+        @endforeach
       </div>
-    </div>
+      <div class="tutorial-controls d-flex align-items-center justify-content-between gap-2 mt-4">
+        <button id="tutorialPrevious" type="button" class="btn btn-outline-secondary btn-sm" aria-label="Previous tutorial step" disabled><i class="bi bi-arrow-left" aria-hidden="true"></i><span class="ms-1">Previous</span></button>
+        <div class="d-flex align-items-center tutorial-dots" aria-label="Choose a tutorial step">
+          @foreach($walkthrough as $step)
+            <button type="button" class="tutorial-dot {{ $loop->first ? 'is-active' : '' }}" data-tutorial-slide="{{ $loop->index }}" aria-label="Step {{ $loop->iteration }}: {{ $step['title'] }}" aria-current="{{ $loop->first ? 'step' : 'false' }}"><span></span></button>
+          @endforeach
+        </div>
+        <button id="tutorialNext" type="button" class="btn btn-primary btn-sm" aria-label="Next tutorial step"><span class="me-1">Next</span><i class="bi bi-arrow-right" aria-hidden="true"></i></button>
+      </div>
+    </section>
   </div>
   
   <!-- TOP STUDENTS -->
@@ -86,8 +103,8 @@
     $isLiked = in_array($topstudent->id, $likedIds);
     $isFaved = in_array($topstudent->id, $favoritedIds);
     @endphp
-    <div class="col-12 col-md-6 col-xl-4 mb-4">
-      <div class="card border-0 shadow-sm rounded-4 p-3 h-100 w-100">
+    <div class="col-12 col-md-6 col-xl-4 mb-4 student-card-column">
+      <div class="card border-0 shadow-sm rounded-4 p-3 h-100 w-100 student-card">
         <div class="d-flex align-items-start gap-2 gap-sm-3">
           <a href="{{ route('users.profile', $topstudent->id) }}" class="text-decoration-none flex-shrink-0">
           @if($topstudent->profile_picture)
@@ -171,8 +188,8 @@
   $isLiked = in_array($student->id, $likedIds);
   $isFaved = in_array($student->id, $favoritedIds);
   @endphp
-  <div class="col-12 col-md-6 col-xl-4 mb-4">
-    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 w-100">
+  <div class="col-12 col-md-6 col-xl-4 mb-4 student-card-column">
+    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 w-100 student-card">
       <div class="d-flex align-items-start gap-2 gap-sm-3">
         <a href="{{ route('users.profile', $student->id) }}" class="text-decoration-none flex-shrink-0">
         @if($student->profile_picture)

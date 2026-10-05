@@ -1,20 +1,19 @@
+import './password-toggle.js';
+import './password-requirements.js';
+
 // Register page - password toggle and form submission
 $(document).ready(function() {
   const $form = $('#form');
+  const $submitButton = $('#registerSubmitBtn');
+  let submitting = false;
 
-  // Password show/hide toggle
-  $(document).on('click', '.toggle-password', function() {
-    const $input = $(this).closest('.input-group').find('input');
-    const $icon = $(this).find('i');
-
-    if ($input.attr('type') === 'password') {
-      $input.attr('type', 'text');
-      $icon.removeClass('bi-eye-slash-fill').addClass('bi-eye-fill');
-    } else {
-      $input.attr('type', 'password');
-      $icon.removeClass('bi-eye-fill').addClass('bi-eye-slash-fill');
-    }
-  });
+  function setSubmitting(value) {
+    submitting = value;
+    $submitButton.prop('disabled', value);
+    $form.attr('aria-busy', String(value));
+    $('#registerSubmitSpinner').toggleClass('d-none', !value);
+    $('#registerSubmitText').text(value ? 'Creating account...' : 'Create account');
+  }
 
   // Submit form logic
   function clearErrors() {
@@ -25,7 +24,9 @@ $(document).ready(function() {
 
   $form.on('submit', function(e) {
     e.preventDefault();
+    if (submitting) return;
     clearErrors();
+    setSubmitting(true);
 
     $.ajax({
       url: $form.attr('action'),
@@ -44,6 +45,7 @@ $(document).ready(function() {
         window.location.href = response.redirect ?? '/dashboard';
       },
       error: function(xhr) {
+        setSubmitting(false);
         if (xhr.status === 422) {
           const errors = xhr.responseJSON?.errors || {};
           for (const field in errors) {
