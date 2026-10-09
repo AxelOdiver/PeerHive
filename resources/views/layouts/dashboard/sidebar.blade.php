@@ -59,16 +59,22 @@
 
     $navItemsAdmin = [
       [
+          'href' => route('users'),
+          'icon' => 'bi bi-people',
+          'label' => 'Users Data',
+          'active' => request()->routeIs('users'),
+      ],
+      [
           'href' => route('admin.qualifications'), 
           'icon' => 'bi bi-shield-lock',
           'label' => 'Approvals',
           'active' => request()->routeIs('admin.qualifications'),
       ],
       [
-          'href' => route('users'),
-          'icon' => 'bi bi-people',
-          'label' => 'Users Data',
-          'active' => request()->routeIs('users'),
+          'href' => route('admin.reports.index'),
+          'icon' => 'bi bi-flag-fill',
+          'label' => 'Manage Reports',
+          'active' => request()->routeIs('admin.reports.*'),
       ],
       [
           'href' => route('community'),

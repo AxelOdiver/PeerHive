@@ -232,7 +232,7 @@ $(document).ready(function () {
                                                     <span class="text-light fw-bold small">${user.name.charAt(0).toUpperCase()}</span>
                                                   </div>`;
                                 }
-
+                                
                                 // 2. Build the dropdown item using jQuery syntax with the avatar included
                                 const $item = $('<a>', {
                                     href: '#',
@@ -315,7 +315,7 @@ $(document).ready(function () {
             });
         }
     });
-
+    
     // --- LEAVE COMMUNITY AJAX LOGIC ---
     $(document).on('click', '.leave-community-btn', async function(e) {
         e.preventDefault(); 
@@ -354,5 +354,41 @@ $(document).ready(function () {
             });
         }
     });
-
+    
+    // Populate modal data when a report button is clicked
+    $(document).on('click', '.report-btn', function() {
+        $('#reportable_id').val($(this).data('id'));
+        $('#reportable_type').val($(this).data('type'));
+        $('#reportForm')[0].reset();
+    });
+    
+    // Handle report submission
+    $('#submitReportBtn').on('click', function() {
+        const btn = $(this);
+        btn.prop('disabled', true).text('Submitting...');
+        
+        $.ajax({
+            url: '/reports',
+            method: 'POST',
+            data: {
+                _token: $('meta[name="csrf-token"]').attr('content'),
+                reportable_id: $('#reportable_id').val(),
+                reportable_type: $('#reportable_type').val(),
+                reason: $('#reportReason').val(),
+                details: $('#reportDetails').val()
+            },
+            success: function(response) {
+                bootstrap.Modal.getInstance(document.getElementById('reportModal')).hide();
+                if (window.toast) window.toast('success', response.message);
+            },
+            error: function(xhr) {
+                const msg = xhr.responseJSON?.message || 'An error occurred while submitting the report.';
+                if (window.toast) window.toast('error', msg);
+            },
+            complete: function() {
+                btn.prop('disabled', false).text('Submit Report');
+            }
+        });
+    });
+    
 });

@@ -5,50 +5,56 @@
 @section('content')
 
 <!-- Communities and Swap Section -->
-<div class="row d-flex align-items-stretch">
-  <div class="col-12 col-md-6 mb-4 d-flex flex-column">
+<div class="row g-4 align-items-stretch mb-4">
+  
+  <!-- Left Column: Communities -->
+  <div class="col-12 col-md-6 d-flex flex-column">
     <h2 class="mb-3 fw-bold">Communities</h2>
     @php
     $featuredCommunity = \App\Models\Community::with('user')->latest()->first();
     @endphp
     @if($featuredCommunity)
-    <div class="card card-hover border-0 shadow-sm rounded-2 overflow-hidden h-100 position-relative">
-      <div style="overflow: hidden;">
-        <img src="https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg" class="card-img-top rounded-2" style="object-fit: cover; height: 150px;" />
+    <div class="card card-hover border-0 shadow-sm rounded-2 overflow-hidden h-100 d-flex flex-column">
+      <div style="overflow: hidden; height: 200px; flex-shrink: 0;">
+        <img src="https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg" class="w-100 h-100" style="object-fit: cover; object-position: center;" />
       </div>
-      <div class="card-body d-flex flex-column">
-        <div class="d-flex justify-content-between align-items-start mb-2">        
+      <div class="card-body d-flex flex-column p-4">
+        
+        <!-- Description at the top -->
+        <p class="text-muted small mb-3">{{ str()->limit($featuredCommunity->description, 120) }}</p>
+        
+        <!-- Name, Creator, and Badges pushed to the bottom -->
+        <div class="mt-auto">
+          <h4 class="mb-1 fw-bold">
+            <a href="{{ route('community.show', $featuredCommunity->id) }}" class="text-decoration-none text-body-emphasis stretched-link">
+              {{ $featuredCommunity->name }}
+            </a>
+          </h4>
           
-          <!-- Left Side: Limit Badge -->
-          <small class="badge bg-secondary p-2">
-            <i class="bi bi-people-fill me-1"></i> Limit: {{ $featuredCommunity->member_limit }} members
+          <small class="text-muted d-block mb-3">
+            <i class="bi bi-person-circle me-1"></i>Created by: {{ $featuredCommunity->user->first_name ?? 'Unknown' }}
           </small>
           
-          <!-- Right Side: Subject and Visibility grouped together -->
-          <div class="d-flex gap-2">
-            <small class="badge bg-secondary px-3 py-2 rounded-pill">
-              <i class="bi bi-book-half me-1"></i> {{ $featuredCommunity->subject }}
-            </small>
-            
+          <div class="d-flex flex-wrap align-items-center gap-2">
             @if($featuredCommunity->visibility === 'private')
-            <small class="badge bg-danger text-white px-3 py-2 rounded-pill">
+            <span class="badge bg-danger px-3 py-2 rounded-pill">
               <i class="bi bi-lock-fill me-1"></i> Private
-            </small>
+            </span>
             @else
-            <small class="badge bg-success text-white px-3 py-2 rounded-pill">
+            <span class="badge bg-success px-3 py-2 rounded-pill">
               <i class="bi bi-globe me-1"></i> Public
-            </small>
+            </span>
             @endif
+            
+            <span class="badge bg-secondary px-3 py-2 rounded-pill">
+              <i class="bi bi-book-half me-1"></i> {{ $featuredCommunity->subject }}
+            </span>
+
+            <span class="badge border text-secondary px-3 py-2 rounded-pill">
+              <i class="bi bi-people-fill me-1"></i> Limit: {{ $featuredCommunity->member_limit }}
+            </span>
           </div>
         </div>
-        
-        <h4 class="mb-1 mt-1 fw-bold">
-          <a href="{{ route('community.show', $featuredCommunity->id) }}" class="text-decoration-none text-body-emphasis stretched-link">
-            {{ $featuredCommunity->name }}
-          </a>
-        </h4>
-        <small class="text-muted mb-2 mt-2 d-block"><i class="bi bi-person-circle me-1"></i>Created by: {{ $featuredCommunity->user->first_name ?? 'Unknown' }}</small>
-        <p class="text-muted small mb-0 mt-auto">{{ str()->limit($featuredCommunity->description, 150) }}</p>
       </div>
     </div>
     @else
@@ -57,8 +63,9 @@
     </div>
     @endif
   </div>
-  
-  <div class="col-12 col-md-6 mb-4 mt-2 mt-md-0 d-flex flex-column">
+
+  <!-- Right Column: Walkthrough -->
+  <div class="col-12 col-md-6 d-flex flex-column">
     <h2 class="mb-3 fw-bold">How PeerHive works</h2>
     @php
       $walkthrough = [
@@ -69,7 +76,7 @@
         ['icon' => 'bi-people', 'title' => 'Learn with a community', 'text' => 'Explore Community to find groups around your interests. Join a group to connect, ask questions, and share what you know.', 'tip' => 'Private communities may require an invitation.'],
       ];
     @endphp
-    <section id="peerHiveWalkthrough" class="card border-0 shadow-sm rounded-2 h-100 p-4 carousel slide tutorial-card" aria-label="How PeerHive works" aria-roledescription="carousel" tabindex="0">
+    <section id="peerHiveWalkthrough" class="card border-0 shadow-sm rounded-2 h-100 d-flex flex-column p-4 carousel slide tutorial-card" aria-label="How PeerHive works" aria-roledescription="carousel" tabindex="0">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <span class="small fw-semibold text-primary">Your quick start guide</span>
       </div>
@@ -83,7 +90,7 @@
           </article>
         @endforeach
       </div>
-      <div class="tutorial-controls d-flex align-items-center justify-content-between gap-2 mt-4">
+      <div class="tutorial-controls mt-auto d-flex align-items-center justify-content-between gap-2 mt-4">
         <button id="tutorialPrevious" type="button" class="btn btn-outline-secondary btn-sm" aria-label="Previous tutorial step" disabled><i class="bi bi-arrow-left" aria-hidden="true"></i><span class="ms-1">Previous</span></button>
         <div class="d-flex align-items-center tutorial-dots" aria-label="Choose a tutorial step">
           @foreach($walkthrough as $step)
@@ -94,6 +101,8 @@
       </div>
     </section>
   </div>
+  
+</div>
   
   <!-- TOP STUDENTS -->
   <h2 class="mb-3 fw-bold">Top Students</h2>

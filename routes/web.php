@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\OtpController;
@@ -19,6 +20,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\MessagingActivityController;
+use App\Http\Controllers\ReportController;
 /*
 |--------------------------------------------------------------------------
 | Authentication Routes (Guest Only)
@@ -87,6 +89,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/posts/{id}/comments', [CommunityController::class, 'storeComment'])->name('comments.store');
     Route::delete('/posts/{id}', [CommunityController::class, 'destroyPost'])->name('posts.destroy');
     Route::delete('/comments/{id}', [CommunityController::class, 'destroyComment'])->name('comments.destroy');
+    Route::post('/reports', [ReportController::class, 'store'])->name('reports.store');
 
     Route::view('/schedule', 'schedule')->name('schedule');
     Route::post('/presence/heartbeat', [MessagingActivityController::class, 'heartbeat'])->middleware('throttle:6,1')->name('presence.heartbeat');
@@ -128,6 +131,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/admin/qualifications', [AdminQualificationController::class, 'index'])->name('admin.qualifications'); 
     Route::post('/admin/qualifications/{id}/respond', [AdminQualificationController::class, 'respond'])->name('admin.qualifications.respond');
+    Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
+    Route::patch('/reports/{report}/dismiss', [AdminReportController::class, 'dismiss'])->name('reports.dismiss');
+    Route::delete('/reports/{report}/content', [AdminReportController::class, 'destroyContent'])->name('reports.destroyContent');
+});
 });
 
 /*

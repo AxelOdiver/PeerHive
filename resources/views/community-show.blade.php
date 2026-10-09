@@ -200,12 +200,34 @@ $isMember = auth()->check() && $community->members->contains('id', auth()->id())
       <div class="d-flex justify-content-between align-items-start mb-2">
         <h5 class="fw-bold mb-0 text-body-emphasis">{{ $post->title }}</h5>
         
-        <!-- Post Delete Button (post owner or admin) -->
-        @if(auth()->check() && (auth()->id() === $post->user_id || auth()->user()->role === 'admin'))
-        <button type="button" class="btn btn-sm btn-danger top-0 end-0 text-decoration-none delete-post-btn" title="Delete Post" data-url="{{ route('posts.destroy', $post->id) }}">
-          <i class="bi bi-trash"></i>
-        </button>
-        @endif
+        <!-- Post Actions Dropdown -->
+        <div class="dropdown">
+          <button class="btn btn-sm text-muted bg-transparent border-0 px-2 shadow-none" style="box-shadow: none;" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-three-dots-vertical fs-5"></i>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+            @if(auth()->check())
+            <li>
+              <button class="dropdown-item text-warning report-btn" 
+                      data-bs-toggle="modal" 
+                      data-bs-target="#reportModal"
+                      data-id="{{ $post->id }}" 
+                      data-type="App\Models\Post">
+                <i class="bi bi-flag me-2"></i> Report
+              </button>
+            </li>
+            @endif
+
+            <!-- Post Delete Button -->
+            @if(auth()->check() && (auth()->id() === $post->user_id || auth()->user()->role === 'admin'))
+            <li>
+              <button type="button" class="dropdown-item text-danger delete-post-btn" data-url="{{ route('posts.destroy', $post->id) }}">
+                <i class="bi bi-trash me-2"></i> Delete
+              </button>
+            </li>
+            @endif
+          </ul>
+        </div>
       </div>
       
       <p class="text-muted mb-3">{{ str()->limit($post->body, 250) }}</p>
@@ -245,12 +267,34 @@ $isMember = auth()->check() && $community->members->contains('id', auth()->id())
                   <small class="text-muted ms-2">{{ $comment->created_at->diffForHumans() }}</small>
                 </div>
                 
-                <!-- Comment Delete Button (only for comment owner) -->
-                @if(auth()->check() && auth()->id() === $comment->user_id)
-                <button type="button" class="btn btn-sm btn-danger top-0 end-0 text-decoration-none delete-comment-btn" title="Delete Comment" data-url="{{ route('comments.destroy', $comment->id) }}">
-                  <i class="bi bi-trash"></i>
-                </button>
-                @endif
+                <!-- Comment Actions Dropdown -->
+                <div class="dropdown">
+                  <button class="btn btn-sm btn-link text-muted p-0 border-0 text-decoration-none" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-three-dots"></i>
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width: 120px;">
+                    @if(auth()->check())
+                    <li>
+                      <button class="dropdown-item text-warning small report-btn" 
+                              data-bs-toggle="modal" 
+                              data-bs-target="#reportModal"
+                              data-id="{{ $comment->id }}" 
+                              data-type="App\Models\Comment">
+                        <i class="bi bi-flag me-2"></i> Report
+                      </button>
+                    </li>
+                    @endif
+
+                    <!-- Comment Delete Button -->
+                    @if(auth()->check() && auth()->id() === $comment->user_id)
+                    <li>
+                      <button type="button" class="dropdown-item text-danger small delete-comment-btn" data-url="{{ route('comments.destroy', $comment->id) }}">
+                        <i class="bi bi-trash me-2"></i> Delete
+                      </button>
+                    </li>
+                    @endif
+                  </ul>
+                </div>
               </div>
               <p class="mb-0 small">{{ $comment->body }}</p>
             </div>
@@ -321,6 +365,33 @@ $isMember = auth()->check() && $community->members->contains('id', auth()->id())
   <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
   <button type="submit" class="btn btn-primary rounded-pill px-4" id="savePostBtn" form="createPostForm">Post</button>
 </x-slot:footer>
+</x-modal>
+
+<x-modal id="reportModal" title="Report Content">
+  <form id="reportForm">
+    <input type="hidden" id="reportable_id" name="reportable_id">
+    <input type="hidden" id="reportable_type" name="reportable_type">
+    
+    <div class="mb-3">
+      <label for="reportReason" class="form-label">Reason for Reporting</label>
+      <select class="form-select" id="reportReason" name="reason" required>
+        <option value="" disabled selected>Select a reason...</option>
+        <option value="Spam">Spam or misleading</option>
+        <option value="Harassment">Harassment or bullying</option>
+        <option value="Inappropriate">Inappropriate content</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    
+    <div class="mb-3">
+      <label for="reportDetails" class="form-label">Additional Details (Optional)</label>
+      <textarea class="form-control" id="reportDetails" name="details" rows="3" placeholder="Provide any extra context..."></textarea>
+    </div>
+  </form>
+  <x-slot:footer>
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <button type="button" class="btn btn-danger" id="submitReportBtn">Submit Report</button>
+  </x-slot:footer>
 </x-modal>
 
 @endsection
