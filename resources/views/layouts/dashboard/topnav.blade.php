@@ -47,8 +47,9 @@
           </span>
         </a>
       
-      <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="width: 320px;">
+      <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="width: 320px; max-height: 70vh; overflow-y: auto;">
         <li><h6 class="dropdown-header fw-bold">Notifications</h6></li>
+        <li class="px-3 pb-2 d-flex flex-wrap gap-2"><button type="button" class="btn btn-outline-primary btn-sm" data-notification-action="read-all">Mark all as read</button><button type="button" class="btn btn-outline-secondary btn-sm" data-notification-action="clear-read">Clear read notifications</button></li>
         <div id="messageNotificationsList"></div>
         
         @forelse(auth()->user()->pendingInvites as $invite)

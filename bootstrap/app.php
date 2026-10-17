@@ -14,5 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $exception, \Illuminate\Http\Request $request) {
+            if (!$request->expectsJson() && $request->is('study-sessions*', 'rewards/*') && in_array($exception->getStatusCode(), [409, 422])) {
+                return back()->withInput()->withErrors(['learning' => $exception->getMessage() ?: 'This action is no longer available. Please refresh and try again.']);
+            }
+        });
     })->create();

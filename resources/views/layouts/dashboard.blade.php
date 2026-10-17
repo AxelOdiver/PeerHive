@@ -45,6 +45,11 @@
           .then(response => response.json())
           .then(data => {
             const count = data.count;
+            const swapBadge = document.getElementById('sidebarSwapBadge');
+            if (swapBadge) {
+              swapBadge.textContent = (data.swap_unread_count || 0);
+              swapBadge.classList.toggle('d-none', (data.swap_unread_count || 0) === 0);
+            }
             
             // CHANGED: Grab the new global badge instead of the separate message badge
             const globalBadge = document.getElementById('globalNotificationBadge');
@@ -53,7 +58,7 @@
             // 1. Calculate and update the Unified Top Nav Badge (Invites + Messages)
             if (globalBadge) {
               const inviteCount = parseInt(globalBadge.getAttribute('data-invite-count')) || 0;
-              const totalCount = count + inviteCount;
+              const totalCount = inviteCount + (data.history_unread_count || 0);
               
               if (totalCount > 0) {
                 globalBadge.textContent = totalCount > 99 ? '99+' : totalCount;
@@ -78,38 +83,36 @@
             const noNotifMsg = document.getElementById('noNotificationsMsg');
             
             if (notifList) {
-              notifList.innerHTML = ''; // Clear previous
-              
-              if (data.notifications && data.notifications.length > 0) {
-                // Hide the "No notifications" text because we have messages
-                if (noNotifMsg) noNotifMsg.classList.add('d-none');
-                
-                data.notifications.forEach(notif => {
-                  notifList.innerHTML += `
-                    <li>
-                      <a href="/messages" class="dropdown-item border-bottom py-2 px-3 text-decoration-none">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                          <strong class="small text-primary">${escapeNotification(notif.name)}</strong>
-                          <span class="badge bg-primary ms-2" style="font-size: 0.55rem;">New Message</span>
-                        </div>
-                        <p class="mb-1 text-muted small text-truncate" style="max-width: 95%;">${escapeNotification(notif.text)}</p>
-                        <small class="text-muted" style="font-size: 0.65rem;">${escapeNotification(notif.time)}</small>
-                      </a>
-                    </li>
-                  `;
-                });
-              } else {
-                // Show the empty message again if there are no messages (and no invites)
-                if (noNotifMsg) noNotifMsg.classList.remove('d-none');
-              }
+              notifList.innerHTML = '';
+              (data.history || []).forEach(notif => {
+                notifList.innerHTML += `<li><a href="${escapeNotification(notif.url)}" data-notification-id="${notif.id}" class="dropdown-item border-bottom py-2 px-3 text-decoration-none ${notif.read ? 'text-muted' : 'bg-primary-subtle'}"><div class="d-flex justify-content-between gap-2"><strong class="small text-wrap">${escapeNotification(notif.name)}</strong><small>${notif.read ? 'Read' : 'Unread'}</small></div><p class="mb-1 small text-wrap">${escapeNotification(notif.text)}</p><small>${escapeNotification(notif.time)}</small></a></li>`;
+              });
+              if (noNotifMsg) noNotifMsg.classList.toggle('d-none', (data.history || []).length > 0);
+
             }
           })
           .catch(error => console.error('Error fetching unread count:', error))
           .finally(() => { badgeRequestPending = false; });
       }
 
+      async function notificationAction(path) {
+        const response = await fetch(path, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, Accept: 'application/json' } });
+        if (!response.ok) throw new Error('Unable to update notifications.');
+      }
+      document.addEventListener('click', async event => {
+        const link = event.target.closest('[data-notification-id]');
+        const action = event.target.closest('[data-notification-action]');
+        if (!link && !action) return;
+        event.preventDefault();
+        try {
+          await notificationAction(link ? `/notifications/${link.dataset.notificationId}/read` : `/notifications/${action.dataset.notificationAction}`);
+          if (link) window.location.assign(link.href);
+          else fetchUnreadMessageCount();
+        } catch (error) { window.toast?.('error', error.message); }
+      });
       fetchUnreadMessageCount();
       setInterval(fetchUnreadMessageCount, 15000);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) fetchUnreadMessageCount(); });
       window.refreshSidebarMessagesBadge = fetchUnreadMessageCount;
     });
   </script>

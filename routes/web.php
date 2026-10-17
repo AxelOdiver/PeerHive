@@ -20,6 +20,10 @@ use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\MessagingActivityController;
+Route::view('/terms', 'legal.terms')->name('terms');
+Route::view('/privacy', 'legal.privacy')->name('privacy');
+// Keep previously shared preview links working after the full modules launch.
+Route::get('/feature-preview', fn () => redirect()->route(match (request('tab')) { 'rewards' => 'rewards.index', 'sessions' => 'study-sessions.index', default => 'progress.index' }))->middleware('auth')->name('feature.preview');
 use App\Http\Controllers\ReportController;
 /*
 |--------------------------------------------------------------------------
@@ -54,6 +58,20 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/search', [DashboardController::class, 'search'])->name('search');
+    Route::get('/progress', [\App\Http\Controllers\LearningProgressController::class, 'index'])->name('progress.index');
+    Route::put('/progress/goals', [\App\Http\Controllers\LearningProgressController::class, 'goals'])->name('progress.goals');
+    Route::get('/rewards', [\App\Http\Controllers\RewardsController::class, 'index'])->name('rewards.index');
+    Route::post('/rewards/unlock', [\App\Http\Controllers\RewardsController::class, 'unlock'])->name('rewards.unlock');
+    Route::put('/rewards/equip', [\App\Http\Controllers\RewardsController::class, 'equip'])->name('rewards.equip');
+    Route::get('/study-sessions', [\App\Http\Controllers\StudySessionController::class, 'index'])->name('study-sessions.index');
+    Route::get('/study-sessions/create', [\App\Http\Controllers\StudySessionController::class, 'create'])->name('study-sessions.create');
+    Route::post('/study-sessions', [\App\Http\Controllers\StudySessionController::class, 'store'])->name('study-sessions.store');
+    Route::get('/study-sessions/{session}', [\App\Http\Controllers\StudySessionController::class, 'show'])->name('study-sessions.show');
+    Route::post('/study-sessions/{session}/join', [\App\Http\Controllers\StudySessionController::class, 'join'])->name('study-sessions.join');
+    Route::delete('/study-sessions/{session}/leave', [\App\Http\Controllers\StudySessionController::class, 'leave'])->name('study-sessions.leave');
+    Route::post('/study-sessions/{session}/cancel', [\App\Http\Controllers\StudySessionController::class, 'cancel'])->name('study-sessions.cancel');
+    Route::post('/study-sessions/{session}/complete', [\App\Http\Controllers\StudySessionController::class, 'complete'])->name('study-sessions.complete');
+    Route::post('/study-sessions/{session}/confirm', [\App\Http\Controllers\StudySessionController::class, 'confirm'])->name('study-sessions.confirm');
 
     Route::post('/apply-to-teach', [QualificationController::class, 'store'])->name('qualifications.store');
 
@@ -64,6 +82,7 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/swap/{swap}/respond', [SwapController::class, 'respond'])->name('swap.respond');
     Route::post('/swap/add', [SwapController::class, 'add'])->name('swap.add');
+    Route::get('/swap/options/{user}', [SwapController::class, 'options'])->name('swap.options');
     Route::get('/swap', [SwapController::class, 'index'])->name('swap');
     Route::delete('/swap/{swap}', [SwapController::class, 'destroy'])->name('swap.destroy');
 
@@ -91,13 +110,20 @@ Route::middleware('auth')->group(function () {
     Route::delete('/comments/{id}', [CommunityController::class, 'destroyComment'])->name('comments.destroy');
     Route::post('/reports', [ReportController::class, 'store'])->name('reports.store');
 
-    Route::view('/schedule', 'schedule')->name('schedule');
+    Route::get('/schedule', [ScheduleController::class, 'index'])->name('schedule');
     Route::post('/presence/heartbeat', [MessagingActivityController::class, 'heartbeat'])->middleware('throttle:6,1')->name('presence.heartbeat');
     Route::get('/messages/conversations/{conversation}/state', [MessagingActivityController::class, 'state'])->name('messages.state');
     Route::post('/messages/conversations/{conversation}/typing', [MessagingActivityController::class, 'typing'])->middleware('throttle:60,1')->name('messages.typing');
     Route::post('/messages/conversations/{conversation}/read', [MessagingActivityController::class, 'read'])->middleware('throttle:60,1')->name('messages.read');
+    Route::post('/messages/conversations/{conversation}/rating', [\App\Http\Controllers\SessionRatingController::class, 'store'])->middleware('throttle:20,1');
+    Route::get('/messages/conversations/{conversation}/session', [\App\Http\Controllers\SessionChatController::class, 'show']);
+    Route::post('/messages/conversations/{conversation}/session', [\App\Http\Controllers\SessionChatController::class, 'update']);
     Route::get('/messages', [MessageController::class, 'index'])->name('messages');
+    Route::get('/messages/member-search', [MessageController::class, 'searchMembers'])->middleware('throttle:60,1')->name('messages.member-search');
     Route::get('/messages/unread-count', [MessageController::class, 'unreadCount'])->name('messages.unread-count');
+    Route::post('/notifications/read-all', [\App\Http\Controllers\BellNotificationController::class, 'readAll']);
+    Route::post('/notifications/clear-read', [\App\Http\Controllers\BellNotificationController::class, 'clearRead']);
+    Route::post('/notifications/{notification}/read', [\App\Http\Controllers\BellNotificationController::class, 'read'])->whereNumber('notification');
     Route::get('/messages/conversations', [MessageController::class, 'conversations'])->name('messages.conversations');
     Route::post('/messages/conversations', [MessageController::class, 'store'])->name('messages.conversations.store');
     Route::delete('/messages/conversations/{conversation}', [MessageController::class, 'destroyConversation'])->name('messages.conversations.destroy');
@@ -112,7 +138,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/messages/{message}/for-me', [MessageController::class, 'deleteMessageForMe'])->name('messages.delete-for-me');
     Route::put('/messages/{message}', [MessageController::class, 'editMessage'])->name('messages.edit');
     Route::delete('/messages/{message}', [MessageController::class, 'deleteMessage'])->name('messages.delete');
-    Route::view('/history', 'history')->name('history');
+    Route::get('/history', [\App\Http\Controllers\LearningProgressController::class, 'history'])->name('history');
 
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
     Route::get('/profile/show', [ProfileController::class, 'show'])->name('profile.show');

@@ -14,6 +14,9 @@
             @if($label === 'Messages')
             <span class="badge bg-danger rounded-pill {{ $badge ? '' : 'd-none' }}" id="sidebarMessagesBadge">{{ $badge ?? 0 }}</span>
             @endif
+            @if($label === 'Swap')
+            <span class="badge bg-danger rounded-pill d-none" id="sidebarSwapBadge">0</span>
+            @endif
         </p>
     </a>
 </li>

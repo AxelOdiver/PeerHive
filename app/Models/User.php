@@ -14,6 +14,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'first_name',
+        'username',
         'middle_name',
         'last_name',
         'email',
@@ -29,6 +30,10 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'course', 'expertise', 'school', 'school_location',
+        'show_course', 'show_expertise', 'show_school', 'show_school_location',
+        'policies_accepted_at', 'terms_version', 'privacy_version',
+        'learning_goals', 'learning_timezone', 'learning_interests',
     ];
 
     protected function casts(): array
@@ -37,7 +42,40 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'last_seen_at' => 'datetime',
             'password' => 'hashed',
+            'expertise' => 'array',
+            'show_course' => 'boolean',
+            'show_expertise' => 'boolean',
+            'show_school' => 'boolean',
+            'show_school_location' => 'boolean',
+            'policies_accepted_at' => 'datetime',
+            'learning_goals' => 'array', 'learning_interests' => 'array',
         ];
+    }
+
+    public function teachingRatings() { return $this->hasMany(SessionRating::class, 'teacher_id'); }
+
+    public function getProfileFrameClassAttribute(): string
+    {
+        return match ($this->profile_frame) {
+            'forest_frame' => 'profile-frame-forest', 'sunrise_frame' => 'profile-frame-sunrise', default => '',
+        };
+    }
+
+    public function getLearningTimezoneAttribute($value): string
+    {
+        return $value ?: config('learning.timezone', 'Asia/Taipei');
+    }
+
+    public function setUsernameAttribute($value): void
+    {
+        $this->attributes['username'] = filled($value) ? strtolower(trim($value)) : null;
+    }
+
+    public function approvedTeachingQualifications(): HasMany
+    {
+        return $this->hasMany(UserSubjectQualification::class)
+            ->where('status', 'approved')
+            ->select('id', 'user_id', 'subject_name');
     }
 
     public function favorites()
@@ -52,11 +90,11 @@ class User extends Authenticatable
 
     public function getProfilePictureUrlAttribute(): ?string
     {
-        if (!$this->profile_picture) {
+        if (!$this->profile_picture || !Storage::disk('public')->exists($this->profile_picture)) {
             return null;
         }
 
-        return Storage::url($this->profile_picture);
+        return asset('storage/'.$this->profile_picture);
     }
 
     public function communities()
