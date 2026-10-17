@@ -17,7 +17,7 @@ test('reopening the active chat preserves its draft without leaking it into anot
  };}
  const classes=new Set();
  const context={$:element,messagingColumns:{classList:{add:name=>classes.add(name)}},
-  stopTyping(){},activityMembers:[],viewVersion:0,searchTerm:'',searchTimer:null,
+  stopTyping(){},setSessionFinished(){},refreshSessionPanel(){},activityMembers:[],viewVersion:0,searchTerm:'',searchTimer:null,
   clearTimeout(){},closeDetails(){},viewingHistory:false,hasNewerMessages:false,loadingNewer:false,
   $messageInput:element('input'),selectedFile:file,$attachmentInput:element('file'),$attachmentPreview:element('preview'),
   oldestLoadedId:null,hasMoreMessages:false,isLoadingOlder:false,$chatMessages:element('messages'),
@@ -60,7 +60,7 @@ test('rapid Enter consumes one draft, queues new drafts and retries with the sam
  };}
  const $=key=>element(key);$.ajax=options=>requests.push(options);
  const context={$,document:{},FormData,globalThis:{crypto:require('node:crypto').webcrypto},window:{},
-  outgoing:[],currentConversationId:'1',currentIsGroup:false,selectedFile:null,viewingHistory:false,
+  outgoing:[],sessionFinished:false,currentConversationId:'1',currentIsGroup:false,selectedFile:null,viewingHistory:false,
   $messageForm:element('form'),$messageInput:element('input'),$activeConversationId:element('conversation'),
   $attachmentInput:element('file'),$attachmentPreview:element('preview'),$chatMessages:element('messages'),
   stopTyping(){},scrollToBottom(){},messageHtml(){return '';},refreshConversationsList(){},renderActivity(){},scheduleRead(){}};
@@ -81,6 +81,9 @@ test('rapid Enter consumes one draft, queues new drafts and retries with the sam
  assert.equal(requests.length,2);context.outgoing[0].failed=false;context.sendNext('1');
  assert.equal(requests[2].data.get('client_message_id'),id);
  assert.notEqual(requests[0].data.get('client_message_id'),id);
+ context.sessionFinished=true;values.set('input','After completion');
+ const count=requests.length;send();assert.equal(requests.length,count);
+ assert.equal(values.get('input'),'After completion');
 });
 test('pending messages render as bubbles and disappear when polling confirms their send ID',()=>{
  const appended=[];let confirmed=false;

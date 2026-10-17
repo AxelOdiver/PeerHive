@@ -1,4 +1,8 @@
+import { initGroupMemberSearch } from './group-member-search.js';
+
 $(document).ready(function () {
+  const groupMembers = initGroupMemberSearch(document);
+  let creatingGroup = false;
   // Markup lives in messages.blade.php. Values are already escaped by callers;
   // some slots intentionally contain rendered child templates.
   const templateCache = new Map();
@@ -34,6 +38,18 @@ $(document).ready(function () {
   let chatPollTimer = null;
   let currentConversationId = null;
   let currentIsGroup = false;
+  let sessionFinished = false;
+  function setSessionFinished(finished) {
+    sessionFinished = Boolean(finished);
+    $('#sessionFinishedNotice').toggleClass('d-none', !sessionFinished);
+    $messageForm.toggleClass('d-none', sessionFinished);
+    $messageForm.find('input, button').prop('disabled', sessionFinished);
+    if (sessionFinished) {
+      stopTyping();
+      $('#replyPreview').hide();
+      $attachmentPreview.hide();
+    }
+  }
   let selectedFile = null;
   let oldestLoadedId = null;
   let hasMoreMessages = false;
@@ -81,7 +97,18 @@ $(document).ready(function () {
     return renderTemplate('message-template-render-attachment-2', [escapeHtml(m.attachment_url), m.is_mine ? 'text-white' : 'text-body', escapeHtml(m.attachment_name)]);
   }
 
+  const hiddenSessionCards = new Set();
+  let sessionBeforeStart = false;
   function messageHtml(m, isGroup) {
+    if (m.session_event) {
+      const c = m.session_event.context;
+      const p = c.proposal;
+      const hidden = hiddenSessionCards.has(String(m.id));
+      const schedule = p ? `<p class="small mb-1">${escapeHtml(new Date(p.starts_at).toLocaleString([], {timeZone:p.timezone}))} · ${escapeHtml(p.timezone)} · ${escapeHtml(p.duration)} minutes</p><p class="small text-break">${escapeHtml(p.meeting_details)}</p>` : '';
+      const actions = m.session_event.current && c.state === 'proposed' && !m.is_mine ? `<button class="btn btn-primary btn-sm" data-session-action="accept" data-action-revision="${c.revision}">Accept schedule</button> <button class="btn btn-outline-secondary btn-sm" data-session-action="changes" data-action-revision="${c.revision}">Suggest changes</button>` : '';
+      return `<div class="d-flex ${m.is_mine ? 'justify-content-end' : 'justify-content-start'} mb-3" data-message-id="${m.id}"><article class="card border shadow-sm p-3" style="max-width:90%;"><div class="d-flex justify-content-between gap-3"><strong class="small">${escapeHtml(m.sender_name)} · ${escapeHtml(m.body)}</strong><button type="button" class="btn btn-link btn-sm p-0" data-hide-session-card="${m.id}">${hidden ? 'Show' : 'Hide'}</button></div><div class="session-card-details ${hidden ? 'd-none' : ''}"><p class="small mt-2">${escapeHtml(c.subject)}${c.offered_subject ? ' ↔ '+escapeHtml(c.offered_subject) : ''}</p>${schedule}${c.message ? `<p class="small text-break">${escapeHtml(c.message)}</p>` : ''}${c.finished_at ? `<p class="small">Finished: ${escapeHtml(new Date(c.finished_at).toLocaleString())} · ${escapeHtml(c.finished_minutes ?? '')} minutes</p>` : ''}${actions}</div><small class="text-muted mt-2">${escapeHtml(m.created_at)} · Session record</small></article></div>`;
+    }
+
     if (hiddenMessageIds.has(Number(m.id))) return '';
     
         if (m.is_unsent) {
@@ -110,6 +137,7 @@ $(document).ready(function () {
   }
 
   function toolbarButtonsHtml(kebabHtml) {
+    if (sessionFinished) return '';
     return renderTemplate('message-template-toolbar-buttons-html-1', [['👍', '❤️', '😂', '🎉', '😮', '😢'].map(emoji => renderTemplate('message-template-toolbar-buttons-html-2', [emoji, emoji, emoji])).join(''), kebabHtml]);
   }
 
@@ -124,6 +152,7 @@ $(document).ready(function () {
       data: aroundId ? { around_id: aroundId } : {},
       success: function (response) {
         if (version !== viewVersion || String(conversationId) !== String(currentConversationId)) return;
+        setSessionFinished(response.session_finished);
         if (!aroundId && $chatMessages.find('.edit-message-input, .dropdown-menu.show').length) return;
         currentIsGroup = response.is_group;
         const wasAtBottom = atBottom();
@@ -197,6 +226,100 @@ $(document).ready(function () {
     }
   });
 
+
+  let sessionPanelBusy = false;
+  let pendingRating = null;
+  function showTeacherRating(rating) {
+    $('#ratingTeacherName').text(rating.teacher_name);
+    $('#rateTeacherForm')[0].reset();
+    $('#ratingConversationId').val(rating.conversation_id); $('#ratingError').text('');
+    sessionStorage.setItem(`rating-prompt:${rating.learner_id}:${rating.conversation_id}`, 'shown');
+    window.bootstrap.Modal.getOrCreateInstance(document.getElementById('rateTeacherModal')).show();
+  }
+  $(document).on('click', '#rateTeacherBtn', () => { if (pendingRating) showTeacherRating(pendingRating); });
+  $(document).on('submit', '#rateTeacherForm', async function (e) {
+    e.preventDefault(); const id = $('#ratingConversationId').val();
+    $('#submitRatingBtn').prop('disabled', true); $('#ratingError').text('');
+    try {
+      const response = await fetch(`/messages/conversations/${id}/rating`, {method:'POST', headers:{'Content-Type':'application/json', Accept:'application/json', 'X-CSRF-TOKEN':$('meta[name="csrf-token"]').attr('content')}, body:JSON.stringify({stars: Number(new FormData(this).get('stars'))})});
+      const result = await response.json();
+      if (!response.ok) throw new Error(Object.values(result.errors || {}).flat()[0] || result.message);
+      window.bootstrap.Modal.getInstance(document.getElementById('rateTeacherModal')).hide();
+      pendingRating = null; $('#rateTeacherBtn').remove(); refreshSessionPanel();
+      window.toast?.('success', result.message);
+    } catch (error) { $('#ratingError').text(error.message); }
+    finally { $('#submitRatingBtn').prop('disabled', false); }
+  });
+  function applySessionPanel(response) {
+    setSessionFinished(response.session_finished);
+    pendingRating = response.rating || null;
+    $('#rateTeacherBtn').remove();
+    if (pendingRating) {
+      $('<button>', {id:'rateTeacherBtn', type:'button', class:'btn btn-outline-warning btn-sm', text:'Rate teacher'}).insertBefore('#chatInfoBtn');
+      if (!sessionStorage.getItem(`rating-prompt:${pendingRating.learner_id}:${pendingRating.conversation_id}`) && !document.querySelector('.modal.show') && !window.Swal?.isVisible()) showTeacherRating(pendingRating);
+    }
+    const panel = $('#sessionChatPanel');
+    const detailsOpen = panel.find('details').prop('open');
+    sessionBeforeStart = Boolean(response.before_start);
+    panel.html(response.html);
+    if (detailsOpen !== undefined) panel.find('details').prop('open', detailsOpen);
+    const proposal = panel.find('#sessionProposalForm').detach();
+    $('#sessionProposalModalBody').empty().append(proposal);
+    $('#createSessionBtn').toggleClass('d-none', !response.html).prop('disabled', !proposal.length);
+    $('#finishSessionBtn').remove();
+    if (response.html) $('<button>', {id: 'finishSessionBtn', type: 'button', class: 'btn btn-success btn-sm', text: 'Finish session', disabled: !response.finish, title: response.finish ? 'Finish now and request your partner’s confirmation' : 'Accept a schedule first; unavailable after confirmation or cancellation', 'data-session-action': 'finish'}).insertBefore('#chatInfoBtn');
+  }
+  function refreshSessionPanel() {
+    if (!currentConversationId || sessionPanelBusy || $('#createSessionModal').hasClass('show') || $('#sessionDetailsModal').hasClass('show') || $('#sessionChatPanel').find('input:focus, select:focus, textarea:focus').length || $('#sessionProposalForm').data('dirty') || $('#sessionProblemForm').data('dirty')) return;
+    const id = currentConversationId;
+    $.getJSON(`/messages/conversations/${id}/session`).done(response => { if (String(id) === String(currentConversationId)) applySessionPanel(response); });
+  }
+  async function sessionAction(action, form = null, actualMinutes = null, revision = null) {
+    if (sessionPanelBusy) return;
+    const id = currentConversationId;
+    const data = form ? new FormData(form) : new FormData();
+    data.set('action', action);
+    if (actualMinutes !== null) data.set('actual_minutes', actualMinutes);
+    data.set('revision', revision ?? $('#sessionChatPanel [data-session-revision]').attr('data-session-revision'));
+    data.set('_token', $('meta[name="csrf-token"]').attr('content'));
+    sessionPanelBusy = true;
+    try {
+      const response = await fetch(`/messages/conversations/${id}/session`, {method: 'POST', headers: {Accept: 'application/json'}, body: data});
+      const result = await response.json();
+      if (!response.ok) throw new Error(Object.values(result.errors || {}).flat()[0] || result.message || 'Unable to update session.');
+      if (String(id) === String(currentConversationId)) {
+        window.bootstrap.Modal.getInstance(document.getElementById('createSessionModal'))?.hide();
+        applySessionPanel(result);
+        loadConversation(id, null, true);
+      }
+      window.refreshSidebarMessagesBadge?.();
+    } catch (error) { window.toast?.('error', error.message); }
+    finally { sessionPanelBusy = false; }
+  }
+  $(document).on('input change', '#sessionProposalForm, #sessionProblemForm', function () { $(this).data('dirty', true); });
+  $(document).on('click', '#createSessionBtn', function () { window.bootstrap.Modal.getOrCreateInstance(document.getElementById('createSessionModal')).show(); });
+  $(document).on('submit', '#sessionProposalForm', function (e) { e.preventDefault(); sessionAction('propose', this); });
+  $(document).on('submit', '#sessionProblemForm', function (e) { e.preventDefault(); sessionAction('problem', this); });
+  $(document).on('click', '[data-hide-session-card]', function () {
+    const id = String(this.dataset.hideSessionCard);
+    if (hiddenSessionCards.has(id)) hiddenSessionCards.delete(id); else hiddenSessionCards.add(id);
+    $(this).text(hiddenSessionCards.has(id) ? 'Show' : 'Hide').closest('article').find('.session-card-details').toggleClass('d-none', hiddenSessionCards.has(id));
+  });
+  $(document).on('click', '[data-session-action]', async function () {
+    const action = this.dataset.sessionAction;
+    let minutes = null;
+    if (action === 'finish' && sessionBeforeStart) {
+      const answer = await window.Swal.fire({title: 'Finish ahead of schedule', text: 'How many minutes did you actually study? Your partner must confirm this time too.', input: 'number', inputAttributes: {min: '1', max: '240', step: '1'}, showCancelButton: true, confirmButtonText: 'Confirm my attendance', inputValidator: value => !Number.isInteger(Number(value)) || Number(value) < 1 ? 'Enter the actual number of minutes.' : undefined});
+      if (!answer.isConfirmed) return;
+      minutes = answer.value;
+    } else if (['finish', 'cancel'].includes(action)) {
+      const answer = await window.confirmAction(action === 'finish' ? 'Confirm the recorded session time and your attendance? Your partner must also confirm.' : 'Cancel this session? No points will be awarded.', action === 'finish' ? 'Finish session' : 'Cancel session');
+      if (!answer.isConfirmed) return;
+    }
+    sessionAction(action, null, minutes, this.dataset.actionRevision ?? null);
+  });
+  $(document).on('click', '[data-session-starter]', function () { $messageInput.val(this.dataset.sessionStarter).trigger('focus'); });
+
   function renderChatHeader(conv) {
     const buttons = renderTemplate('message-template-buttons-1');
     $chatHeader.html(renderTemplate('message-template-render-chat-header-1', [escapeHtml(conv.name), buttons]));
@@ -226,9 +349,14 @@ $(document).ready(function () {
     isLoadingOlder = false;
     $chatMessages.empty();
     currentConversationId = conv.id;
+    setSessionFinished(false);
     activeConversation = conv;
     $activeConversationId.val(conv.id);
     renderChatHeader(conv);
+    $('#sessionChatPanel').empty();
+    $('#sessionProposalModalBody').empty();
+    $('#createSessionBtn').addClass('d-none');
+    refreshSessionPanel();
     $chatFooter.show();
     renderOutgoing();
 
@@ -242,6 +370,7 @@ $(document).ready(function () {
     chatPollTimer = setInterval(function () {
       if (document.hidden) return;
       refreshActivity();
+      refreshSessionPanel();
       scheduleRead();
       if (viewingHistory || $chatMessages.find('.edit-message-input, .dropdown-menu.show').length) return;
       if ($chatMessages.scrollTop() + $chatMessages.innerHeight() >= $chatMessages[0].scrollHeight - 100) {
@@ -279,12 +408,18 @@ $(document).ready(function () {
     });
   }
 
+  let requestedConversation = new URLSearchParams(window.location.search).get('conversation');
   function refreshConversationsList() {
     $.ajax({
       url: '/messages/conversations',
       method: 'GET',
       success: function (response) {
         renderConversations(response.conversations);
+        if (requestedConversation) {
+          const target = response.conversations.find(c => String(c.id) === requestedConversation);
+          requestedConversation = null;
+          if (target) openConversation(target);
+        }
         const active = response.conversations.find(c => String(c.id) === String(currentConversationId));
         if (active && !active.is_group) $('#chatPresenceStatus').text(presenceLabel(active.presence));
       }
@@ -386,6 +521,7 @@ $(document).ready(function () {
   });
   $messageForm.on('submit', function (event) {
     event.preventDefault();
+    if (sessionFinished) return;
     const conversationId = $activeConversationId.val(), body = $messageInput.val().trim();
     if (!conversationId || (!body && !selectedFile)) return;
     if (selectedFile && selectedFile.size > 10240 * 1024) { window.toast?.('error', 'Attachments must be 10 MB or smaller.'); return; }
@@ -425,14 +561,17 @@ $(document).ready(function () {
   });
 
   $('#createGroupBtn').on('click', function () {
+    if (creatingGroup) return;
     const name = $('#groupNameInput').val().trim();
-    const memberIds = $('.group-member-checkbox:checked').map(function () { return $(this).val(); }).get();
+    const memberIds = groupMembers.ids();
 
     if (memberIds.length < 2) {
       if (window.toast) window.toast('error', 'Select at least 2 members.');
       return;
     }
 
+    creatingGroup = true;
+    $(this).prop('disabled', true);
     $.ajax({
       url: '/messages/conversations',
       method: 'POST',
@@ -445,7 +584,7 @@ $(document).ready(function () {
       success: function (response) {
         window.hideModal('newGroupModal');
         $('#groupNameInput').val('');
-        $('.group-member-checkbox').prop('checked', false);
+        groupMembers.clear();
         refreshConversationsList();
         if (window.toast) window.toast('success', 'Group created!');
         setTimeout(function () {
@@ -454,8 +593,16 @@ $(document).ready(function () {
       },
       error: function (xhr) {
         if (window.toast) window.toast('error', xhr.responseJSON?.message || 'Failed to create group.');
+      },
+      complete: function () {
+        creatingGroup = false;
+        $('#createGroupBtn').prop('disabled', groupMembers.ids().length < 2);
       }
     });
+  });
+  $('#newGroupForm').on('submit', function (event) {
+    event.preventDefault();
+    $('#createGroupBtn').trigger('click');
   });
 
   $(document).on('click', '#viewMembersBtn', function () {
@@ -537,6 +684,7 @@ $(document).ready(function () {
   });
 
   $chatMessages.on('click', '.reaction-choice', function () {
+    if (sessionFinished) return;
     const $row = $(this).closest('.message-row');
     $row.find('.reaction-choice').prop('disabled', true);
     $.ajax({
@@ -708,21 +856,6 @@ $(document).ready(function () {
     $('#newChatNoResults').toggleClass('d-none', $('#newChatUserList .start-chat-btn').not('.d-none').length > 0);
   });
   $('#newChatModal').on('shown.bs.modal', () => $('#newChatSearchInput').trigger('input').trigger('focus'));
-
-  // --- Search Filter for Group Chat Modal ---
-  $('#newGroupSearchInput').on('input', function () {
-    const searchTerm = $(this).val().toLowerCase();
-
-    $('#groupMembersList .group-member-item').each(function () {
-      const userName = $(this).data('name').toLowerCase();
-      
-      if (userName.includes(searchTerm)) {
-        $(this).removeClass('d-none').addClass('d-flex');
-      } else {
-        $(this).removeClass('d-flex').addClass('d-none');
-      }
-    });
-  });
 
   // Clear the search bars when the modals are closed
   $('#newChatModal, #newGroupModal').on('hidden.bs.modal', function () {
@@ -959,4 +1092,19 @@ $(document).ready(function () {
 
   refreshConversationsList();
   setInterval(() => { if (!document.hidden) refreshConversationsList(); }, 10000);
+  const requestedPeer = new URLSearchParams(window.location.search).get('peer');
+  if (requestedPeer && /^\d+$/.test(requestedPeer)) {
+    $.ajax({
+      url: '/messages/conversations', method: 'POST',
+      data: { user_id: requestedPeer, _token: $('meta[name="csrf-token"]').attr('content') },
+      success: response => {
+        $.getJSON('/messages/conversations').done(list => {
+          renderConversations(list.conversations);
+          const conversation = list.conversations.find(c => String(c.id) === String(response.conversation_id));
+          if (conversation) openConversation(conversation);
+        }).fail(requestError);
+      },
+      error: requestError,
+    });
+  }
 });

@@ -29,9 +29,11 @@
         <span class="text-muted">Select a conversation to start chatting</span>
       </div>
       <button type="button" id="backToLatestBtn" class="btn btn-sm btn-outline-primary m-2" style="display:none;">Back to latest messages</button>
-      <div class="flex-grow-1 overflow-auto p-3" id="chatMessages"></div>
+
+        <div class="flex-grow-1 overflow-auto p-3" id="chatMessages"></div>
       <div id="typingIndicator" class="px-3 py-1 text-muted small" role="status" aria-live="polite" style="display:none;"><span id="typingNames"></span><span class="typing-dots" aria-hidden="true"><span>●</span><span>●</span><span>●</span></span></div>
       <div class="p-2 border-top" id="chatFooter" style="display:none;">
+        <div id="sessionFinishedNotice" class="d-none text-center text-muted py-3" role="status">— Session finished —<div class="small mt-1">This conversation is read-only. You can still review your messages and rate your teacher.</div></div>
 
         <div id="replyPreview" class="px-3 py-2 small border-start border-3 border-primary mx-2 mb-2 rounded shadow-sm" style="display:none; position:relative;">
           <div class="fw-bold text-primary" id="replyPreviewName" style="font-size: 0.75rem;"></div>
@@ -47,6 +49,7 @@
             <i class="bi bi-plus-lg"></i>
             <input type="file" id="attachmentInput" class="d-none">
           </label>
+          <button type="button" id="createSessionBtn" class="btn btn-outline-primary rounded-circle flex-shrink-0 d-none" style="width:40px;height:40px;padding:0;" title="Create a session" aria-label="Create a session"><i class="bi bi-calendar-plus"></i></button>
           <input type="text" id="messageInput" maxlength="2000" class="form-control rounded-pill" placeholder="Type a message...">
           <button type="submit" class="btn btn-primary rounded-pill px-4">Send</button>
         </form>
@@ -90,6 +93,15 @@
   </x-slot:footer>
 </x-modal>
 
+<x-modal id="sessionDetailsModal" title="Session details" dialogClass="modal-dialog-centered modal-dialog-scrollable"><div id="sessionChatPanel"></div></x-modal>
+<x-modal id="rateTeacherModal" title="Rate your teacher">
+  <p>How was learning with <strong id="ratingTeacherName"></strong>?</p>
+  <p class="small text-muted">Rate the teaching in this session. Your stars contribute to their public average. One rating per completed session.</p>
+  <form id="rateTeacherForm"><input type="hidden" id="ratingConversationId"><div class="d-flex flex-wrap gap-3">@for($star=1;$star<=5;$star++)<label class="form-check-label"><input type="radio" class="form-check-input me-1" name="stars" value="{{ $star }}" required> {{ $star }} <i class="bi bi-star-fill text-warning" aria-hidden="true"></i></label>@endfor</div><p id="ratingError" class="small text-danger mt-2" role="alert"></p></form>
+  <x-slot:footer><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Later</button><button type="submit" form="rateTeacherForm" class="btn btn-primary" id="submitRatingBtn">Submit rating</button></x-slot:footer>
+</x-modal>
+<x-modal id="createSessionModal" title="Create a session" dialogClass="modal-dialog-centered modal-dialog-scrollable"><div id="sessionProposalModalBody"></div></x-modal>
+
 <x-modal id="newChatModal" title="Start a Conversation">
   <!-- NEW: Search Input -->
   <div class="mb-3 px-1">
@@ -127,42 +139,29 @@
       <label for="groupNameInput">Group Name</label>
     </div>
     
-    <!-- Search Input -->
-    <div class="mb-2">
-      <div class="input-group input-group-sm">
-        <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search"></i></span>
-        <input type="text" id="newGroupSearchInput" class="form-control border-start-0 ps-0" placeholder="Search members...">
+    <label class="form-label" for="newGroupSearchInput">Find members by email or username</label>
+    <input type="search" id="newGroupSearchInput" class="form-control mb-2" autocomplete="off" maxlength="254" placeholder="Full email address or username" aria-describedby="groupSearchHelp">
+    <p class="small text-muted" id="groupSearchHelp">Enter a full email address or at least 3 username characters. Select at least 2 people.</p>
+    <p id="groupSearchStatus" class="small text-muted" role="status" aria-live="polite">Search to find someone to add.</p>
+    <div id="groupMembersList" class="d-flex flex-column gap-2 mb-3" style="max-height:200px;overflow-y:auto" aria-label="Member search results"></div>
+    <h3 class="h6">Selected members (<span id="groupSelectedCount">0</span>)</h3>
+    <div id="groupSelectedMembers" class="d-flex flex-column gap-2" aria-label="Selected members"></div>
+    <template id="groupMemberResultTemplate">
+      <button type="button" class="btn btn-outline-secondary text-start d-flex justify-content-between align-items-center gap-2">
+        <span class="min-w-0 text-break"><strong class="member-name d-block"></strong><small class="member-username d-block"></small></span>
+        <span class="member-action">Add</span>
+      </button>
+    </template>
+    <template id="groupSelectedMemberTemplate">
+      <div class="border rounded p-2 d-flex justify-content-between align-items-center gap-2">
+        <span class="min-w-0 text-break"><strong class="member-name d-block"></strong><small class="member-username d-block text-muted"></small></span>
+        <button type="button" class="btn btn-sm btn-outline-danger">Remove</button>
       </div>
-    </div>
-
-    <p class="text-muted small mb-2">Select members (at least 2):</p>
-    <div id="groupMembersList" class="d-flex flex-column gap-1" style="max-height: 250px; overflow-y: auto;">
-      
-      @foreach($users as $user)
-      <div class="form-check d-flex align-items-center gap-2 p-2 rounded hover-bg-light group-member-item" data-name="{{ $user->first_name }} {{ $user->last_name }}">
-        <input class="form-check-input group-member-checkbox m-0" type="checkbox" value="{{ $user->id }}" id="member{{ $user->id }}">
-        <label class="form-check-label d-flex align-items-center gap-3 w-100 m-0" style="cursor: pointer;" for="member{{ $user->id }}">
-          
-          @if($user->profile_picture)
-            <img src="{{ asset('storage/' . $user->profile_picture) }}" 
-              alt="{{ $user->first_name }}" 
-              class="rounded-circle shadow-sm flex-shrink-0" style="width: 30px; height: 30px; object-fit: cover;">
-          @else
-            <div class="rounded-circle d-flex align-items-center justify-content-center bg-secondary text-white fw-bold shadow-sm flex-shrink-0" style="width: 30px; height: 30px; font-size: 0.8rem;">
-              {{ strtoupper(substr($user->first_name, 0, 1)) }}{{ strtoupper(substr($user->last_name, 0, 1)) }}
-            </div>
-          @endif
-          
-          <span class="fw-medium">{{ $user->first_name }} {{ $user->last_name }}</span>
-        </label>
-      </div>
-      @endforeach
-
-    </div>
+    </template>
   </form>
   <x-slot:footer>
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-    <button type="button" class="btn btn-primary" id="createGroupBtn">Create Group</button>
+    <button type="button" class="btn btn-primary" id="createGroupBtn" disabled>Create Group</button>
   </x-slot:footer>
 </x-modal>
 

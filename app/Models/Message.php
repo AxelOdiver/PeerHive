@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Storage;
 
 class Message extends Model
 {
+    protected $casts = ['session_event' => 'array'];
     protected $fillable = ['client_message_id', 'request_hash', 'conversation_id', 'sender_id', 'reply_to_id', 'body', 'attachment_path', 'attachment_name', 'attachment_type', 'edited_at', 'is_unsent'];
 
     public function deletedForUsers()

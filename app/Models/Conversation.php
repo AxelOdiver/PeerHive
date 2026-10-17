@@ -6,9 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class Conversation extends Model
 {
-    protected $fillable = ['is_group', 'name', 'created_by'];
+    protected $fillable = ['is_group', 'name', 'created_by', 'swap_id', 'session_context', 'study_session_id'];
 
-    protected $casts = ['is_group' => 'boolean'];
+    protected $casts = ['is_group' => 'boolean', 'session_context' => 'array'];
+    public function studySession() { return $this->belongsTo(StudySession::class); }
+
+    public function isSessionFinished(): bool
+    {
+        return ($this->session_context['state'] ?? null) === 'completed';
+    }
 
     public function users()
     {

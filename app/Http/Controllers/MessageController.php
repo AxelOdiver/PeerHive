@@ -20,6 +20,32 @@ class MessageController extends Controller
         return view('messages', compact('users'));
     }
 
+    public function searchMembers(Request $request)
+    {
+        $validated = $request->validate(['q' => ['nullable', 'string', 'max:254']]);
+        $term = strtolower(trim($validated['q'] ?? ''));
+        if (strlen($term) < 3) {
+            return response()->json(['users' => []]);
+        }
+        // Exact email lookup avoids exposing email addresses through broad searches.
+        $users = User::query()->where('id', '!=', auth()->id())
+            ->where(function ($query) use ($term) {
+                if (str_contains($term, '@')) {
+                    $query->whereRaw('LOWER(email) = ?', [$term]);
+                } elseif (preg_match('/^[a-z0-9_]+$/', $term)) {
+                    // Escape wildcard characters using an explicit portable escape character.
+                    $prefix = str_replace(['!', '_', '%'], ['!!', '!_', '!%'], $term).'%';
+                    $query->whereRaw("LOWER(username) LIKE ? ESCAPE '!'", [$prefix]);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            })->orderBy('username')->orderBy('id')->limit(10)->get(['id', 'username', 'first_name', 'last_name']);
+
+        return response()->json(['users' => $users->map(fn ($user) => [
+            'id' => $user->id, 'name' => trim($user->first_name.' '.$user->last_name), 'username' => $user->username,
+        ])]);
+    }
+
     public function conversations()
     {
         $userId = auth()->id();
@@ -39,7 +65,7 @@ class MessageController extends Controller
                 $otherUsers = $conv->users->where('id', '!=', $userId)->values();
                 $firstOther = $otherUsers->first();
 
-                $name = $conv->is_group
+                $name = ($conv->is_group || $conv->session_context)
                     ? ($conv->name ?: $otherUsers->pluck('first_name')->implode(', '))
                     : trim(($firstOther->first_name ?? '') . ' ' . ($firstOther->last_name ?? ''));
 
@@ -119,7 +145,7 @@ class MessageController extends Controller
             return response()->json(['message' => 'You cannot message yourself.'], 422);
         }
 
-        $existing = Conversation::where('is_group', false)
+        $existing = Conversation::where('is_group', false)->whereNull('session_context')
             ->whereHas('users', fn ($q) => $q->where('users.id', $authId))
             ->whereHas('users', fn ($q) => $q->where('users.id', $otherId))
             ->get()
@@ -180,6 +206,7 @@ class MessageController extends Controller
 
         return response()->json([
             'is_group' => $conversation->is_group,
+            'session_finished' => $conversation->isSessionFinished(),
             'has_more' => $hasMore,
             'has_newer' => $hasNewer,
             'total_results' => $totalResults,
@@ -192,6 +219,7 @@ class MessageController extends Controller
                 'id' => $m->id,
                 'client_message_id' => $m->sender_id === $authId ? $m->client_message_id : null,
                 'body' => $m->is_unsent ? null : $m->body,
+                'session_event' => $m->session_event ? array_merge($m->session_event, ['current' => ($m->session_event['context']['revision'] ?? -1) === ($conversation->session_context['revision'] ?? -2)]) : null,
                 'attachment_url' => (!$m->is_unsent && $m->attachment_path) ? Storage::url($m->attachment_path) : null,
                 'attachment_name' => $m->is_unsent ? null : $m->attachment_name,
                 'attachment_type' => $m->is_unsent ? null : $m->attachment_type,
@@ -234,7 +262,8 @@ class MessageController extends Controller
         ]));
         $message = DB::transaction(function () use ($conversation, $authId, $validated, $file, $fingerprint) {
             User::whereKey($authId)->lockForUpdate()->firstOrFail();
-            Conversation::whereKey($conversation->id)->lockForUpdate()->firstOrFail();
+            $lockedConversation = Conversation::whereKey($conversation->id)->lockForUpdate()->firstOrFail();
+            abort_if($lockedConversation->isSessionFinished(), 409, 'This session has finished. Its conversation is read-only.');
             $key = $validated['client_message_id'] ?? null;
             if ($key) {
                 $existing = Message::where('sender_id', $authId)->where('client_message_id', $key)->first();
@@ -284,6 +313,8 @@ class MessageController extends Controller
 
     public function editMessage(Request $request, Message $message)
     {
+        abort_if($message->session_event, 422, 'Session records cannot be edited.');
+        abort_if($message->conversation->isSessionFinished(), 409, 'This session has finished. Its conversation is read-only.');
         abort_unless($message->sender_id === auth()->id(), 403);
         abort_unless($message->conversation->users()->where('users.id', auth()->id())->exists(), 403);
         abort_if($message->is_unsent, 422, 'Cannot edit an unsent message.');
@@ -309,6 +340,8 @@ class MessageController extends Controller
 
     public function deleteMessage(Message $message)
     {
+        abort_if($message->session_event, 422, 'Session records cannot be unsent.');
+        abort_if($message->conversation->isSessionFinished(), 409, 'This session has finished. Its conversation is read-only.');
         abort_unless($message->sender_id === auth()->id(), 403);
         abort_unless($message->conversation->users()->where('users.id', auth()->id())->exists(), 403);
 
@@ -381,7 +414,7 @@ class MessageController extends Controller
             $otherUsers = $conv->users->where('id', '!=', $userId)->values();
             $firstOther = $otherUsers->first();
             
-            $name = $conv->is_group 
+            $name = ($conv->is_group || $conv->session_context)
                 ? ($conv->name ?: 'Group') 
                 : trim(($firstOther->first_name ?? '') . ' ' . ($firstOther->last_name ?? ''));
             
@@ -395,15 +428,70 @@ class MessageController extends Controller
             ];
         })->values();
 
+        foreach ($unreadConversations as $conversation) {
+            $last = $conversation->messages()->visibleTo($userId)->latest('id')->first();
+            if ($last && !$last->session_event) \App\Support\BellNotifications::record($userId, 'message:'.$last->id, 'message', 'New message', 'You received a new message. Open the conversation to read it.', route('messages', ['conversation' => $conversation->id]));
+        }
+        $pastSwaps = \App\Models\Swap::where(fn ($q) => $q->where('requested_user_id', $userId)->where('status', 'pending'))
+            ->orWhere(fn ($q) => $q->where('requester_id', $userId)->whereIn('status', ['accepted', 'declined']))->get();
+        foreach ($pastSwaps as $swap) {
+            $incoming = $swap->status === 'pending';
+            \App\Support\BellNotifications::record($userId, 'swap:'.$swap->id.($incoming ? ':request:' : ':response:').($incoming ? $swap->updated_at->timestamp : \Carbon\Carbon::parse($swap->responded_at ?? $swap->updated_at)->timestamp), 'swap', $incoming ? 'New learn/swap request' : 'Request '.$swap->status, $incoming ? 'You received a learn/swap request.' : 'Your learn/swap request was '.$swap->status.'.', route('swap', ['tab' => $incoming ? 'received' : 'sent']).'#swap-'.$swap->id);
+        }
+        // Keep response history consistent with responses already viewed on Swap.
+        foreach ($pastSwaps->whereNotNull('response_read_at') as $swap) {
+            if ($swap->requester_id !== $userId) continue;
+            \App\Support\BellNotifications::query($userId)->where('kind', 'swap')
+                ->where('event_key', 'like', 'swap:'.$swap->id.':response:%')->whereNull('read_at')->update(['read_at' => $swap->response_read_at]);
+        }
+        foreach (\App\Models\StudySession::visibleTo(auth()->user())->where('status', '!=', 'cancelled')->where('starts_at', '<=', now())->whereHas('participants', fn ($q) => $q->where('user_id', $userId))->get() as $session) {
+            \App\Support\BellNotifications::record($userId, 'session:'.$session->id.':started', 'session', $session->title, 'Your study session started. Open it to view the details.', route('study-sessions.show', $session));
+        }
+        $history = \App\Support\BellNotifications::query($userId);
+
+        $swapNotifications = \App\Models\Swap::with(['requester', 'requestedUser'])
+            ->where(fn ($q) => $q->where(fn ($incoming) => $incoming->where('requested_user_id', $userId)->where('status', 'pending'))
+                ->orWhere(fn ($outgoing) => $outgoing->where('requester_id', $userId)->whereIn('status', ['accepted', 'declined'])->whereNull('response_read_at')))
+            ->latest('updated_at')->get()->map(function ($swap) use ($userId) {
+                $incoming = $swap->requested_user_id === $userId && $swap->status === 'pending';
+                $peer = $incoming ? $swap->requester : $swap->requestedUser;
+                return [
+                    'name' => trim($peer->first_name.' '.$peer->last_name),
+                    'text' => $incoming ? 'Sent you a learn/swap request.' : 'Your learn/swap request was '.$swap->status.'.',
+                    'time' => $swap->updated_at->diffForHumans(),
+                    'url' => route('swap', ['tab' => $incoming ? 'received' : 'sent']).'#swap-'.$swap->id,
+                ];
+            });
+
+        $sessionNotifications = \App\Models\StudySession::visibleTo(auth()->user())
+            ->where('status', 'scheduled')->where('starts_at', '<=', now())
+            ->whereHas('participants', fn ($q) => $q->where('user_id', $userId)->whereNull('session_start_read_at'))
+            ->orderByDesc('starts_at')->get(['id', 'title', 'starts_at', 'ends_at'])
+            ->map(fn ($session) => [
+                'name' => $session->title,
+                'text' => $session->ends_at->isFuture() ? 'Your study session has started. Open it to view meeting details.' : 'Your study session started. Open it to review the session.',
+                'time' => $session->starts_at->diffForHumans(),
+                'url' => route('study-sessions.show', $session),
+            ]);
+
         return response()->json([
             'count' => $count,
-            'notifications' => $notifications
+            'notifications' => $notifications,
+            'session_notifications' => $sessionNotifications,
+            'swap_notifications' => $swapNotifications,
+            'history' => (clone $history)->orderByDesc('id')->get()->map(fn ($item) => [
+                'id' => $item->id, 'name' => $item->title, 'text' => $item->body, 'url' => $item->url,
+                'read' => $item->read_at !== null, 'time' => \Carbon\Carbon::parse($item->created_at)->diffForHumans(),
+            ]),
+            'history_unread_count' => (clone $history)->whereNull('read_at')->count(),
+            'swap_unread_count' => (clone $history)->where('kind', 'swap')->whereNull('read_at')->count(),
         ]);
     }
 
 
     public function react(Request $request, Message $message)
     {
+        abort_if($message->conversation->isSessionFinished(), 409, 'This session has finished. Its conversation is read-only.');
         abort_unless($message->conversation->users()->where('users.id', auth()->id())->exists(), 403);
         $validated = $request->validate([
             'emoji' => ['required', Rule::in(['👍', '❤️', '😂', '🎉', '😮', '😢'])],
