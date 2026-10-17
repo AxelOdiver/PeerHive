@@ -173,3 +173,7 @@ $(document).ready(function() {
   });
 
 });
+if (window.location.hash === '#bookings') {
+  const tab = document.getElementById('bookingsTab');
+  if (tab) window.bootstrap.Tab.getOrCreateInstance(tab).show();
+}

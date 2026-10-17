@@ -70,6 +70,8 @@
 @endpush
 
 @section('content')
+<ul class="nav nav-pills gap-2 mb-4" role="tablist"><li class="nav-item" role="presentation"><button class="nav-link active" id="availabilityTab" data-bs-toggle="pill" data-bs-target="#availabilityPanel" type="button" role="tab" aria-controls="availabilityPanel" aria-selected="true">My Availability</button></li><li class="nav-item" role="presentation"><button class="nav-link" id="bookingsTab" data-bs-toggle="pill" data-bs-target="#bookingsPanel" type="button" role="tab" aria-controls="bookingsPanel" aria-selected="false">Upcoming Sessions</button></li></ul>
+<div class="tab-content"><div class="tab-pane fade" id="bookingsPanel" role="tabpanel" aria-labelledby="bookingsTab"><x-session-bookings :bookings="$bookings" :confirmations="$confirmations" /></div><div class="tab-pane fade show active" id="availabilityPanel" role="tabpanel" aria-labelledby="availabilityTab">
 <h2 class="mb-3 fw-bold">Schedule</h2>
 <!-- Week Availability  -->
 <div class="card shadow-sm">
@@ -118,4 +120,5 @@
     <button type="submit" class="btn btn-primary" form="availabilityForm">Save availability</button>
   </x-slot:footer>
 </x-modal>
+</div></div>
 @endsection

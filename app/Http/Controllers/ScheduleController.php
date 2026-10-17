@@ -8,6 +8,13 @@ use Illuminate\Support\Facades\Auth;
 
 class ScheduleController extends Controller
 {
+    public function index()
+    {
+        $bookings = \App\Models\StudyParticipant::where('user_id', auth()->id())->with('session')->whereHas('session', fn ($q) => $q->where('status', 'scheduled'))->get()->sortBy('session.starts_at');
+        $confirmations = \App\Models\StudyParticipant::where('user_id', auth()->id())->whereNotNull('attended_at')->whereNull('confirmed_at')->with('session')->whereHas('session', fn ($q) => $q->where('status', 'completed')->where('host_id', '!=', auth()->id()))->get();
+        return view('schedule', compact('bookings', 'confirmations'));
+    }
+
     // Fetch the logged-in user's schedule
     public function getSchedule()
     {
