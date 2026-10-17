@@ -1,7 +1,7 @@
 @extends('layouts.auth')
 
 @section('title', 'Create account')
-@section('body-class', 'login-page bg-body-tertiary')
+@section('body-class', 'login-page registration-page bg-body-tertiary')
 
 @section('content')
   <div class="login-box">
@@ -45,6 +45,12 @@
             <div class="invalid-feedback" data-error-for="last_name"></div>
           </div>
 
+          <div class="mb-3">
+            <label for="register-username" class="form-label">Username <span class="text-muted small">(optional)</span></label>
+            <input id="register-username" name="username" class="form-control" autocomplete="username" minlength="3" maxlength="30" pattern="[A-Za-z0-9_]+" aria-describedby="register-username-help">
+            <div class="invalid-feedback" data-error-for="username"></div>
+            <div class="form-text" id="register-username-help">3–30 letters, numbers or underscores. Others can use this to find you.</div>
+          </div>
           <label for="register-email" class="form-label">Email</label>
           <div class="input-group mb-3">
             <input
@@ -88,6 +94,11 @@
             <div class="invalid-feedback" data-error-for="password_confirmation"></div>
           </div>
           
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="accept_policies" id="accept_policies" value="1" required>
+            <label class="form-check-label small" for="accept_policies">I agree to the <a href="{{ route('terms') }}" id="reviewTermsLink" class="text-primary text-decoration-underline">Terms and Conditions</a> and acknowledge the <a href="{{ route('privacy') }}" id="reviewPrivacyLink" class="text-primary text-decoration-underline">Privacy Policy</a>.</label>
+            <div class="invalid-feedback" data-error-for="accept_policies"></div>
+          </div>
         </form>
 
         <div class="social-auth-links text-center mt-3 mb-3">
@@ -97,6 +108,28 @@
           </button>
         </div>
         <p class="text-center small mt-3 mb-0">Already have an account? <a href="{{ route('login') }}">Log in</a></p>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="policyAcceptanceModal" tabindex="-1" aria-labelledby="policyAcceptanceTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title fs-5" id="policyAcceptanceTitle">Review Terms and Privacy Policy</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close without accepting"></button>
+        </div>
+        <div class="modal-body">
+          <p id="policyScrollHint" class="small text-muted" role="status" aria-live="polite">Scroll to the end to enable Accept.</p>
+          <div id="policyScrollContent" class="border rounded p-3" style="max-height:50vh;overflow-y:auto;overscroll-behavior:contain" tabindex="0" role="region" aria-label="Terms and Privacy Policy text" aria-describedby="policyScrollHint">
+            @include('legal.partials.terms')
+            <hr class="my-4">
+            @include('legal.partials.privacy')
+            <p class="small fw-semibold mb-0">End of Terms and Privacy Policy.</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="acceptPoliciesBtn" disabled>Accept</button>
+        </div>
       </div>
     </div>
   </div>

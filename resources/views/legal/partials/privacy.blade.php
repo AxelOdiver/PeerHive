@@ -1,0 +1,17 @@
+    <h1 class="h2">Privacy Policy</h1>
+    <p class="text-muted">Version {{ config('policies.privacy_version') }}</p>
+    <h2 class="h5 mt-4">Information stored</h2>
+    <p>PeerHive stores account details such as your name, email, hashed password, and profile picture; optional usernames, descriptions, course, expertise labels, school and city/campus; and activity such as availability, swaps, communities, posts, comments, messages, attachments, reactions, reports, and qualification submissions. Login security features also use verification codes, trusted-device records, session data, and activity timestamps. Registration stores the time and policy versions you accepted. Usernames are visible to members and searchable; group creation also supports lookup by a full email address.</p>
+    <h2 class="h5 mt-4">How information is used</h2>
+    <p>Study-session bookings, host attendance records, participant confirmations, weekly goals, timezones, points entries, and unlocked cosmetic rewards are stored to provide schedules, personal progress, and rewards. Meeting details are shown to booked participants and the host. Progress totals and points history are available to the account owner. Any profile frame you apply is visible on your profile.</p>
+    <p>This information supports account access, peer discovery, learning exchanges, communication, qualification review, moderation, and troubleshooting. Login and password-recovery emails are sent to the address you provide through the service's configured email provider.</p>
+    <h2 class="h5 mt-4">What other members can see</h2>
+    <p>Your name, email, picture, description, and other existing profile activity may be visible to signed-in members. Course, expertise, school, and city/campus are optional and hidden from other members until you enable their individual profile visibility switches. You can change those switches in Profile. They do not hide information you include in messages, posts, comments, images, or documents.</p>
+    <h2 class="h5 mt-4">Messages, files and community content</h2>
+    <p>Conversation participants can see messages and shared files. Administrators review qualification documents and community reports. Some uploaded files are currently served through shareable storage URLs; do not upload sensitive personal records or assume a file URL is access-restricted. Profile switches control the new profile fields, not uploads or content already copied by another person.</p>
+    <h2 class="h5 mt-4">Cookies and service providers</h2>
+    <p>PeerHive uses session and security cookies for sign-in and request protection. Choosing to trust a device stores a device cookie. Hosting, email, and externally loaded assets may involve service providers. Their handling depends on the deployment configured by the project administrator.</p>
+    <h2 class="h5 mt-4">Updating information and retention</h2>
+    <p>You can edit your profile and change visibility settings. Contact the PeerHive project administrator about account deletion, access, correction, or other privacy questions. Records may remain until removed by the relevant account or content-management process; backups and security records depend on the administrator's deployment and retention arrangements.</p>
+    <h2 class="h5 mt-4">Policy changes</h2>
+    <p>Updates are published here with a new version. Existing accounts are not recorded as accepting a new version automatically. See the <a href="{{ route('terms') }}">Terms and Conditions</a> for participation rules.</p>

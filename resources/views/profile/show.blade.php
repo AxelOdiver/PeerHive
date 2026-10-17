@@ -17,10 +17,10 @@
                 @if($profileUser->profile_picture_url)
                     <img src="{{ $profileUser->profile_picture_url }}"
                          alt="{{ $profileUser->first_name }}"
-                         class="rounded-circle object-fit-cover"
+                         class="rounded-circle object-fit-cover {{ $profileUser->profile_frame_class }}"
                          width="100" height="100">
                 @else
-                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold bg-primary text-white"
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold bg-primary text-white {{ $profileUser->profile_frame_class }}"
                          style="width:100px;height:100px;font-size:2rem;">
                         {{ strtoupper(substr($profileUser->first_name, 0, 1)) }}{{ strtoupper(substr($profileUser->last_name, 0, 1)) }}
                     </div>
@@ -29,10 +29,34 @@
 
             <h4 class="fw-bold mb-0">{{ $profileUser->first_name }} {{ $profileUser->middle_name }} {{ $profileUser->last_name }}</h4>
             <p class="text-muted small mb-3">{{ $profileUser->email }}</p>
+            @if($profileUser->username)
+                <p class="text-muted small">{{ '@'.$profileUser->username }}</p>
+            @endif
+            <x-teaching-badges :user="$profileUser" />
+            @if(count($learningBadges))<div class="my-3"><p class="small text-muted mb-1">Participation achievements</p><div class="d-flex gap-1 flex-wrap justify-content-center">@foreach($learningBadges as $badge)<span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-trophy me-1" aria-hidden="true"></i>{{ $badge }}</span>@endforeach</div></div>@endif
 
             @if($profileUser->description)
                 <p class="text-muted small fst-italic mb-3">{{ $profileUser->description }}</p>
             @endif
+
+            @php
+                $isOwnProfile = auth()->id() === $profileUser->id;
+            @endphp
+            <div class="mb-3">
+                @foreach(['course' => 'Course', 'school' => 'School', 'school_location' => 'City / campus'] as $field => $label)
+                    @if(($isOwnProfile || $profileUser->{'show_'.$field}) && $profileUser->{$field})
+                        <p class="small mb-1"><strong>{{ $label }}:</strong> {{ $profileUser->{$field} }}</p>
+                    @endif
+                @endforeach
+                @if(($isOwnProfile || $profileUser->show_expertise) && count($profileUser->expertise ?? []))
+                    <p class="small text-muted mt-2 mb-1">Self-described expertise</p>
+                    <div class="d-flex flex-wrap justify-content-center gap-1">
+                        @foreach($profileUser->expertise as $label)
+                            <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis">{{ $label }}</span>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
 
             {{-- Stats Row --}}
             <div class="d-flex justify-content-center gap-4 mb-4">
@@ -63,7 +87,7 @@
                 <button type="button"
                     class="btn btn-swap rounded-3 text-uppercase fw-bold open-swap-modal"
                     data-id="{{ $profileUser->id }}">
-                    <i class="bi bi-arrow-left-right me-1"></i> Swap
+                    <i class="bi bi-arrow-left-right me-1"></i> Learn / Swap
                 </button>
 
                 <button type="button"
@@ -122,18 +146,6 @@
 </div>
 
 {{-- Swap Modal --}}
-<x-modal id="swapModal" title="Swap Request">
-    <form id="swapRequestForm">
-        <input type="hidden" id="swapUserId" name="user_id" value="">
-        <div class="form-floating">
-            <textarea class="form-control" placeholder="Write a message" id="swapRequestMessage" name="message" style="height:100px"></textarea>
-            <label for="swapRequestMessage">Write a message</label>
-        </div>
-    </form>
-    <x-slot:footer>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="submit" class="btn btn-primary" id="sendSwapRequestBtn" form="swapRequestForm">Send Request</button>
-    </x-slot:footer>
-</x-modal>
+<x-learning-request-modal />
 
 @endsection

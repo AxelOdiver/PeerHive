@@ -12,10 +12,10 @@
         <div class="position-relative d-inline-block my-2" style="width: 150px; height: 150px;" id="profileAvatarContainer"> 
         
           <!-- The Profile Picture or the Default Placeholder Image -->
-          <img src="{{ auth()->user()->profile_picture ? asset('storage/' . auth()->user()->profile_picture) : asset('images/profile-placeholder.jpeg') }}" 
+          <img src="{{ auth()->user()->profile_picture_url ?? asset('images/profile-placeholder.jpeg') }}"
             alt="Profile" 
             id="profileImage" 
-            class="rounded-circle shadow-sm w-100 h-100" 
+            class="rounded-circle shadow-sm w-100 h-100 {{ auth()->user()->profile_frame_class }}"
             style="object-fit: cover;">
     
           <!-- Remove Picture Button -->
@@ -84,6 +84,32 @@
             <div class="invalid-feedback" data-error-for="email"></div>
           </div>
           
+          <div class="mb-3">
+            <label for="username" class="form-label">Username (optional)</label>
+            <input id="username" name="username" class="form-control" minlength="3" maxlength="30" pattern="[A-Za-z0-9_]+" value="{{ auth()->user()->username }}" aria-describedby="username-help">
+            <div class="invalid-feedback" data-error-for="username"></div>
+            <div class="form-text" id="username-help">3–30 letters, numbers or underscores. Your username is searchable by other members.</div>
+          </div>
+          <fieldset class="border rounded p-3 mb-3">
+            <legend class="float-none w-auto px-2 fs-6">Course, expertise and school</legend>
+            <p class="small text-muted">Optional. Visible fields are shared with other signed-in members. Keep city/campus general; do not enter a home address.</p>
+            @foreach(['course' => ['Course', 120, 'e.g. BS Computer Science'], 'expertise' => ['Expertise labels', 418, 'e.g. Python, Graphic Design'], 'school' => ['School', 160, 'School or university name'], 'school_location' => ['School location', 160, 'City or campus']] as $field => [$label, $limit, $placeholder])
+              <div class="mb-3">
+                <label for="{{ $field }}" class="form-label">{{ $label }}</label>
+                <input id="{{ $field }}" name="{{ $field }}" class="form-control" maxlength="{{ $limit }}" placeholder="{{ $placeholder }}" value="{{ $field === 'expertise' ? implode(', ', auth()->user()->expertise ?? []) : auth()->user()->{$field} }}">
+                <div class="invalid-feedback" data-error-for="{{ $field }}"></div>
+                @if($field === 'expertise')
+                  <div class="form-text">Separate up to 10 labels with commas, 40 characters each. These are self-described skills, not approved qualifications.</div>
+                @endif
+                <div class="form-check form-switch mt-2">
+                  <input type="hidden" name="show_{{ $field }}" value="0">
+                  <input type="checkbox" class="form-check-input" id="show_{{ $field }}" name="show_{{ $field }}" value="1" @checked(auth()->user()->{'show_'.$field})>
+                  <label class="form-check-label small" for="show_{{ $field }}">Show {{ strtolower($label) }} to members</label>
+                </div>
+              </div>
+            @endforeach
+          </fieldset>
+
           <div class="mb-3">
             <label for="password" class="form-label">New Password</label>
             <input
@@ -157,10 +183,17 @@
 </div>
 
 <!-- Qualification Request Form -->
+<section id="teaching-verification" class="mt-4" aria-labelledby="teachingVerificationHeading">
+  <h3 class="h5 fw-bold" id="teachingVerificationHeading">Teaching Verification</h3>
+  <p class="text-muted small">Submit proof for the subject you want to teach. An administrator reviews your application. An approved qualification displays a subject-specific teaching badge. Expertise labels alone do not provide verification. You can request learning help without teaching verification; approval is required for any subject you offer in a skill swap.</p>
+  <x-teaching-badges :user="auth()->user()" />
 @php
 $latestQualification = \App\Models\UserSubjectQualification::where('user_id', auth()->id())->latest()->first();
 $attempts = \App\Models\UserSubjectQualification::where('user_id', auth()->id())->count();
 @endphp
+@if(!$latestQualification)
+  <p class="small text-muted">Status: Not submitted</p>
+@endif
 
 @if($latestQualification && ($latestQualification->status === 'pending' || $latestQualification->status === 'approved' || $attempts >= 3))
 <div class="card flex fill mt-4 p-4 text-center">
@@ -193,7 +226,7 @@ $attempts = \App\Models\UserSubjectQualification::where('user_id', auth()->id())
 <form id="qualificationForm" action="{{ route('qualifications.store') }}" method="POST" enctype="multipart/form-data">
   @csrf
   <div class="card flex fill mt-4 p-4">
-    <h5 class="mb-4"><i class="bi bi-file-earmark-check me-2"></i> Submit Teaching Qualification</h5>
+    <h5 class="mb-4"><i class="bi bi-file-earmark-check me-2"></i> Apply for Teaching Verification</h5>
     
     @if($latestQualification && $latestQualification->status === 'rejected')
     <div class="alert alert-danger rounded-3 mb-4 border-0">
@@ -231,6 +264,8 @@ $attempts = \App\Models\UserSubjectQualification::where('user_id', auth()->id())
   </div>
 </form>
 @endif
+
+</section>
 
 <!-- Form Submit Button -->
 <div class="mt-3">

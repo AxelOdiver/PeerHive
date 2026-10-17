@@ -13,11 +13,22 @@ $(document).ready(function() {
         const fullName = getFullName(user) || 'User';
         const imageUrl = user.profile_picture_url ?? placeholderImage;
         
-        $('#profileImage').attr('src', imageUrl);
+        $('#profileImage').off('error.profileImage').one('error.profileImage', function () {
+            $(this).attr('src', placeholderImage);
+        }).attr('src', imageUrl);
         $('[name="first_name"]').val(user.first_name ?? '');
         $('[name="middle_name"]').val(user.middle_name ?? '');
         $('[name="last_name"]').val(user.last_name ?? '');
         $('[name="email"]').val(user.email ?? '');
+        $('[name="username"]').val(user.username ?? '');
+        for (const field of ['course', 'school', 'school_location']) {
+            $(`[name="${field}"]`).val(user[field] ?? '');
+        }
+        $('[name="learning_interests"]').val((user.learning_interests ?? []).join(', '));
+        $('[name="expertise"]').val((user.expertise ?? []).join(', '));
+        for (const field of ['course', 'expertise', 'school', 'school_location']) {
+            $(`#show_${field}`).prop('checked', Boolean(user[`show_${field}`]));
+        }
         
         $('#descriptionText').text(user.description ? user.description : 'No description yet.');
         $('[name="description"]').val(user.description ?? '');
@@ -72,6 +83,9 @@ $(document).ready(function() {
         const formData = new FormData(this); // captures all form fields
         formData.append('_method', 'PUT');
         formData.append('description', $('[name="description"]').val());
+        for (const field of ['course', 'expertise', 'school', 'school_location']) {
+            formData.set(`show_${field}`, $(`#show_${field}`).prop('checked') ? '1' : '0');
+        }
         
         // Manually append the file since it's outside the form
         const file = $('#profilePictureUpload')[0].files[0];
@@ -108,6 +122,10 @@ $(document).ready(function() {
             error: function(xhr) {
                 if (xhr.status === 422) {
                     const errors = xhr.responseJSON?.errors || {};
+                    const interestError = Object.keys(errors).find(key => key.startsWith('learning_interests.'));
+                    if (interestError) errors.learning_interests = errors[interestError];
+                    const labelError = Object.keys(errors).find(key => key.startsWith('expertise.'));
+                    if (labelError) errors.expertise = errors[labelError];
                     showFormErrors($form, errors);
                     return;
                 }

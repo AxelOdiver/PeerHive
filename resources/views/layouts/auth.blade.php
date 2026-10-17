@@ -12,5 +12,19 @@
 
   <body class="@yield('body-class')" data-page="{{ Route::currentRouteName() }}">
     @yield('content')
+    @unless(request()->routeIs('register'))
+      <div class="text-center small py-3">
+        <a href="{{ route('terms') }}" @if(request()->routeIs('login')) data-bs-toggle="modal" data-bs-target="#loginTermsModal" @endif>Terms and Conditions</a>
+        <span class="mx-2">·</span>
+        <a href="{{ route('privacy') }}" @if(request()->routeIs('login')) data-bs-toggle="modal" data-bs-target="#loginPrivacyModal" @endif>Privacy Policy</a>
+      </div>
+    @endunless
+    @if(request()->routeIs('login'))
+      @foreach(['terms' => ['loginTermsModal', 'Terms and Conditions'], 'privacy' => ['loginPrivacyModal', 'Privacy Policy']] as $policy => [$modalId, $modalTitle])
+        <x-modal :id="$modalId" :title="$modalTitle" dialogClass="modal-dialog-centered modal-dialog-scrollable" size="lg">
+          @include('legal.partials.'.$policy)
+        </x-modal>
+      @endforeach
+    @endif
   </body>
 </html>

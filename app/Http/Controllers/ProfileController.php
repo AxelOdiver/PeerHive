@@ -19,14 +19,14 @@ class ProfileController extends Controller
     public function show()
     {
         return response()->json([
-            'user' => Auth::user(),
+            'user' => $this->editableProfile(Auth::user()),
         ]);
     }
 
     // Public profile page for viewing another user
     public function showUser(User $user)
     {
-        $user->load(['schedules', 'posts' => function ($q) {
+        $user->load(['approvedTeachingQualifications', 'schedules', 'posts' => function ($q) {
             $q->latest()->take(3);
         }]);
 
@@ -37,6 +37,7 @@ class ProfileController extends Controller
         $commentCount = $user->comments()->count();
         $hasLiked    = $currentUser->likes()->where('liked_user_id', $user->id)->exists();
         $hasFavorited = $currentUser->favorites()->where('item_id', $user->id)->exists();
+        $learningBadges = \App\Support\LearningHub::badges($user);
 
         return view('profile.show', compact(
             'user',          // keep as $user for route model binding
@@ -45,6 +46,7 @@ class ProfileController extends Controller
             'commentCount',
             'hasLiked',
             'hasFavorited',
+            'learningBadges',
         ) + ['profileUser' => $user]);
     }
 
@@ -54,14 +56,28 @@ class ProfileController extends Controller
 
         if ($request->hasFile('profile_picture')) {
             $path = $request->file('profile_picture')->store('profile_pictures', 'public');
+            if (!$path) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'profile_picture' => 'Your picture could not be saved. Please try again.',
+                ]);
+            }
             $user->profile_picture = $path;
         }
 
         $user->first_name  = $request->input('first_name');
+        if ($request->exists('username')) {
+            $user->username = $request->validated('username');
+        }
         $user->middle_name = $request->input('middle_name');
         $user->last_name   = $request->input('last_name');
         $user->email       = $request->input('email');
         $user->description = $request->input('description');
+
+        foreach (['learning_interests', 'course', 'expertise', 'school', 'school_location', 'show_course', 'show_expertise', 'show_school', 'show_school_location'] as $field) {
+            if ($request->exists($field)) {
+                $user->{$field} = $request->validated($field);
+            }
+        }
 
         if ($request->filled('password')) {
             $user->password = bcrypt($request->input('password'));
@@ -71,8 +87,16 @@ class ProfileController extends Controller
 
         return response()->json([
             'message' => 'Profile updated successfully',
-            'user'    => $user,
+            'user'    => $this->editableProfile($user),
         ]);
+    }
+
+    private function editableProfile(User $user): array
+    {
+        return array_merge($user->toArray(), collect([
+            'learning_interests', 'course', 'expertise', 'school', 'school_location',
+            'show_course', 'show_expertise', 'show_school', 'show_school_location',
+        ])->mapWithKeys(fn ($field) => [$field => $user->{$field}])->all());
     }
 
     public function removePicture()
