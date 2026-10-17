@@ -12,26 +12,21 @@ class DashboardController extends Controller
     {
         $currentUser = Auth::user();
 
-        $topstudents = User::where('id', '!=', $currentUser->id)
-            ->withCount(['likedBy', 'swaps'])
-            ->orderByDesc('liked_by_count')
-            ->take(3)
-            ->get();
-
-        $excludeIds = $topstudents->pluck('id');
-
-        $students = User::where('id', '!=', $currentUser->id)
-            ->whereNotIn('id', $excludeIds)
-            ->withCount(['likedBy', 'swaps'])
-            ->take(12)
-            ->get();
+        $students = \App\Support\PeerMatching::recommend($currentUser);
+        $topstudents = User::where('id', '!=', $currentUser->id)->with('approvedTeachingQualifications')
+            ->withCount(['likedBy', 'teachingRatings', 'swaps', 'comments'])->withAvg('teachingRatings', 'stars')
+            ->orderByDesc('liked_by_count')->orderBy('id')->limit(3)->get();
+        $communityPosts = \App\Models\Post::with(['user', 'community'])->whereHas('community', fn ($q) => $q->where('user_id', $currentUser->id)->orWhereHas('members', fn ($m) => $m->where('users.id', $currentUser->id)))->latest()->limit(5)->get();
 
         $favoritedIds = $currentUser->favorites->pluck('id')->toArray();
 
         // IDs the current user has liked
         $likedIds = $currentUser->likes->pluck('id')->toArray();
 
-        return view('dashboard', compact('topstudents', 'students', 'favoritedIds', 'likedIds'));
+        $completedSessions = \App\Models\StudyParticipant::where('user_id', $currentUser->id)->whereNotNull('confirmed_at')->whereHas('session', fn ($q) => $q->where('status', 'completed'))->count();
+        $learningPoints = (int) \Illuminate\Support\Facades\DB::table('point_entries')->where('user_id', $currentUser->id)->sum('points');
+        $nextSession = \App\Models\StudySession::whereHas('participants', fn ($q) => $q->where('user_id', $currentUser->id))->where('status', 'scheduled')->where('starts_at', '>', now())->orderBy('starts_at')->first();
+        return view('dashboard', compact('topstudents', 'communityPosts', 'students', 'favoritedIds', 'likedIds', 'completedSessions', 'learningPoints', 'nextSession'));
     }
 
     public function search(Request $request)
