@@ -3,6 +3,8 @@
 @section('title', 'Swap')
 
 @section('content')
+<h1 class="h3">Learning requests and skill swaps</h1>
+<p class="text-muted">Ask a verified tutor for learning help, or exchange subjects you are both approved to teach.</p>
 <div class="d-flex flex-column align-items-start gap-3 mb-4">
   <div class="swap-tab-toggle d-inline-flex rounded-0 shadow-sm p-0 overflow-hidden w-100">
     <input type="radio" class="btn-check" name="btnradio" id="btnradio1" autocomplete="off" checked>
@@ -32,7 +34,7 @@
     </h2>
     <div class="row" id="swapList">
       @foreach($sent as $swap)
-        <div class="col-md-6 mb-3 swap-card" data-swap-id="{{ $swap->id }}">
+        <div class="col-md-6 mb-3 swap-card" id="swap-{{ $swap->id }}" data-swap-id="{{ $swap->id }}" data-status="{{ $swap->status }}">
           <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
             @if($swap->status === 'accepted')
               <div class="position-absolute top-0 end-0 m-3 z-3">
@@ -57,6 +59,7 @@
                   <p class="text-muted mb-0 small">{{ $swap->requestedUser->email }}</p>
                 </div>
               </div>
+              <x-learning-request-details :swap="$swap" />
               @if($swap->message)
                 <p class="text-muted small mt-2 mb-0 fst-italic">"{{ $swap->message }}"</p>
               @endif
@@ -70,7 +73,7 @@
                       <button type="submit" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2 cancel-swap-btn">Unswap</button>
                     </form>
                   @elseif($swap->status === 'accepted')
-                    <a href="{{ route('messages') }}" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2">
+                    <a href="{{ route('messages', ['conversation' => $swap->conversation?->id]) }}" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2">
                       <i class="bi bi-chat-dots me-2"></i> Go to Messages
                     </a>
                   @endif
@@ -115,7 +118,7 @@
     </h2>
     <div class="row">
       @foreach($received as $swap)
-        <div class="col-md-6 mb-3 received-swap-card" data-swap-id="{{ $swap->id }}">
+        <div class="col-md-6 mb-3 received-swap-card" id="swap-{{ $swap->id }}" data-swap-id="{{ $swap->id }}" data-status="{{ $swap->status }}">
           <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
             @if($swap->status === 'accepted')
               <div class="position-absolute top-0 end-0 m-3 z-3">
@@ -140,6 +143,7 @@
                   <p class="text-muted mb-0 small">{{ $swap->requester->email }}</p>
                 </div>
               </div>
+              <x-learning-request-details :swap="$swap" />
               @if($swap->message)
                 <p class="text-muted small fst-italic mb-2">"{{ $swap->message }}"</p>
               @endif
@@ -162,7 +166,7 @@
                       </button>
                     </div>
                   @elseif($swap->status === 'accepted')
-                    <a href="{{ route('messages') }}" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2">
+                    <a href="{{ route('messages', ['conversation' => $swap->conversation?->id]) }}" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2">
                       <i class="bi bi-chat-dots me-2"></i> Go to Messages
                     </a>
                   @endif

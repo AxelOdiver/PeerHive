@@ -80,7 +80,7 @@ $(document).on('click', '.respond-swap-btn', async function () {
   const isAccepting = action === 'accepted';
 
   const result = await window.Swal.fire(swapSwalOptions({
-    title: isAccepting ? 'Accept Swap?' : 'Decline Swap?',
+    title: isAccepting ? 'Accept Request?' : 'Decline Request?',
     text: isAccepting
       ? 'You will be connected and redirected to Messages.'
       : 'Are you sure you want to decline this swap request?',
@@ -106,21 +106,17 @@ $(document).on('click', '.respond-swap-btn', async function () {
     },
     headers: { Accept: 'application/json' },
     success: function (response) {
+      const $card = $btn.closest('.received-swap-card');
+      $card.attr('data-status', response.swap_status);
+      $card.find('.badge.fs-8').removeClass('text-bg-warning text-bg-primary text-bg-danger').addClass(isAccepting ? 'text-bg-primary' : 'text-bg-danger').text(isAccepting ? 'Accepted' : 'Declined');
       const $actionsArea = $btn.closest('.d-flex.gap-2');
-
-      const badgeClass = isAccepting ? 'text-bg-success' : 'text-bg-danger';
-      const badgeLabel = isAccepting ? 'Accepted' : 'Declined';
-      const newHtml = `
-        <div class="w-100 text-end">
-          <small class="text-muted d-block">Status</small>
-          <span class="badge fs-6 px-3 py-2 ${badgeClass}">${badgeLabel}</span>
-          ${isAccepting ? `<div class="mt-2"><a href="/messages" class="btn btn-sm btn-success rounded-pill"><i class="bi bi-chat-dots me-1"></i> Go to Messages</a></div>` : ''}
-        </div>`;
-      $actionsArea.replaceWith(newHtml);
+      $actionsArea.empty();
+      if (isAccepting) $('<a>', { href: response.redirect, class: 'btn btn-success', text: 'Open conversation' }).appendTo($actionsArea);
+      window.refreshSidebarMessagesBadge?.();
 
       if (isAccepting) {
         window.Swal.fire(swapSwalOptions({
-          title: 'Swap Accepted! 🎉',
+          title: 'Request Accepted! 🎉',
           text: 'Redirecting you to Messages...',
           icon: 'success',
           timer: 2000,
@@ -204,3 +200,30 @@ $(document).on('click', '.remove-swap-btn', async function(e) {
       });
     }
 });
+
+// Keep both users' request lists current without leaving the page.
+if (new URLSearchParams(location.search).get('tab') === 'received') $('#btnradio2').prop('checked', true).trigger('change');
+let swapRefreshPending = false;
+async function refreshSwapPanels() {
+  if (document.hidden || swapRefreshPending || window.Swal?.isVisible() || $('.respond-swap-btn:disabled, .cancel-swap-btn:disabled').length) return;
+  swapRefreshPending = true;
+  try {
+    const response = await fetch($('#btnradio1').is(':checked') ? '/swap?tab=sent' : '/swap?refresh=1&tab=received', { headers: { Accept: 'text/html' } });
+    if (!response.ok || response.redirected) return;
+    window.refreshSidebarMessagesBadge?.();
+    const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+    for (const id of ['sentPanel', 'receivedPanel']) {
+      const replacement = page.getElementById(id);
+      if (replacement) document.getElementById(id).innerHTML = replacement.innerHTML;
+    }
+    for (const id of ['btnradio1', 'btnradio2']) {
+      const label = page.querySelector(`label[for="${id}"]`);
+      if (label) document.querySelector(`label[for="${id}"]`).innerHTML = label.innerHTML;
+    }
+  } catch (error) { console.error('Unable to refresh requests', error); }
+  finally { swapRefreshPending = false; }
+}
+setInterval(refreshSwapPanels, 15000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshSwapPanels(); });
+
+$('#btnradio1').on('change', refreshSwapPanels);

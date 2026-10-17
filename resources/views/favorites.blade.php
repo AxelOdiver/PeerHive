@@ -10,8 +10,8 @@
   <div class="col-12 col-md-6 col-xl-4 mb-4 favorite-card" id="card-{{ $student->id }}">
     <div class="card border-0 shadow-sm rounded-4 p-3 h-100 w-100">
       <div class="d-flex align-items-start gap-2 gap-sm-3">
-        @if($student->profile_picture)
-          <img src="{{ asset('storage/' . $student->profile_picture) }}" 
+        @if($student->profile_picture_url)
+          <img src="{{ $student->profile_picture_url }}"
             alt="{{ $student->first_name }}" 
             class="rounded-circle shadow-sm" 
             style="width: 60px; height: 60px; object-fit: cover;">
@@ -63,7 +63,7 @@
           </div>
 
           <button type="button" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2 open-swap-modal" data-id="{{ $student->id }}">
-            Swap
+            Learn / Swap
           </button>
         </div>
       </div>
@@ -80,17 +80,5 @@
   </div>
 </div>
 
-<x-modal id="swapModal" title="Swap Request">
-  <form id="swapRequestForm">
-    <input type="hidden" id="swapUserId" name="user_id" value="">
-    <div class="form-floating">
-      <textarea class="form-control" placeholder="Write a message" id="swapRequestMessage" name="message" style="height: 100px"></textarea>
-      <label for="swapRequestMessage">Write a message</label>
-    </div>
-  </form>
-  <x-slot:footer>
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-    <button type="submit" class="btn btn-primary" id="sendSwapRequestBtn" form="swapRequestForm">Send Request</button>
-  </x-slot:footer>
-</x-modal>
+<x-learning-request-modal />
 @endsection

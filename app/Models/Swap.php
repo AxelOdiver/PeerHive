@@ -11,8 +11,11 @@ class Swap extends Model
         'requested_user_id',
         'status',
         'message',
-        'responded_at',
+        'responded_at', 'response_read_at',
+        'request_type', 'requested_subject', 'offered_subject',
     ];
+
+    public function conversation() { return $this->hasOne(Conversation::class); }
 
     public function requester()
     {
