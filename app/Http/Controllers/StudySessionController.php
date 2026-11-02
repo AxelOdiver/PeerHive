@@ -31,13 +31,15 @@ class StudySessionController extends Controller
         if ($request->filled('community')) $sessions->where('community_id', $request->integer('community'));
         $sessions = $sessions->orderBy('starts_at')->paginate(12)->withQueryString();
         $joined = StudyParticipant::where('user_id', auth()->id())->pluck('study_session_id')->all();
-        return view('learning.sessions', compact('sessions', 'joined', 'filter'));
+        $navigationCommunity = Community::find($request->integer('community'));
+        return view('learning.sessions', compact('sessions', 'joined', 'filter', 'navigationCommunity'));
     }
 
     public function create(Request $request)
     {
         $communities = Community::where('user_id', auth()->id())->orWhereHas('members', fn ($q) => $q->where('users.id', auth()->id()))->orderBy('name')->get();
-        return view('learning.create', compact('communities'));
+        $navigationCommunity = $communities->firstWhere('id', $request->integer('community'));
+        return view('learning.create', compact('communities', 'navigationCommunity'));
     }
 
     public function store(Request $request)
@@ -65,7 +67,9 @@ class StudySessionController extends Controller
             $session->participants()->create(['user_id' => auth()->id()]);
             return $session;
         });
-        return redirect()->route('study-sessions.show', $session)->with('success', 'Study session created.');
+        return redirect()->route('study-sessions.show', ['session' => $session,
+            'community' => $request->integer('community') === (int) $session->community_id ? $session->community_id : null,
+        ])->with('success', 'Study session created.');
     }
 
     public function show(Request $request, StudySession $session)
@@ -77,7 +81,8 @@ class StudySessionController extends Controller
         if ($participation && $session->status === 'scheduled' && $session->starts_at->lte(now()) && !$participation->session_start_read_at) {
             $participation->update(['session_start_read_at' => now()]);
         }
-        return view('learning.session', compact('session', 'participation'));
+        $navigationCommunity = $request->integer('community') === (int) $session->community_id ? $session->community : null;
+        return view('learning.session', compact('session', 'participation', 'navigationCommunity'));
     }
 
     public function join(Request $request, StudySession $session)

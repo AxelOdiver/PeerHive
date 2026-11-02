@@ -1,7 +1,7 @@
 @extends('layouts.dashboard')
 @section('title', 'Study Sessions')
 @section('content')
-<x-learning-header title="Study Sessions" subtitle="Learn with your community, practise together, or join a verified tutor.">
+<x-learning-header title="Study Sessions" subtitle="Learn with your community, practise together, or join a verified tutor." :back-url="$navigationCommunity ? route('community.show', $navigationCommunity) : null" :back-label="$navigationCommunity ? 'Back to Community' : 'Back to Dashboard'">
   <a href="{{ route('schedule') }}#bookings" class="btn btn-outline-secondary">My schedule</a>
   <a href="{{ route('study-sessions.create', ['community' => request('community')]) }}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Create a session</a>
 </x-learning-header>
@@ -22,7 +22,7 @@
     <p class="text-muted small flex-grow-1">{{ Str::limit($session->description,150) }}</p>
     <div class="small text-muted mb-3"><div><i class="bi bi-calendar-event me-1"></i>{{ $session->starts_at->copy()->setTimezone(auth()->user()->learning_timezone)->format('M j, Y · g:i A') }}</div><div>{{ auth()->user()->learning_timezone }} · {{ $session->meeting_method==='online'?'Online':'In person' }}</div><div class="mt-1">{{ ($session->community?->name ?? 'Private session') }} · {{ $session->host->first_name }} {{ $session->host->last_name }}</div></div>
     <div class="d-flex justify-content-between small mb-2"><span>{{ $session->participants_count }} / {{ $session->capacity }} places, including host</span><span>{{ max(0,$session->capacity-$session->participants_count) }} left</span></div>
-    <a href="{{ route('study-sessions.show',$session) }}" class="btn btn-outline-primary w-100">View session</a>
+    <a href="{{ route('study-sessions.show', ['session' => $session, 'community' => $navigationCommunity?->id]) }}" class="btn btn-outline-primary w-100">View session</a>
   </div>
 </article></div>
 @empty

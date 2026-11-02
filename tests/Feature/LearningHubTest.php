@@ -29,6 +29,24 @@ class LearningHubTest extends TestCase
         return StudySession::latest('id')->firstOrFail();
     }
 
+    public function test_study_session_navigation_preserves_the_community_entry_point(): void
+    {
+        $this->withoutVite();
+        $host = User::factory()->create();
+        $group = $this->group($host);
+        $this->actingAs($host)->get('/study-sessions')->assertOk()->assertSee('Back to Dashboard')->assertDontSee('Back to Community');
+        $this->get(route('study-sessions.index', ['community' => $group->id]))->assertOk()
+            ->assertSee('Back to Community')->assertSee(route('community.show', $group));
+        $this->get(route('study-sessions.create', ['community' => $group->id]))->assertOk()->assertSee('Back to Community');
+        $response = $this->post(route('study-sessions.store', ['community' => $group->id]), $this->payload($group));
+        $session = StudySession::latest('id')->firstOrFail();
+        $url = route('study-sessions.show', ['session' => $session, 'community' => $group->id]);
+        $response->assertRedirect($url);
+        $this->get($url)->assertOk()->assertSee('Back to Community');
+        $this->get(route('study-sessions.index', ['community' => $group->id, 'filter' => 'mine']))->assertOk()->assertSee($url);
+        $this->get(route('study-sessions.show', $session))->assertOk()->assertSee('Back to Dashboard')->assertDontSee('Back to Community');
+    }
+
     public function test_pages_require_login_and_new_accounts_show_real_empty_states(): void
     {
         $this->get('/progress')->assertRedirect('/login');

@@ -1,12 +1,12 @@
 @extends('layouts.dashboard')
 @section('title', 'Create Study Session')
 @section('content')
-<x-learning-header title="Create a study session" subtitle="Choose a community, topic, and a time that works for your group."><a href="{{ route('study-sessions.index') }}" class="btn btn-outline-secondary">Back to sessions</a></x-learning-header>
+<x-learning-header title="Create a study session" subtitle="Choose a community, topic, and a time that works for your group." :back-url="$navigationCommunity ? route('community.show', $navigationCommunity) : null" :back-label="$navigationCommunity ? 'Back to Community' : 'Back to Dashboard'"><a href="{{ route('study-sessions.index', ['community' => $navigationCommunity?->id]) }}" class="btn btn-outline-secondary">Back to sessions</a></x-learning-header>
 @if($communities->isEmpty())
 <div class="alert alert-info">Join a community before hosting a session. <a href="{{ route('community') }}">Find a community</a>.</div>
 @else
 <div class="card shadow-sm border-0 rounded-4"><div class="card-body p-4">
-<form action="{{ route('study-sessions.store') }}" method="POST" class="row g-3">@csrf
+<form action="{{ route('study-sessions.store', ['community' => $navigationCommunity?->id]) }}" method="POST" class="row g-3">@csrf
 <div class="col-md-6"><label class="form-label" for="community_id">Community</label><select id="community_id" name="community_id" class="form-select" required>@foreach($communities as $community)<option value="{{ $community->id }}" @selected(old('community_id',request('community'))==$community->id)>{{ $community->name }}</option>@endforeach</select></div>
 <div class="col-md-6"><label class="form-label" for="format">Session format</label><select id="format" name="format" class="form-select" required><option value="peer" @selected(old('format')==='peer')>Peer study group</option><option value="tutor" @selected(old('format')==='tutor')>Tutor-led session</option></select><div class="form-text">Peer organizers need no teaching qualification. Tutor-led hosts must be approved for the subject.</div></div>
 <div class="col-md-7"><label for="title" class="form-label">Session title</label><input id="title" name="title" class="form-control" maxlength="150" value="{{ old('title') }}" required></div>

@@ -1,7 +1,7 @@
 @extends('layouts.dashboard')
 @section('title', $session->title)
 @section('content')
-<x-learning-header :title="$session->title" subtitle="A community learning session."><a href="{{ route('study-sessions.index', ['filter'=>'mine']) }}" class="btn btn-outline-primary">My sessions</a><a href="{{ route('study-sessions.index') }}" class="btn btn-outline-secondary">All sessions</a></x-learning-header>
+<x-learning-header :title="$session->title" subtitle="A community learning session." :back-url="$navigationCommunity ? route('community.show', $navigationCommunity) : null" :back-label="$navigationCommunity ? 'Back to Community' : 'Back to Dashboard'"><a href="{{ route('study-sessions.index', ['filter'=>'mine', 'community'=>$navigationCommunity?->id]) }}" class="btn btn-outline-primary">My sessions</a><a href="{{ route('study-sessions.index', ['community'=>$navigationCommunity?->id]) }}" class="btn btn-outline-secondary">All sessions</a></x-learning-header>
 <div class="d-flex gap-2 mb-3"><button type="button" class="btn btn-outline-secondary btn-sm" data-copy-session="{{ route('study-sessions.show',$session) }}">Copy session link</button><a href="{{ route('messages') }}" class="btn btn-outline-secondary btn-sm">Open Messages</a></div>
 <div class="row g-4"><div class="col-lg-8"><div class="card shadow-sm border-0 rounded-4"><div class="card-body p-4">
   <div class="d-flex gap-2 flex-wrap mb-3"><span class="badge text-bg-primary">{{ $session->format==='tutor'?'Tutor-led':'Peer study group' }}</span><span class="badge text-bg-secondary">{{ ucfirst($session->status) }}</span><span class="badge bg-primary-subtle text-primary-emphasis">{{ $session->subject }}</span></div>
