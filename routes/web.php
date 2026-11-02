@@ -33,9 +33,9 @@ use App\Http\Controllers\ReportController;
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');
-    Route::post('/login', [LoginController::class, 'store'])->name('login.store');
+    Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:5,1')->name('login.store');
     Route::get('/register', [RegisterController::class, 'index'])->name('register');
-    Route::post('/register', [RegisterController::class, 'store'])->name('register.store');
+    Route::post('/register', [RegisterController::class, 'store'])->middleware('throttle:5,10')->name('register.store');
 
     Route::get('/forgot-password', [PasswordResetController::class, 'request'])->name('password.request');
     Route::post('/forgot-password', [PasswordResetController::class, 'email'])->middleware('throttle:5,1')->name('password.email');
@@ -43,8 +43,8 @@ Route::middleware('guest')->group(function () {
     Route::post('/reset-password', [PasswordResetController::class, 'update'])->middleware('throttle:5,1')->name('password.update');
 
     Route::get('/otp', [OtpController::class, 'show'])->name('otp.show');
-    Route::post('/otp', [OtpController::class, 'verify'])->name('otp.verify');
-    Route::post('/otp/resend', [OtpController::class, 'resend'])->name('otp.resend');
+    Route::post('/otp', [OtpController::class, 'verify'])->middleware('throttle:5,1')->name('otp.verify');
+    Route::post('/otp/resend', [OtpController::class, 'resend'])->middleware('throttle:2,1')->name('otp.resend');
 });
 
 /*
@@ -54,6 +54,8 @@ Route::middleware('guest')->group(function () {
 */
 
 Route::middleware('auth')->group(function () {
+    Route::get('/private/messages/{message}/attachment', [\App\Http\Controllers\PrivateFileController::class, 'message'])->name('private.message');
+    Route::get('/private/qualifications/{qualification}', [\App\Http\Controllers\PrivateFileController::class, 'qualification'])->name('private.qualification');
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -73,7 +75,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/study-sessions/{session}/complete', [\App\Http\Controllers\StudySessionController::class, 'complete'])->name('study-sessions.complete');
     Route::post('/study-sessions/{session}/confirm', [\App\Http\Controllers\StudySessionController::class, 'confirm'])->name('study-sessions.confirm');
 
-    Route::post('/apply-to-teach', [QualificationController::class, 'store'])->name('qualifications.store');
+    Route::post('/apply-to-teach', [QualificationController::class, 'store'])->middleware('throttle:5,10')->name('qualifications.store');
 
     Route::post('/favorite/toggle', [FavoriteController::class, 'toggleFavorite'])->name('favorite.toggle');
     Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
@@ -101,14 +103,16 @@ Route::middleware('auth')->group(function () {
     Route::post('/communities/{community}/invite', [CommunityInviteController::class, 'store'])->name('community.invite.store');
     Route::post('/invites/{invite}/accept', [CommunityInviteController::class, 'accept'])->name('community.invite.accept');
     Route::post('/invites/{invite}/decline', [CommunityInviteController::class, 'decline'])->name('community.invite.decline');
-    Route::post('/invite', [CommunityInviteController::class, 'sendInvite'])->name('invite.send');
-    Route::get('/users/search', [CommunityInviteController::class, 'searchUsers'])->name('users.search');
+    Route::post('/invite', [CommunityInviteController::class, 'sendInvite'])->middleware('throttle:10,1')->name('invite.send');
+    Route::get('/users/search', [CommunityInviteController::class, 'searchUsers'])->middleware('throttle:60,1')->name('users.search');
     Route::delete('/community/{community}/member/{user}', [CommunityController::class, 'removeMember'])->name('community.removeMember');
     Route::delete('/community/{community}/leave', [CommunityController::class, 'leaveCommunity'])->name('community.leave');
     Route::post('/posts/{id}/comments', [CommunityController::class, 'storeComment'])->name('comments.store');
     Route::delete('/posts/{id}', [CommunityController::class, 'destroyPost'])->name('posts.destroy');
     Route::delete('/comments/{id}', [CommunityController::class, 'destroyComment'])->name('comments.destroy');
     Route::post('/reports', [ReportController::class, 'store'])->name('reports.store');
+    Route::post('/users/{user}/block', [\App\Http\Controllers\UserBlockController::class, 'store'])->name('users.block');
+    Route::delete('/users/{user}/block', [\App\Http\Controllers\UserBlockController::class, 'destroy'])->name('users.unblock');
 
     Route::get('/schedule', [ScheduleController::class, 'index'])->name('schedule');
     Route::post('/presence/heartbeat', [MessagingActivityController::class, 'heartbeat'])->middleware('throttle:6,1')->name('presence.heartbeat');
@@ -128,7 +132,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/messages/conversations', [MessageController::class, 'store'])->name('messages.conversations.store');
     Route::delete('/messages/conversations/{conversation}', [MessageController::class, 'destroyConversation'])->name('messages.conversations.destroy');
     Route::get('/messages/conversations/{conversation}', [MessageController::class, 'fetch'])->name('messages.conversations.fetch');
-    Route::post('/messages/conversations/{conversation}', [MessageController::class, 'storeMessage'])->name('messages.conversations.message');
+    Route::post('/messages/conversations/{conversation}', [MessageController::class, 'storeMessage'])->middleware('throttle:30,1')->name('messages.conversations.message');
     Route::post('/messages/conversations/{conversation}/members', [MessageController::class, 'addMember'])->name('messages.conversations.members.add');
     Route::delete('/messages/conversations/{conversation}/members/{user}', [MessageController::class, 'removeMember'])->name('messages.conversations.members.remove');
     Route::post('/messages/{message}/reactions', [MessageController::class, 'react'])->name('messages.react');
@@ -148,12 +152,14 @@ Route::middleware('auth')->group(function () {
     // Public profile page for any user
     Route::get('/users/{user}/profile', [ProfileController::class, 'showUser'])->name('users.profile');
 
-    Route::get('/users', [UserController::class, 'index'])->name('users');
-    Route::post('/users', [UserController::class, 'store'])->name('users.store');
-    Route::get('/users/data', [UserController::class, 'data'])->name('users.data');
-    Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
-    Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
-    Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+    Route::middleware('admin')->group(function () {
+        Route::get('/users', [UserController::class, 'index'])->name('users');
+        Route::post('/users', [UserController::class, 'store'])->name('users.store');
+        Route::get('/users/data', [UserController::class, 'data'])->name('users.data');
+        Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
+        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+    });
 
     Route::get('/admin/qualifications', [AdminQualificationController::class, 'index'])->name('admin.qualifications'); 
     Route::post('/admin/qualifications/{id}/respond', [AdminQualificationController::class, 'respond'])->name('admin.qualifications.respond');
