@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Report;
+use App\Models\Message;
+use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
 
 class ReportController extends Controller
@@ -15,7 +18,7 @@ class ReportController extends Controller
             abort(403, 'Unauthorized. Admins only.');
         }
 
-        $reports = Report::with(['reporter', 'reportable.user'])
+        $reports = Report::with(['reporter', 'reportable'])
             ->orderByRaw("FIELD(status, 'pending') DESC") // Show pending first
             ->latest()
             ->paginate(20);
@@ -42,8 +45,12 @@ class ReportController extends Controller
             abort(403, 'Unauthorized. Admins only.');
         }
 
-        // Delete the actual post or comment
-        if ($report->reportable) {
+        // Account reports are reviewed and dismissed separately; never delete an account here.
+        if ($report->reportable instanceof Message && $report->reportable->attachment_path) {
+            Storage::disk('public')->delete($report->reportable->attachment_path);
+            Storage::disk('local')->delete($report->reportable->attachment_path);
+        }
+        if ($report->reportable && !($report->reportable instanceof User)) {
             $report->reportable->delete();
         }
 

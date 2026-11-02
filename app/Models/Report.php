@@ -10,7 +10,7 @@ class Report extends Model
 {
     protected $fillable = ['user_id', 'reason', 'details', 'status'];
 
-    // Connects to either Post or Comment
+    // Connects to reportable community content, messages, or accounts.
     public function reportable(): MorphTo
     {
         return $this->morphTo();
@@ -21,4 +21,5 @@ class Report extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
 }

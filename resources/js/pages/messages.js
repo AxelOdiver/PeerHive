@@ -90,7 +90,7 @@ $(document).ready(function () {
 
   function renderAttachment(m) {
     if (!m.attachment_url) return '';
-    const isImage = m.attachment_type && m.attachment_type.startsWith('image/');
+    const isImage = m.attachment_type && m.attachment_type.startsWith('image/') && !m.attachment_url.includes('/private/');
     if (isImage) {
       return renderTemplate('message-template-render-attachment-1', [escapeHtml(m.attachment_url), escapeHtml(m.attachment_url)]);
     }
@@ -129,7 +129,8 @@ $(document).ready(function () {
     const safeDataBody = escapeHtml(m.body || (m.attachment_name ? 'Attachment' : ''));
     const replyPreviewHtml = m.reply_to ? renderTemplate('message-template-reply-preview-html-1', [m.is_mine ? 'light' : 'primary', escapeHtml(m.reply_to.sender_name), escapeHtml(m.reply_to.body)]) : '';
 
-    const kebabHtml = renderTemplate('message-template-kebab-html-1', [m.is_mine ? renderTemplate('message-template-kebab-html-2', [m.id, m.id]) : '', m.id]);
+    const reportItem = !m.is_mine ? `<li><button type="button" class="dropdown-item text-warning message-report-btn" data-message-id="${m.id}" data-user-id="${m.sender_id}"><i class="bi bi-flag me-2"></i>Report message</button></li>` : '';
+    const kebabHtml = renderTemplate('message-template-kebab-html-1', [m.is_mine ? renderTemplate('message-template-kebab-html-2', [m.id, m.id]) : '', m.id, reportItem]);
 
   const rowAlign = m.is_mine ? 'justify-content-end' : 'justify-content-start';
 
@@ -137,7 +138,7 @@ $(document).ready(function () {
   }
 
   function toolbarButtonsHtml(kebabHtml) {
-    if (sessionFinished) return '';
+    if (sessionFinished) return kebabHtml;
     return renderTemplate('message-template-toolbar-buttons-html-1', [['👍', '❤️', '😂', '🎉', '😮', '😢'].map(emoji => renderTemplate('message-template-toolbar-buttons-html-2', [emoji, emoji, emoji])).join(''), kebabHtml]);
   }
 
@@ -321,8 +322,13 @@ $(document).ready(function () {
   $(document).on('click', '[data-session-starter]', function () { $messageInput.val(this.dataset.sessionStarter).trigger('focus'); });
 
   function renderChatHeader(conv) {
-    const buttons = renderTemplate('message-template-buttons-1');
+    const accountActions = conv.other_user_id
+      ? `<li><button type="button" class="dropdown-item account-report-btn" data-user-id="${conv.other_user_id}"><i class="bi bi-flag me-2"></i>Report account</button></li><li><button type="button" class="dropdown-item ${conv.blocked_by_me ? '' : 'text-danger'} direct-block-btn" data-user-id="${conv.other_user_id}" data-blocked-by-me="${conv.blocked_by_me ? 1 : 0}" ${conv.blocked_between_us && !conv.blocked_by_me ? 'disabled' : ''}><i class="bi bi-slash-circle me-2"></i>${conv.blocked_by_me ? 'Unblock account' : (conv.blocked_between_us ? 'Blocked by this account' : 'Block account')}</button></li>`
+      : '';
+    const buttons = renderTemplate('message-template-buttons-1', [accountActions]);
     $chatHeader.html(renderTemplate('message-template-render-chat-header-1', [escapeHtml(conv.name), buttons]));
+    $messageInput.prop('disabled', Boolean(conv.blocked_between_us));
+    $('#attachmentInput, #messageForm button[type="submit"]').prop('disabled', Boolean(conv.blocked_between_us));
   }
 
   function openConversation(conv) {
@@ -941,6 +947,13 @@ $(document).ready(function () {
         if (version !== infoVersion || String(id) !== String(currentConversationId)) return;
         const members = response.members.map(m => renderTemplate('message-template-members-1', [escapeHtml(m.profile_url), m.profile_picture ? renderTemplate('message-template-members-2', [escapeHtml(m.profile_picture)]) : renderTemplate('message-template-members-3'), escapeHtml(m.name)])).join('');
         $('#chatInfoContent').html(renderTemplate('message-template-show-conversation-info-2', [response.is_group ? 'bi-people-fill' : 'bi-person-fill', escapeHtml(conv.name), response.is_group ? response.members.length + ' members' : 'Direct conversation', id, response.is_muted, response.is_muted ? 'bi-bell-slash-fill' : 'bi-bell', response.is_muted ? 'Unmute' : 'Mute', response.is_muted ? (response.muted_until ? 'Notifications muted until ' + escapeHtml(new Date(response.muted_until).toLocaleString()) + '.' : 'Notifications muted until you turn them back on.') : 'Notifications are on.', response.is_group ? 'Chat members' : 'People', members, response.is_group ? renderTemplate('message-template-show-conversation-info-3', [id]) : '', response.is_group ? renderTemplate('message-template-show-conversation-info-4', [id]) : '']));
+        if (response.other_user_id) {
+          const $actions = $('<div class="d-grid gap-2 mt-3"></div>');
+          $actions.append($('<button type="button" class="btn btn-outline-warning account-report-btn"></button>').attr('data-user-id', response.other_user_id).text('Report account'));
+          const blockLabel = response.blocked_by_me ? 'Unblock account' : (response.blocked_between_us ? 'This account has blocked you' : 'Block account');
+          $actions.append($('<button type="button" class="btn btn-outline-danger direct-block-btn"></button>').attr('data-user-id', response.other_user_id).attr('data-blocked-by-me', response.blocked_by_me ? '1' : '0').prop('disabled', response.blocked_between_us && !response.blocked_by_me).text(blockLabel));
+          $('#chatInfoContent').append($actions);
+        }
       }, error: xhr => { if (version === infoVersion) $('#chatInfoContent').text('Could not load conversation information. Please reopen the panel to retry.'); requestError(xhr); }
     });
   }
@@ -948,6 +961,77 @@ $(document).ready(function () {
     if ($('#chatInfoPanel').is(':visible')) closeDetails(); else showConversationInfo();
   });
   $('#closeChatInfoBtn').on('click', closeDetails);
+  function openMessageReport(id, type, userId = id) {
+    $('#messageReportForm')[0].reset();
+    $('#messageReportTargetId').val(id);
+    $('#messageReportTargetType').val(type);
+    $('#messageReportTargetUserId').val(userId);
+    window.showModal('messageReportModal');
+  }
+  $(document).on('click', '.message-report-btn', function () {
+    openMessageReport($(this).data('message-id'), 'App\\Models\\Message', $(this).data('user-id'));
+  });
+  $(document).on('click', '.account-report-btn', function () {
+    openMessageReport($(this).data('user-id'), 'App\\Models\\User');
+  });
+  $('#messageReportForm').on('submit', function (event) {
+    event.preventDefault();
+    const $submit = $(this).find('[type="submit"]');
+    $submit.prop('disabled', true);
+    $.ajax({
+      url: '/reports', method: 'POST',
+      data: {
+        _token: $('meta[name="csrf-token"]').attr('content'),
+        reportable_id: $('#messageReportTargetId').val(),
+        reportable_type: $('#messageReportTargetType').val(),
+        reason: $('#messageReportReason').val(),
+        details: $('#messageReportDetails').val(),
+        block_user: $('#messageReportBlockUser').is(':checked') ? 1 : 0,
+      },
+      success: response => {
+        const shouldBlock = $('#messageReportBlockUser').is(':checked');
+        const targetUserId = Number($('#messageReportTargetUserId').val());
+        window.hideModal('messageReportModal');
+        window.toast?.('success', response.message);
+        if (shouldBlock && activeConversation?.other_user_id === targetUserId) {
+          activeConversation.blocked_by_me = true;
+          activeConversation.blocked_between_us = true;
+          renderChatHeader(activeConversation);
+          if ($('#chatInfoPanel').is(':visible')) showConversationInfo();
+        }
+      },
+      error: requestError,
+      complete: () => $submit.prop('disabled', false),
+    });
+  });
+  $(document).on('click', '.direct-block-btn', async function () {
+    const $button = $(this);
+    const userId = $button.data('user-id');
+    const blockedByMe = String($button.attr('data-blocked-by-me')) === '1';
+    const verb = blockedByMe ? 'unblock' : 'block';
+    const promptText = `${blockedByMe ? 'Allow' : 'Prevent'} this account from direct messaging you? Shared group chats are not affected.`;
+    const confirmed = window.confirmAction
+      ? await window.confirmAction(promptText, `${blockedByMe ? 'Unblock' : 'Block'} account`)
+      : {isConfirmed: window.confirm(promptText)};
+    if (!confirmed.isConfirmed) return;
+    $button.prop('disabled', true);
+    $.ajax({
+      url: `/users/${userId}/block`, method: blockedByMe ? 'DELETE' : 'POST',
+      headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+      success: response => {
+        window.toast?.('success', response.message);
+        if (activeConversation?.other_user_id === Number(userId)) {
+          activeConversation.blocked_by_me = !blockedByMe;
+          activeConversation.blocked_between_us = !blockedByMe;
+          renderChatHeader(activeConversation);
+          if ($('#chatInfoPanel').is(':visible')) showConversationInfo();
+        }
+        refreshConversationsList();
+      },
+      error: requestError,
+      complete: () => $button.prop('disabled', false),
+    });
+  });
   function saveMute(id, isMuted, duration, $button, done) {
     $button.prop('disabled', true);
     $.ajax({

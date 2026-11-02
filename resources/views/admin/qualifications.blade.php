@@ -26,7 +26,7 @@
             <td class="ps-4">{{ $q->user->first_name . ' ' . $q->user->last_name ?? 'Unknown User' }}</td>
             <td>{{ $q->subject_name }}</td>
             <td>
-              <a href="{{ asset('storage/' . $q->proof_file_path) }}" target="_blank" class="btn btn-sm btn-primary rounded-2 px-3">
+              <a href="{{ route('private.qualification', $q) }}" class="btn btn-sm btn-primary rounded-2 px-3">
                 <i class="bi bi-file-earmark-text"></i> View File
               </a>
             </td>

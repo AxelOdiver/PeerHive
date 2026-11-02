@@ -3,7 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Report;
+use App\Models\Comment;
+use App\Models\Message;
+use App\Models\Post;
+use App\Models\User;
+use App\Models\UserBlock;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class ReportController extends Controller
@@ -12,10 +18,29 @@ class ReportController extends Controller
     {
         $validated = $request->validate([
             'reportable_id' => 'required|integer',
-            'reportable_type' => ['required', Rule::in(['App\Models\Post', 'App\Models\Comment'])],
+            'reportable_type' => ['required', Rule::in([Post::class, Comment::class, Message::class, User::class])],
             'reason' => 'required|string|max:255',
             'details' => 'nullable|string|max:1000',
+            'block_user' => ['nullable', 'boolean'],
         ]);
+
+        $reportable = $validated['reportable_type']::query()->findOrFail($validated['reportable_id']);
+        $targetUserId = match (true) {
+            $reportable instanceof User => $reportable->id,
+            $reportable instanceof Message => $reportable->sender_id,
+            $reportable instanceof Post => $reportable->user_id,
+            $reportable instanceof Comment => $reportable->user_id,
+        };
+        abort_if($targetUserId === auth()->id(), 422, 'You cannot report your own account or content.');
+
+        if ($reportable instanceof Message) {
+            abort_unless($reportable->conversation->users()->whereKey(auth()->id())->exists(), 403);
+            abort_if($reportable->is_unsent, 422, 'Unsent messages cannot be reported.');
+        }
+        if ($reportable instanceof Post || $reportable instanceof Comment) {
+            $community = $reportable instanceof Post ? $reportable->community : $reportable->post?->community;
+            abort_unless($community && ($community->visibility === 'public' || \App\Support\LearningHub::member($request->user(), $community)), 403);
+        }
 
         // Prevent duplicate reports from the same user on the same item
         $exists = Report::where('user_id', auth()->id())
@@ -24,15 +49,29 @@ class ReportController extends Controller
             ->exists();
 
         if ($exists) {
+            if (!empty($validated['block_user'])) {
+                UserBlock::firstOrCreate(['blocker_id' => auth()->id(), 'blocked_id' => $targetUserId]);
+                return response()->json(['message' => 'You already reported this item; the account is now blocked from direct messages.']);
+            }
             return response()->json(['message' => 'You have already reported this item.'], 422);
         }
 
-        $report = new Report($validated);
-        $report->user_id = auth()->id();
-        $report->reportable_id = $validated['reportable_id'];
-        $report->reportable_type = $validated['reportable_type'];
-        $report->save();
+        DB::transaction(function () use ($reportable, $validated, $targetUserId) {
+            $report = new Report([
+                'user_id' => auth()->id(),
+                'reason' => $validated['reason'],
+                'details' => $validated['details'] ?? null,
+            ]);
+            $report->reportable()->associate($reportable);
+            $report->save();
 
-        return response()->json(['message' => 'Report submitted successfully. Our team will review it shortly.']);
+            if (!empty($validated['block_user'])) {
+                UserBlock::firstOrCreate(['blocker_id' => auth()->id(), 'blocked_id' => $targetUserId]);
+            }
+        });
+
+        return response()->json(['message' => !empty($validated['block_user'])
+            ? 'Report submitted and account blocked from direct messages.'
+            : 'Report submitted successfully. Our team will review it shortly.']);
     }
 }

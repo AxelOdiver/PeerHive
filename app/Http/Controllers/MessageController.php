@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
+use App\Models\UserBlock;
 use App\Support\ChatPresence;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Http\Request;
@@ -39,6 +40,12 @@ class MessageController extends Controller
                 } else {
                     $query->whereRaw('1 = 0');
                 }
+            })->whereNotExists(function ($blocked) {
+                $blocked->selectRaw('1')->from('user_blocks')->where(function ($pair) {
+                    $pair->whereColumn('user_blocks.blocker_id', 'users.id')->where('user_blocks.blocked_id', auth()->id());
+                })->orWhere(function ($pair) {
+                    $pair->where('user_blocks.blocker_id', auth()->id())->whereColumn('user_blocks.blocked_id', 'users.id');
+                });
             })->orderBy('username')->orderBy('id')->limit(10)->get(['id', 'username', 'first_name', 'last_name']);
 
         return response()->json(['users' => $users->map(fn ($user) => [
@@ -82,6 +89,9 @@ class MessageController extends Controller
                 return [
                     'id' => $conv->id,
                     'is_group' => $conv->is_group,
+                    'other_user_id' => !$conv->is_group ? $firstOther?->id : null,
+                    'blocked_by_me' => !$conv->is_group && UserBlock::where('blocker_id', $userId)->where('blocked_id', $firstOther?->id)->exists(),
+                    'blocked_between_us' => !$conv->is_group && $this->usersHaveBlockedEachOther($userId, $firstOther?->id),
                     'name' => $name ?: 'Conversation',
                     'initials' => $initials,
                     'profile_picture' => (!$conv->is_group) ? $firstOther?->profile_picture : null,
@@ -145,6 +155,8 @@ class MessageController extends Controller
             return response()->json(['message' => 'You cannot message yourself.'], 422);
         }
 
+        abort_if($this->usersHaveBlockedEachOther($authId, $otherId), 403, 'This account is not available for direct messaging.');
+
         $existing = Conversation::where('is_group', false)->whereNull('session_context')
             ->whereHas('users', fn ($q) => $q->where('users.id', $authId))
             ->whereHas('users', fn ($q) => $q->where('users.id', $otherId))
@@ -166,7 +178,6 @@ class MessageController extends Controller
     {
         $authId = auth()->id();
         abort_unless($conversation->users->contains('id', $authId), 403);
-
         $perPage = 30;
         $beforeId = $request->query('before_id');
 
@@ -220,10 +231,11 @@ class MessageController extends Controller
                 'client_message_id' => $m->sender_id === $authId ? $m->client_message_id : null,
                 'body' => $m->is_unsent ? null : $m->body,
                 'session_event' => $m->session_event ? array_merge($m->session_event, ['current' => ($m->session_event['context']['revision'] ?? -1) === ($conversation->session_context['revision'] ?? -2)]) : null,
-                'attachment_url' => (!$m->is_unsent && $m->attachment_path) ? Storage::url($m->attachment_path) : null,
+                'attachment_url' => (!$m->is_unsent && $m->attachment_path) ? route('private.message', $m) : null,
                 'attachment_name' => $m->is_unsent ? null : $m->attachment_name,
                 'attachment_type' => $m->is_unsent ? null : $m->attachment_type,
                 'is_mine' => $m->sender_id === $authId,
+                'sender_id' => $m->sender_id,
                 'sender_name' => $m->sender->first_name,
                 'created_at' => $m->created_at->format('M d, g:i A'),
                 'is_edited' => (bool) $m->edited_at,
@@ -243,11 +255,15 @@ class MessageController extends Controller
     {
         $authId = auth()->id();
         abort_unless($conversation->users->contains('id', $authId), 403);
+        if (!$conversation->is_group) {
+            $otherId = $conversation->users->firstWhere('id', '!=', $authId)?->id;
+            abort_if($otherId && $this->usersHaveBlockedEachOther($authId, $otherId), 403, 'Direct messaging is unavailable for this conversation.');
+        }
 
         $validated = $request->validate([
             'client_message_id' => ['nullable', 'uuid'],
             'body' => ['nullable', 'string', 'max:2000'],
-            'attachment' => ['nullable', 'file', 'max:10240'],
+            'attachment' => ['nullable', 'file', 'max:10240', 'mimes:jpg,jpeg,png,webp,pdf,txt,docx,pptx,xlsx', 'extensions:jpg,jpeg,png,webp,pdf,txt,docx,pptx,xlsx'],
             'reply_to_id' => ['nullable', 'integer', Rule::exists('messages', 'id')->where('conversation_id', $conversation->id)->where('is_unsent', 0)->where(fn ($q) => $q->where('id', '>', $conversation->clearedThrough($authId)))],
         ]);
 
@@ -278,7 +294,7 @@ class MessageController extends Controller
                 'client_message_id' => $key, 'request_hash' => $fingerprint,
             ];
             if ($file) {
-                $data['attachment_path'] = $file->store('message_attachments', 'public');
+                $data['attachment_path'] = $file->store('message_attachments', 'local');
                 $data['attachment_name'] = $file->getClientOriginalName();
                 $data['attachment_type'] = $file->getClientMimeType();
             }
@@ -295,7 +311,7 @@ class MessageController extends Controller
                 'id' => $message->id,
                 'client_message_id' => $message->client_message_id,
                 'body' => $message->body,
-                'attachment_url' => $message->attachment_path ? Storage::url($message->attachment_path) : null,
+                'attachment_url' => $message->attachment_path ? route('private.message', $message) : null,
                 'attachment_name' => $message->attachment_name,
                 'attachment_type' => $message->attachment_type,
                 'is_mine' => true,
@@ -347,6 +363,7 @@ class MessageController extends Controller
 
         if ($message->attachment_path) {
             Storage::disk('public')->delete($message->attachment_path);
+            Storage::disk('local')->delete($message->attachment_path);
         }
 
         $message->reactions()->delete();
@@ -517,6 +534,10 @@ class MessageController extends Controller
         $pivot = $conversation->users->firstWhere('id', auth()->id())->pivot;
         return response()->json([
             'is_group' => $conversation->is_group,
+            'other_user_id' => !$conversation->is_group
+                ? $conversation->users->firstWhere('id', '!=', auth()->id())?->id : null,
+            'blocked_by_me' => !$conversation->is_group && UserBlock::where('blocker_id', auth()->id())->where('blocked_id', $conversation->users->firstWhere('id', '!=', auth()->id())?->id)->exists(),
+            'blocked_between_us' => !$conversation->is_group && $this->usersHaveBlockedEachOther(auth()->id(), $conversation->users->firstWhere('id', '!=', auth()->id())?->id),
             'is_muted' => $conversation->isMutedFor(auth()->id()),
             'muted_until' => $pivot->muted_until ? \Illuminate\Support\Carbon::parse($pivot->muted_until)->toIso8601String() : null,
             'members' => $conversation->users->map(fn ($user) => [
@@ -526,6 +547,14 @@ class MessageController extends Controller
                 'profile_url' => route('users.profile', $user),
             ]),
         ]);
+    }
+
+    private function usersHaveBlockedEachOther(int $userId, ?int $otherUserId): bool
+    {
+        if (!$otherUserId) return false;
+        return UserBlock::where(fn ($q) => $q->where('blocker_id', $userId)->where('blocked_id', $otherUserId))
+            ->orWhere(fn ($q) => $q->where('blocker_id', $otherUserId)->where('blocked_id', $userId))
+            ->exists();
     }
 
     public function mute(Request $request, Conversation $conversation)

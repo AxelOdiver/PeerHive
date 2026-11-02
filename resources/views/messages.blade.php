@@ -94,6 +94,17 @@
 </x-modal>
 
 <x-modal id="sessionDetailsModal" title="Session details" dialogClass="modal-dialog-centered modal-dialog-scrollable"><div id="sessionChatPanel"></div></x-modal>
+<x-modal id="messageReportModal" title="Report">
+  <form id="messageReportForm">
+    <input type="hidden" id="messageReportTargetId">
+    <input type="hidden" id="messageReportTargetType">
+    <input type="hidden" id="messageReportTargetUserId">
+    <div class="mb-3"><label for="messageReportReason" class="form-label">Reason</label><select id="messageReportReason" class="form-select" required><option value="" disabled selected>Select a reason…</option><option>Spam</option><option>Harassment</option><option>Inappropriate</option><option>Other</option></select></div>
+    <div class="mb-3"><label for="messageReportDetails" class="form-label">Details (optional)</label><textarea id="messageReportDetails" class="form-control" rows="3" maxlength="1000"></textarea></div>
+    <div class="form-check"><input class="form-check-input" type="checkbox" id="messageReportBlockUser"><label class="form-check-label" for="messageReportBlockUser">Also block this account from direct messages</label></div>
+  </form>
+  <x-slot:footer><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-danger" form="messageReportForm">Submit report</button></x-slot:footer>
+</x-modal>
 <x-modal id="rateTeacherModal" title="Rate your teacher">
   <p>How was learning with <strong id="ratingTeacherName"></strong>?</p>
   <p class="small text-muted">Rate the teaching in this session. Your stars contribute to their public average. One rating per completed session.</p>
@@ -225,6 +236,7 @@
         <ul class="dropdown-menu dropdown-menu-end shadow-sm">
           [[slot0]]
           <li><button type="button" class="dropdown-item text-danger delete-message-for-me" data-message-id="[[slot1]]"><i class="bi bi-trash me-2"></i>Delete for me</button></li>
+          [[slot2]]
         </ul>
       </div>
     </script>
@@ -279,7 +291,7 @@
 
 <script type="text/x-template" id="message-template-load-conversation-1"><p class="text-muted text-center p-3">[[slot0]]</p></script>
 
-<script type="text/x-template" id="message-template-buttons-1"><button type="button" class="btn btn-sm btn-outline-secondary rounded-circle" id="chatInfoBtn" aria-label="Conversation information" title="Conversation information"><i class="bi bi-info-circle-fill"></i></button></script>
+<script type="text/x-template" id="message-template-buttons-1"><div class="dropdown"><button type="button" class="btn btn-sm btn-outline-secondary rounded-circle" data-bs-toggle="dropdown" aria-label="Conversation options" title="Conversation options"><i class="bi bi-three-dots-vertical"></i></button><ul class="dropdown-menu dropdown-menu-end"><li><button type="button" class="dropdown-item" id="chatInfoBtn"><i class="bi bi-info-circle me-2"></i>Conversation info</button></li>[[slot0]]</ul></div></script>
 
 <script type="text/x-template" id="message-template-render-chat-header-1">
       <div class="d-flex justify-content-between align-items-center w-100">

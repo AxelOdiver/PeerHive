@@ -40,22 +40,25 @@
             </td>
             <td>
               @if($report->reportable)
-                <div class="small fw-medium text-truncate mb-1" style="max-width: 250px;" title="{{ $report->reportable->body }}">
-                  "{{ $report->reportable->body }}"
+                @php
+                  $item = $report->reportable;
+                  $isAccount = $report->reportable_type === \App\Models\User::class;
+                  $author = $isAccount ? $item : ($item->sender ?? $item->user ?? null);
+                  $preview = $isAccount ? 'Reported account' : ($item->body ?? $item->title ?? '[Message attachment or empty message]');
+                  $community = $report->reportable_type === \App\Models\Post::class
+                    ? $item->community
+                    : ($report->reportable_type === \App\Models\Comment::class ? ($item->post->community ?? null) : null);
+                @endphp
+                <div class="small fw-medium text-truncate mb-1" style="max-width: 250px;" title="{{ $preview }}">
+                  “{{ $preview }}”
                 </div>
                 
                 <div class="text-muted d-flex flex-column gap-1" style="font-size: 0.75rem;">
                   <div>
-                    <i class="bi bi-person-circle me-1"></i> Author: {{ $report->reportable->user->first_name ?? 'Unknown' }}
+                    <i class="bi bi-person-circle me-1"></i> {{ $isAccount ? 'Account' : 'Author' }}: {{ $author->first_name ?? 'Unknown' }} {{ $author->last_name ?? '' }}
                   </div>
                   
                   <!-- Dynamically fetch the community based on report type -->
-                  @php
-                    $community = $report->reportable_type === 'App\Models\Post' 
-                        ? $report->reportable->community 
-                        : ($report->reportable->post->community ?? null);
-                  @endphp
-                  
                   @if($community)
                   <div>
                     <i class="bi bi-diagram-3 me-1"></i> Community: <span class="fw-medium">{{ $community->name }}</span>
@@ -90,7 +93,7 @@
                     </button>
                   </form>
                   
-                 <!-- Delete Content Button (Triggers SweetAlert) -->
+                  @if(!($report->reportable instanceof \App\Models\User))
                   <form action="{{ route('admin.reports.destroyContent', $report->id) }}" method="POST" class="delete-content-form">
                     @csrf
                     @method('DELETE')
@@ -98,6 +101,7 @@
                       Delete Content
                     </button>
                   </form>
+                  @endif
                 </div>
               @else
                 <span class="text-muted small">Reviewed</span>

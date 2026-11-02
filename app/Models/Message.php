@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Message extends Model
 {
@@ -40,8 +41,13 @@ class Message extends Model
         return $this->belongsTo(Message::class, 'reply_to_id');
     }
 
+    public function reports(): MorphMany
+    {
+        return $this->morphMany(Report::class, 'reportable');
+    }
+
     public function getAttachmentUrlAttribute()
     {
-        return $this->attachment_path ? Storage::url($this->attachment_path) : null;
+        return $this->attachment_path ? route('private.message', $this) : null;
     }
 }

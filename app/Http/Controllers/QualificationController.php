@@ -33,11 +33,11 @@ class QualificationController extends Controller
         // 2. Validate the new file
         $validated = $request->validate([
             'subject' => 'required|string|max:255',
-            'proof_document' => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240', // 10MB max
+            'proof_document' => 'required|file|mimes:jpg,jpeg,png,pdf|extensions:jpg,jpeg,png,pdf|max:10240',
         ]);
 
         // 3. Save the new submission
-        $path = $request->file('proof_document')->store('qualifications', 'public');
+        $path = $request->file('proof_document')->store('qualifications', 'local');
 
         UserSubjectQualification::create([
             'user_id' => $user->id,

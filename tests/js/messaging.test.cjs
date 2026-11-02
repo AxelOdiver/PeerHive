@@ -3,6 +3,13 @@ const assert=require('node:assert/strict');
 const vm=require('node:vm');
 const fs=require('node:fs');
 const source=fs.readFileSync('resources/js/pages/messages.js','utf8');
+test('private image attachments render as download links instead of broken inline images',()=>{
+ const context={escapeHtml:String,renderTemplate:(id)=>id};
+ vm.createContext(context);
+ vm.runInContext(source.slice(source.indexOf('  function renderAttachment('),source.indexOf('  const hiddenSessionCards')),context);
+ assert.equal(context.renderAttachment({attachment_url:'/private/messages/1/attachment',attachment_type:'image/png',attachment_name:'notes.png'}),'message-template-render-attachment-2');
+ assert.equal(context.renderAttachment({attachment_url:'/storage/legacy.png',attachment_type:'image/png'}),'message-template-render-attachment-1');
+});
 test('reopening the active chat preserves its draft without leaking it into another chat',()=>{
  const values=new Map([['input','Unfinished message'],['file','draft.txt'],['reply','42']]);
  let previewVisible=true, previewContent='draft.txt';

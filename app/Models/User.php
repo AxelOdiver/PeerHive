@@ -147,4 +147,19 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Conversation::class)->withPivot('last_read_at')->withTimestamps();
     }
+
+    public function blocksMade()
+    {
+        return $this->hasMany(UserBlock::class, 'blocker_id');
+    }
+
+    public function blocksReceived()
+    {
+        return $this->hasMany(UserBlock::class, 'blocked_id');
+    }
+
+    public function reports()
+    {
+        return $this->morphMany(Report::class, 'reportable');
+    }
 }

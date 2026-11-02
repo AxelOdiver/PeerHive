@@ -90,16 +90,17 @@ class MessageDeliveryTest extends TestCase
     public function test_attachment_retries_store_one_file_and_delete_for_me_keeps_it_for_peer(): void
     {
         Storage::fake('public');
+        Storage::fake('local');
         [$chat, $me, $peer] = $this->chat();
         $url = '/messages/conversations/'.$chat->id;
         $key = (string) Str::uuid();
         $send = fn () => ['client_message_id' => $key, 'attachment' => UploadedFile::fake()->createWithContent('notes.txt', 'Study notes')];
         $this->actingAs($me)->postJson($url, $send())->assertOk();
         $this->postJson($url, $send())->assertOk();
-        $this->assertCount(1, Storage::disk('public')->allFiles('message_attachments'));
+        $this->assertCount(1, Storage::disk('local')->allFiles('message_attachments'));
         $path = $chat->messages()->first()->attachment_path;
         $this->deleteJson($url)->assertOk();
-        Storage::disk('public')->assertExists($path);
+        Storage::disk('local')->assertExists($path);
         $this->actingAs($peer)->getJson($url)->assertJsonCount(1, 'messages');
     }
 }
