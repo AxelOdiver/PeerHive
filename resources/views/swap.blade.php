@@ -22,6 +22,11 @@
         <span class="badge bg-danger ms-1">{{ $pendingReceived }}</span>
       @endif
     </label>
+    <input type="radio" class="btn-check" name="btnradio" id="btnradio3" autocomplete="off">
+    <label class="btn swap-tab-label flex-fill border-0 rounded-0 py-2 fw-bold shadow-none" for="btnradio3">
+      History
+      @if($history->count() > 0)<span class="badge bg-secondary ms-1">{{ $history->count() }}</span>@endif
+    </label>
   </div>
 </div>
 
@@ -56,7 +61,7 @@
                 @endif
                 <div>
                   <h5 class="fw-bold mb-0">{{ $swap->requestedUser->first_name }} {{ $swap->requestedUser->last_name }}</h5>
-                  <p class="text-muted mb-0 small">{{ $swap->requestedUser->email }}</p>
+                  <p class="text-muted mb-0 small">{{ $swap->requestedUser->username ? '@'.$swap->requestedUser->username : '' }}</p>
                 </div>
               </div>
               <x-learning-request-details :swap="$swap" />
@@ -140,7 +145,7 @@
                 @endif
                 <div>
                   <h5 class="fw-bold mb-0">{{ $swap->requester->first_name }} {{ $swap->requester->last_name }}</h5>
-                  <p class="text-muted mb-0 small">{{ $swap->requester->email }}</p>
+                  <p class="text-muted mb-0 small">{{ $swap->requester->username ? '@'.$swap->requester->username : '' }}</p>
                 </div>
               </div>
               <x-learning-request-details :swap="$swap" />
@@ -194,6 +199,27 @@
       <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
       <h5 class="text-muted">No swap requests received yet.</h5>
       <p class="text-muted mb-0">When other students send you a swap request, it'll appear here.</p>
+    </div>
+  @endif
+</div>
+
+<div id="historyPanel" class="panel-hidden">
+  <h2 class="fw-bold mb-4">Finished sessions <span class="fs-5 text-muted fw-normal ms-1">({{ $history->count() }})</span></h2>
+  @if($history->isEmpty())
+    <div class="alert alert-light text-center py-5 rounded-4 shadow-sm"><i class="bi bi-archive fs-1 text-muted mb-3 d-block"></i><h5 class="text-muted">No finished sessions yet.</h5><p class="text-muted mb-0">Completed sessions move here from Sent or Received.</p></div>
+  @else
+    <div class="row">
+      @foreach($history as $swap)
+        @php $peer = $swap->requester_id === auth()->id() ? $swap->requestedUser : $swap->requester; @endphp
+        <div class="col-md-6 mb-3">
+          <article class="card border-0 shadow-sm rounded-4 p-3 h-100">
+            <h3 class="h5 fw-bold mb-1">{{ $peer->first_name }} {{ $peer->last_name }}</h3>
+            <p class="text-muted small mb-2">{{ $swap->request_type === 'learning' ? 'Learn · ' : 'Swap · ' }}{{ $swap->requested_subject }}@if($swap->offered_subject) ↔ {{ $swap->offered_subject }}@endif</p>
+            <span class="badge text-bg-success align-self-start mb-3">Session finished</span>
+            <a href="{{ route('messages', ['conversation' => $swap->conversation->id]) }}" class="btn btn-outline-secondary mt-auto">Review conversation</a>
+          </article>
+        </div>
+      @endforeach
     </div>
   @endif
 </div>

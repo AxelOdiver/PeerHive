@@ -68,11 +68,12 @@ class LearningHubTest extends TestCase
         $this->actingAs($host)->get('/study-sessions?filter=mine')->assertSee('Python practice')->assertSee('Hosting');
         foreach (['completed', 'cancelled'] as $status) {
             $session->update(['status' => $status]);
-            $this->get('/study-sessions?filter=mine')->assertSee('Python practice')->assertSee(ucfirst($status));
+            $this->get('/study-sessions?filter=mine')->assertDontSee('Python practice');
+            $this->get('/study-sessions?filter=history')->assertSee('Python practice')->assertSee(ucfirst($status));
         }
         $this->actingAs($outsider)->get('/study-sessions?filter=mine')->assertDontSee('Python practice');
         $this->actingAs($host)->get('/progress')->assertSee('Back to Dashboard');
-        $this->get('/dashboard')->assertSee('My sessions')->assertSee('Create a session');
+        $this->get('/dashboard')->assertSee(route('study-sessions.index'), false);
     }
 
     public function test_session_start_notifications_are_personal_and_clear_only_after_opening_a_started_session(): void

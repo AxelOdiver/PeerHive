@@ -30,11 +30,18 @@ function swapSwalOptions(overrides = {}) {
 $('#btnradio1').on('change', function () {
   $('#sentPanel').show();
   $('#receivedPanel').hide();
+  $('#historyPanel').hide();
 });
 
 $('#btnradio2').on('change', function () {
   $('#sentPanel').hide();
   $('#receivedPanel').show();
+  $('#historyPanel').hide();
+});
+
+$('#btnradio3').on('change', function () {
+  $('#sentPanel, #receivedPanel').hide();
+  $('#historyPanel').show();
 });
 
 // Cancel / Unswap (sent tab)
@@ -208,15 +215,16 @@ async function refreshSwapPanels() {
   if (document.hidden || swapRefreshPending || window.Swal?.isVisible() || $('.respond-swap-btn:disabled, .cancel-swap-btn:disabled').length) return;
   swapRefreshPending = true;
   try {
-    const response = await fetch($('#btnradio1').is(':checked') ? '/swap?tab=sent' : '/swap?refresh=1&tab=received', { headers: { Accept: 'text/html' } });
+    const selectedTab = $('#btnradio1').is(':checked') ? 'sent' : ($('#btnradio2').is(':checked') ? 'received' : 'history');
+    const response = await fetch(`/swap?refresh=1&tab=${selectedTab}`, { headers: { Accept: 'text/html' } });
     if (!response.ok || response.redirected) return;
     window.refreshSidebarMessagesBadge?.();
     const page = new DOMParser().parseFromString(await response.text(), 'text/html');
-    for (const id of ['sentPanel', 'receivedPanel']) {
+    for (const id of ['sentPanel', 'receivedPanel', 'historyPanel']) {
       const replacement = page.getElementById(id);
       if (replacement) document.getElementById(id).innerHTML = replacement.innerHTML;
     }
-    for (const id of ['btnradio1', 'btnradio2']) {
+    for (const id of ['btnradio1', 'btnradio2', 'btnradio3']) {
       const label = page.querySelector(`label[for="${id}"]`);
       if (label) document.querySelector(`label[for="${id}"]`).innerHTML = label.innerHTML;
     }
@@ -227,3 +235,4 @@ setInterval(refreshSwapPanels, 15000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshSwapPanels(); });
 
 $('#btnradio1').on('change', refreshSwapPanels);
+$('#btnradio2, #btnradio3').on('change', refreshSwapPanels);

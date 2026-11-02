@@ -52,6 +52,13 @@
     font-weight: 500;
   }
 
+  #bookingCalendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .25rem; }
+  #bookingCalendar > div { min-width: 0; }
+  @media (max-width: 575.98px) {
+    #bookingCalendar > div:not(.calendar-weekday) { min-height: 64px !important; font-size: .75rem; }
+    #bookingCalendar .calendar-event { white-space: normal; line-height: 1.15; }
+  }
+
   @media (max-width: 575.98px) {
     .availability-tile {
       min-height: 120px;
@@ -70,9 +77,13 @@
 @endpush
 
 @section('content')
-<ul class="nav nav-pills gap-2 mb-4" role="tablist"><li class="nav-item" role="presentation"><button class="nav-link active" id="availabilityTab" data-bs-toggle="pill" data-bs-target="#availabilityPanel" type="button" role="tab" aria-controls="availabilityPanel" aria-selected="true">My Availability</button></li><li class="nav-item" role="presentation"><button class="nav-link" id="bookingsTab" data-bs-toggle="pill" data-bs-target="#bookingsPanel" type="button" role="tab" aria-controls="bookingsPanel" aria-selected="false">Upcoming Sessions</button></li></ul>
-<div class="tab-content"><div class="tab-pane fade" id="bookingsPanel" role="tabpanel" aria-labelledby="bookingsTab"><x-session-bookings :bookings="$bookings" :confirmations="$confirmations" /></div><div class="tab-pane fade show active" id="availabilityPanel" role="tabpanel" aria-labelledby="availabilityTab">
 <h2 class="mb-3 fw-bold">Schedule</h2>
+<ul class="nav nav-pills gap-2 mb-4" role="tablist"><li class="nav-item" role="presentation"><button class="nav-link active" id="availabilityTab" data-bs-toggle="pill" data-bs-target="#availabilityPanel" type="button" role="tab" aria-controls="availabilityPanel" aria-selected="true">My Availability</button></li><li class="nav-item" role="presentation"><button class="nav-link" id="bookingsTab" data-bs-toggle="pill" data-bs-target="#bookingsPanel" type="button" role="tab" aria-controls="bookingsPanel" aria-selected="false">Booked Sessions</button></li></ul>
+<div class="tab-content"><div class="tab-pane fade" id="bookingsPanel" role="tabpanel" aria-labelledby="bookingsTab">
+  <div class="card shadow-sm mb-3"><div class="card-header d-flex align-items-center justify-content-between gap-2"><button type="button" class="btn btn-sm btn-outline-secondary" id="calendarPrevious" aria-label="Previous month"><i class="bi bi-chevron-left"></i></button><h3 class="h5 mb-0" id="bookingCalendarTitle"></h3><button type="button" class="btn btn-sm btn-outline-secondary" id="calendarNext" aria-label="Next month"><i class="bi bi-chevron-right"></i></button></div><div class="card-body"><div class="small text-muted mb-2">Booked sessions · {{ $timezone }}</div><div id="bookingCalendar"></div></div></div>
+  <script type="application/json" id="bookingCalendarEvents">@json($bookingEvents)</script>
+  <x-session-bookings :bookings="$bookings" :confirmations="$confirmations" />
+</div><div class="tab-pane fade show active" id="availabilityPanel" role="tabpanel" aria-labelledby="availabilityTab">
 <!-- Week Availability  -->
 <div class="card shadow-sm">
   <div class="card-header">

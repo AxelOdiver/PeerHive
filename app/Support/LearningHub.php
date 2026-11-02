@@ -25,12 +25,19 @@ class LearningHub
 
     public static function award(StudySession $session, int $user): void
     {
+        if ($session->starts_at->diffInMinutes($session->ends_at) < 15) return;
+        DB::transaction(function () use ($session, $user) {
+        User::whereKey($user)->lockForUpdate()->firstOrFail();
+        $earned = DB::table('point_entries')->where('user_id', $user)->where('points', '>', 0)
+            ->whereNotNull('study_session_id')->where('created_at', '>=', now()->startOfDay())->sum('points');
+        if ($earned + config('learning.session_points') > 90) return;
         DB::table('point_entries')->insertOrIgnore([
             'user_id' => $user, 'study_session_id' => $session->id,
             'event_key' => 'session:'.$session->id.':user:'.$user,
             'points' => config('learning.session_points'), 'description' => 'Confirmed session: '.$session->title,
             'created_at' => now(), 'updated_at' => now(),
         ]);
+        });
     }
 
     public static function records(User $user)

@@ -73,15 +73,19 @@ class SwapController extends Controller
             \App\Support\BellNotifications::query(auth()->id())->where('kind', 'swap')
                 ->where('event_key', 'like', 'swap:%:response:%')->whereNull('read_at')->update(['read_at' => now()]);
         }
-        $sent = Swap::with(['requestedUser', 'requester'])
+        $sent = Swap::with(['requestedUser', 'requester', 'conversation'])
             ->where('requester_id', auth()->id())
             ->get();
 
-        $received = Swap::with(['requestedUser', 'requester'])
+        $received = Swap::with(['requestedUser', 'requester', 'conversation'])
             ->where('requested_user_id', auth()->id())
             ->get();
 
-        return view('swap', compact('sent', 'received'));
+        $history = $sent->concat($received)->filter(fn ($swap) => $swap->conversation?->isSessionFinished())->unique('id')->values();
+        $sent = $sent->reject(fn ($swap) => $swap->conversation?->isSessionFinished())->values();
+        $received = $received->reject(fn ($swap) => $swap->conversation?->isSessionFinished())->values();
+
+        return view('swap', compact('sent', 'received', 'history'));
     }
 
     public function respond(Request $request, Swap $swap)

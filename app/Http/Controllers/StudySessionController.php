@@ -16,9 +16,14 @@ class StudySessionController extends Controller
         $filter = $request->query('filter', 'all');
         $sessions = StudySession::visibleTo($request->user())->with(['community', 'host.approvedTeachingQualifications'])
             ->withCount('participants');
-        if ($filter === 'mine') {
+        if ($filter === 'history') {
+            $sessions->whereIn('status', ['completed', 'cancelled'])
+                ->where(fn ($q) => $q->where('host_id', auth()->id())
+                    ->orWhereHas('participants', fn ($participants) => $participants->where('user_id', auth()->id())));
+        } elseif ($filter === 'mine') {
             $sessions->where(fn ($q) => $q->where('host_id', auth()->id())
-                ->orWhereHas('participants', fn ($participants) => $participants->where('user_id', auth()->id())));
+                ->orWhereHas('participants', fn ($participants) => $participants->where('user_id', auth()->id())))
+                ->whereNotIn('status', ['completed', 'cancelled']);
         } else {
             $sessions->where('status', 'scheduled')->where('starts_at', '>', now());
         }

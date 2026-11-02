@@ -6,12 +6,12 @@
   <a href="{{ route('study-sessions.create', ['community' => request('community')]) }}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Create a session</a>
 </x-learning-header>
 <nav class="d-flex gap-2 flex-wrap mb-4" aria-label="Filter sessions">
-@foreach(['all'=>'All sessions','peer'=>'Peer study groups','tutor'=>'Tutor-led','mine'=>'My sessions'] as $value=>$label)
+@foreach(['all'=>'All sessions','peer'=>'Peer study groups','tutor'=>'Tutor-led','mine'=>'My sessions','history'=>'History'] as $value=>$label)
   <a href="{{ route('study-sessions.index', ['filter'=>$value,'community'=>request('community')]) }}" class="btn {{ $filter === $value ? 'btn-primary' : 'btn-outline-secondary' }}" @if($filter===$value) aria-current="page" @endif>{{ $label }}</a>
 @endforeach
 @if(request('community'))<a href="{{ route('study-sessions.index') }}" class="btn btn-link">Clear community filter</a>@endif
 </nav>
-@if($filter === 'mine')<p class="text-muted small">Sessions you host or have joined stay here after they start, including completed and cancelled sessions.</p>@endif
+@if($filter === 'mine')<p class="text-muted small">Sessions you host or have joined that are still upcoming or in progress.</p>@elseif($filter === 'history')<p class="text-muted small">Completed and cancelled sessions you hosted or joined.</p>@endif
 <div class="row g-3">
 @forelse($sessions as $session)
 <div class="col-12 col-md-6 col-xl-4"><article class="card h-100 shadow-sm border-0 rounded-4">
@@ -26,7 +26,7 @@
   </div>
 </article></div>
 @empty
-<div class="col-12"><div class="card border-0 shadow-sm"><div class="card-body text-center py-5"><i class="bi bi-people fs-1 text-muted"></i><h2 class="h5 mt-3">{{ $filter === 'mine' ? 'You have no sessions here yet' : 'No upcoming sessions here yet' }}</h2><p class="text-muted">Create a session in a community you belong to, or try another filter.</p><a href="{{ route('community') }}" class="btn btn-outline-primary">Explore communities</a></div></div></div>
+<div class="col-12"><div class="card border-0 shadow-sm"><div class="card-body text-center py-5"><i class="bi bi-people fs-1 text-muted"></i><h2 class="h5 mt-3">{{ $filter === 'history' ? 'No session history yet' : ($filter === 'mine' ? 'You have no active sessions here yet' : 'No upcoming sessions here yet') }}</h2><p class="text-muted">{{ $filter === 'history' ? 'Finished sessions will appear here.' : 'Create a session in a community you belong to, or try another filter.' }}</p>@if($filter !== 'history')<a href="{{ route('community') }}" class="btn btn-outline-primary">Explore communities</a>@endif</div></div></div>
 @endforelse
 </div><div class="mt-4">{{ $sessions->links() }}</div>
 @endsection

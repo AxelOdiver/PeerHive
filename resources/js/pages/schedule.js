@@ -9,6 +9,54 @@ $(document).ready(function() {
   const $availabilityForm = $('#availabilityForm');
   const $clearTimeBtn = $('#clearTimeBtn');
 
+  const calendar = document.getElementById('bookingCalendar');
+  if (calendar) {
+    const events = JSON.parse(document.getElementById('bookingCalendarEvents')?.textContent || '[]');
+    let month = new Date();
+    month.setDate(1);
+    const title = document.getElementById('bookingCalendarTitle');
+    const renderCalendar = () => {
+      const year = month.getFullYear();
+      const monthIndex = month.getMonth();
+      title.textContent = month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      calendar.replaceChildren();
+      ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(day => {
+        const label = document.createElement('div');
+        label.className = 'calendar-weekday text-center small fw-semibold text-muted pb-2';
+        label.textContent = day;
+        calendar.append(label);
+      });
+      const offset = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
+      const count = new Date(year, monthIndex + 1, 0).getDate();
+      for (let i = 0; i < offset + count; i++) {
+        const cell = document.createElement('div');
+        cell.className = '';
+        if (i >= offset) {
+          const day = i - offset + 1;
+          const dateKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          cell.classList.add('border', 'rounded', 'p-1');
+          cell.style.minHeight = '88px';
+          const number = document.createElement('div');
+          number.className = 'small fw-semibold';
+          number.textContent = day;
+          cell.append(number);
+          events.filter(event => event.date === dateKey).forEach(event => {
+            const link = document.createElement('a');
+            link.className = 'calendar-event d-block small text-truncate text-decoration-none mt-1';
+            link.href = event.url;
+            link.textContent = `${event.time} · ${event.title}`;
+            link.title = `${event.time} · ${event.title}`;
+            cell.append(link);
+          });
+        }
+        calendar.append(cell);
+      }
+    };
+    document.getElementById('calendarPrevious').addEventListener('click', () => { month.setMonth(month.getMonth() - 1); renderCalendar(); });
+    document.getElementById('calendarNext').addEventListener('click', () => { month.setMonth(month.getMonth() + 1); renderCalendar(); });
+    renderCalendar();
+  }
+
   let availability = {};
 
   function syncAvailability(schedule = []) {

@@ -12,7 +12,14 @@ class ScheduleController extends Controller
     {
         $bookings = \App\Models\StudyParticipant::where('user_id', auth()->id())->with('session')->whereHas('session', fn ($q) => $q->where('status', 'scheduled'))->get()->sortBy('session.starts_at');
         $confirmations = \App\Models\StudyParticipant::where('user_id', auth()->id())->whereNotNull('attended_at')->whereNull('confirmed_at')->with('session')->whereHas('session', fn ($q) => $q->where('status', 'completed')->where('host_id', '!=', auth()->id()))->get();
-        return view('schedule', compact('bookings', 'confirmations'));
+        $timezone = auth()->user()->learning_timezone;
+        $bookingEvents = $bookings->map(fn ($booking) => [
+            'title' => $booking->session->title,
+            'date' => $booking->session->starts_at->copy()->setTimezone($timezone)->format('Y-m-d'),
+            'time' => $booking->session->starts_at->copy()->setTimezone($timezone)->format('g:i A'),
+            'url' => route('study-sessions.show', $booking->session),
+        ])->values();
+        return view('schedule', compact('bookings', 'confirmations', 'bookingEvents', 'timezone'));
     }
 
     // Fetch the logged-in user's schedule
