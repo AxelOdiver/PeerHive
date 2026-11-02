@@ -12,6 +12,21 @@ class SecurityHardeningTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_photo_preview_checks_membership_and_actual_file_content(): void
+    {
+        Storage::fake('local');
+        $user = User::factory()->create();
+        $chat = Conversation::create(['created_by' => $user->id, 'is_group' => false]);
+        $chat->users()->attach($user->id);
+        $message = Message::create(['sender_id' => $user->id, 'conversation_id' => $chat->id, 'attachment_path' => 'message_attachments/photo.png', 'attachment_name' => 'photo.png', 'attachment_type' => 'image/png']);
+        Storage::disk('local')->put($message->attachment_path, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII='));
+        $url = route('private.message', $message).'?preview=1';
+        $this->actingAs($user)->get($url)->assertOk()->assertHeader('Content-Type', 'image/png')->assertHeader('Content-Disposition', 'inline');
+        $this->actingAs(User::factory()->create())->get($url)->assertForbidden();
+        Storage::disk('local')->put($message->attachment_path, '<svg onload="alert(1)"></svg>');
+        $this->actingAs($user)->get($url)->assertNotFound();
+    }
+
     public function test_proof_downloads_require_owner_or_admin_and_session_rewards_have_limits(): void
     {
         Storage::fake('local');

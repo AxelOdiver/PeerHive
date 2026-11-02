@@ -45,10 +45,16 @@
         <form id="messageForm" class="d-flex align-items-center gap-2">
           <input type="hidden" id="activeConversationId" value="">
           <input type="hidden" id="replyToId" value="">
-          <label class="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center p-0 mb-0 flex-shrink-0" style="width:40px;height:40px;min-width:40px;min-height:40px;cursor:pointer;overflow:hidden;" title="Attach a file">
+          <div class="dropup flex-shrink-0">
+          <button type="button" id="chooseAttachmentBtn" class="btn btn-outline-secondary shadow-none rounded-circle d-inline-flex align-items-center justify-content-center p-0" style="width:38px;height:38px;font-size:1rem;" data-bs-toggle="dropdown" aria-expanded="false" title="Add photo or file" aria-label="Add photo or file">
             <i class="bi bi-plus-lg"></i>
-            <input type="file" id="attachmentInput" class="d-none">
-          </label>
+          </button>
+          <ul class="dropdown-menu shadow rounded-3 p-2" aria-labelledby="chooseAttachmentBtn">
+            <li><button type="button" class="dropdown-item rounded-2 py-2" data-attachment-kind="photo"><i class="bi bi-image text-primary me-2"></i>Photo</button></li>
+            <li><button type="button" class="dropdown-item rounded-2 py-2" data-attachment-kind="file"><i class="bi bi-paperclip text-primary me-2"></i>File</button></li>
+          </ul>
+          </div>
+          <input type="file" id="attachmentInput" class="d-none">
           <button type="button" id="createSessionBtn" class="btn btn-outline-primary rounded-circle flex-shrink-0 d-none" style="width:40px;height:40px;padding:0;" title="Create a session" aria-label="Create a session"><i class="bi bi-calendar-plus"></i></button>
           <input type="text" id="messageInput" maxlength="2000" class="form-control rounded-pill" placeholder="Type a message...">
           <button type="submit" class="btn btn-primary rounded-pill px-4">Send</button>
@@ -291,7 +297,7 @@
 
 <script type="text/x-template" id="message-template-load-conversation-1"><p class="text-muted text-center p-3">[[slot0]]</p></script>
 
-<script type="text/x-template" id="message-template-buttons-1"><div class="dropdown"><button type="button" class="btn btn-sm btn-outline-secondary rounded-circle" data-bs-toggle="dropdown" aria-label="Conversation options" title="Conversation options"><i class="bi bi-three-dots-vertical"></i></button><ul class="dropdown-menu dropdown-menu-end"><li><button type="button" class="dropdown-item" id="chatInfoBtn"><i class="bi bi-info-circle me-2"></i>Conversation info</button></li>[[slot0]]</ul></div></script>
+<script type="text/x-template" id="message-template-buttons-1"><button type="button" class="btn border-0 bg-transparent text-body-secondary shadow-none d-inline-flex align-items-center justify-content-center p-0" style="width:32px;height:32px;" id="chatInfoBtn" aria-label="Conversation info" title="Conversation info"><i class="bi bi-info-circle-fill" style="font-size:1.5rem;line-height:1;" aria-hidden="true"></i></button></script>
 
 <script type="text/x-template" id="message-template-render-chat-header-1">
       <div class="d-flex justify-content-between align-items-center w-100">
@@ -404,8 +410,8 @@
 <script type="text/x-template" id="message-template-show-conversation-info-2">
           <div class="text-center mb-4"><div class="info-conversation-avatar rounded-circle bg-primary-subtle text-primary mx-auto mb-3"><i class="bi [[slot0]]"></i></div><h5>[[slot1]]</h5><p class="text-muted small">[[slot2]]</p></div>
           <div class="d-flex justify-content-center gap-4 mb-4">
-            <button type="button" class="btn mute-group-btn" data-conversation-id="[[slot3]]" data-muted="[[slot4]]"><i class="bi [[slot5]] info-action-icon"></i>[[slot6]]</button>
-            <button type="button" class="btn" id="searchChatBtn"><i class="bi bi-search info-action-icon"></i>Search</button>
+            <button type="button" class="btn shadow-none mute-group-btn" data-conversation-id="[[slot3]]" data-muted="[[slot4]]"><i class="bi [[slot5]] info-action-icon"></i>[[slot6]]</button>
+            <button type="button" class="btn shadow-none" id="searchChatBtn"><i class="bi bi-search info-action-icon"></i>Search</button>
           </div>
           <details class="border-top py-3" open><summary class="fw-semibold">Chat info</summary><p class="small text-muted mt-2">[[slot7]]</p></details>
           <details class="border-top py-3"><summary class="fw-semibold">[[slot8]]</summary>[[slot9]][[slot10]]</details>

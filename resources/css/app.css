@@ -8,6 +8,10 @@
     height: 2.25rem;
 }
 
+.session-finish-dialog .swal2-input { background: var(--bs-body-bg); color: var(--bs-body-color); border-color: var(--bs-border-color); }
+.session-finish-dialog .swal2-input::placeholder { color: var(--bs-secondary-color); }
+.session-finish-dialog .swal2-validation-message { background: var(--bs-tertiary-bg); color: var(--bs-body-color); }
+
 .tutorial-icon { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 16px; background: rgba(var(--bs-primary-rgb), .12); color: var(--bs-primary); font-size: 1.6rem; }
 .tutorial-card .carousel-inner { min-height: 220px; }
 .tutorial-controls { display: grid !important; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
@@ -460,7 +464,8 @@ div.dt-container .dt-button.btn {
 .chat-details-panel > section { height: 100%; min-height: 0; }
 .info-conversation-avatar { width: 76px; height: 76px; display: grid; place-items: center; font-size: 2rem; }
 .info-member-avatar { width: 32px; height: 32px; object-fit: cover; }
-.info-action-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--bs-tertiary-bg); margin: 0 auto 6px; font-size: 1.2rem; }
+.info-action-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid currentColor; background: transparent; box-shadow: none; margin: 0 auto 6px; font-size: 1.2rem; }
+#chooseAttachmentBtn:focus-visible, #chatInfoBtn:focus-visible, #chatInfoContent .btn:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
 @media (min-width: 768px) and (max-width: 1100px) {
   .messaging-columns > .chat-sidebar { width: 190px; }
   .chat-details-panel { width: 250px; }

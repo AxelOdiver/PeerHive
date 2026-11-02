@@ -90,9 +90,10 @@ $(document).ready(function () {
 
   function renderAttachment(m) {
     if (!m.attachment_url) return '';
-    const isImage = m.attachment_type && m.attachment_type.startsWith('image/') && !m.attachment_url.includes('/private/');
+    const isImage = ['image/jpeg', 'image/png', 'image/webp'].includes(m.attachment_type);
     if (isImage) {
-      return renderTemplate('message-template-render-attachment-1', [escapeHtml(m.attachment_url), escapeHtml(m.attachment_url)]);
+      const preview = m.attachment_url.includes('/private/') ? m.attachment_url + '?preview=1' : m.attachment_url;
+      return renderTemplate('message-template-render-attachment-1', [escapeHtml(preview), escapeHtml(preview)]);
     }
     return renderTemplate('message-template-render-attachment-2', [escapeHtml(m.attachment_url), m.is_mine ? 'text-white' : 'text-body', escapeHtml(m.attachment_name)]);
   }
@@ -310,7 +311,15 @@ $(document).ready(function () {
     const action = this.dataset.sessionAction;
     let minutes = null;
     if (action === 'finish' && sessionBeforeStart) {
-      const answer = await window.Swal.fire({title: 'Finish ahead of schedule', text: 'How many minutes did you actually study? Your partner must confirm this time too.', input: 'number', inputAttributes: {min: '1', max: '240', step: '1'}, showCancelButton: true, confirmButtonText: 'Confirm my attendance', inputValidator: value => !Number.isInteger(Number(value)) || Number(value) < 1 ? 'Enter the actual number of minutes.' : undefined});
+      const answer = await window.Swal.fire({
+        title: 'Finish ahead of schedule',
+        text: 'How many minutes did you actually study? Your partner must confirm this time too.',
+        input: 'number', inputAttributes: {min: '1', max: '240', step: '1'},
+        showCancelButton: true, confirmButtonText: 'Confirm my attendance',
+        background: 'var(--bs-body-bg)', color: 'var(--bs-body-color)', buttonsStyling: false,
+        customClass: {popup: 'session-finish-dialog rounded-4', input: 'form-control', actions: 'gap-2', confirmButton: 'btn btn-primary', cancelButton: 'btn btn-outline-secondary'},
+        inputValidator: value => !Number.isInteger(Number(value)) || Number(value) < 1 ? 'Enter the actual number of minutes.' : undefined,
+      });
       if (!answer.isConfirmed) return;
       minutes = answer.value;
     } else if (['finish', 'cancel'].includes(action)) {
@@ -445,6 +454,12 @@ $(document).ready(function () {
     });
   });
 
+  $('[data-attachment-kind]').on('click', function () {
+    if (sessionFinished || activeConversation?.blocked_between_us) return;
+    $attachmentInput.attr('accept', this.dataset.attachmentKind === 'photo' ? '.jpg,.jpeg,.png,.webp' : '.pdf,.txt,.docx,.pptx,.xlsx');
+    window.bootstrap.Dropdown.getInstance(document.getElementById('chooseAttachmentBtn'))?.hide();
+    $attachmentInput.trigger('click');
+  });
   $attachmentInput.on('change', function () {
     selectedFile = this.files[0] || null;
     if (selectedFile) {

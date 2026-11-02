@@ -11,6 +11,18 @@ class PrivateFileController extends Controller
     {
         abort_unless($message->conversation->users()->where('users.id', auth()->id())->exists(), 403);
         abort_if($message->is_unsent || !$message->attachment_path, 404);
+        if (request()->boolean('preview')) {
+            $disk = Storage::disk('local')->exists($message->attachment_path) ? 'local' : 'public';
+            abort_unless(preg_match('#^message_attachments/[a-zA-Z0-9_.-]+$#D', $message->attachment_path) && Storage::disk($disk)->exists($message->attachment_path), 404);
+            $bytes = Storage::disk($disk)->get($message->attachment_path);
+            $mime = @getimagesizefromstring($bytes)['mime'] ?? null;
+            abort_unless(in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true), 404);
+            return response($bytes)->withHeaders([
+                'Content-Type' => $mime, 'Content-Disposition' => 'inline',
+                'X-Content-Type-Options' => 'nosniff', 'Cache-Control' => 'private, no-store',
+                'Content-Security-Policy' => "sandbox; default-src 'none'",
+            ]);
+        }
         return $this->download($message->attachment_path, $message->attachment_name ?: 'attachment');
     }
 

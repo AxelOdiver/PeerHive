@@ -1,7 +1,7 @@
 # Security changes and recovery
 
 The application now requires the OTP migration `2026_11_02_000003_protect_login_otps.php`.
-New messages and qualification proofs use `storage/app/private`. Downloads require membership or proof ownership/admin review, use attachment disposition, and disable MIME sniffing. Downloaded images are intentionally not rendered inline.
+New messages and qualification proofs use `storage/app/private`. Downloads require membership or proof ownership/admin review, use attachment disposition, and disable MIME sniffing. Chat photo previews use the same membership check and allow inline rendering only when the stored bytes identify as JPEG, PNG, or WebP. Other file types remain downloads.
 
 Before upgrading an existing installation, stop new writes, back up `.env` securely, and run `php artisan security:prepare`. This creates a local SQL backup and copies confidential uploads to a dated backup under `storage/app/private/security-backups`, verifies transferred file hashes, then retires their public copies. Backups contain personal data: do not commit or share them. Run migrations and restart application workers afterward. Existing plaintext OTPs expire normally; new codes use password hashes with a five-attempt limit.
 
