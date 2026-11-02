@@ -17,6 +17,14 @@ class CommunityController extends Controller
 
     public function store (Request $request)
     {
+        // Older forms and profile qualifications use both labels. Keep the
+        // community value canonical while accepting either user-facing label.
+        $request->merge([
+            'subject' => match (trim((string) $request->input('subject'))) {
+                'Graphic Design' => 'Graphic Designing',
+                default => trim((string) $request->input('subject')),
+            },
+        ]);
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'subject' => 'required|string|in:Coding,Foreign Language,Graphic Designing',
@@ -101,6 +109,7 @@ class CommunityController extends Controller
     public function storePost(Request $request, $id)
     {
         $community = Community::findOrFail($id);
+        abort_unless(\App\Support\LearningHub::member($request->user(), $community), 403);
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -184,6 +193,8 @@ class CommunityController extends Controller
     // comments are stored here
     public function storeComment(Request $request, $postId)
     {
+        $post = Post::with('community')->findOrFail($postId);
+        abort_unless($post->community && \App\Support\LearningHub::member($request->user(), $post->community), 403);
         $request->validate(['body' => 'required|string|max:1000']);
 
         Comment::create([

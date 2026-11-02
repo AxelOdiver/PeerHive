@@ -13,7 +13,7 @@ $isMember = auth()->check() && $community->members->contains('id', auth()->id())
   </a>
   
   <!-- Main content area with community details -->
-  <div class="card border-0 shadow-sm rounded-4 mb-4"><div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3"><div><h2 class="h5 mb-1">Study together</h2><p class="small text-muted mb-0">Find peer study groups and tutor-led sessions in this community.</p></div><div class="d-flex gap-2"><a class="btn btn-outline-primary" href="{{ route('study-sessions.index',['community'=>$community->id]) }}">View sessions</a>@if($isMember || $isCommunityManager)<a class="btn btn-primary" href="{{ route('study-sessions.create',['community'=>$community->id]) }}">Create a session</a>@endif</div></div></div>
+  <div class="card border-0 shadow-sm rounded-4 mb-4"><div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3"><div><h2 class="h5 mb-1">Study together</h2><p class="small text-muted mb-0">Find peer study groups and tutor-led sessions in this community.</p></div><div class="d-flex gap-2 ms-auto"><a class="btn btn-outline-primary" href="{{ route('study-sessions.index',['community'=>$community->id]) }}">View sessions</a>@if($isMember || $isCommunityManager)<a class="btn btn-primary" href="{{ route('study-sessions.create',['community'=>$community->id]) }}">Create a session</a>@endif</div></div></div>
   <div class="row align-items-stretch g-3 mb-4">
     
     <!-- TOP LEFT: Community Description -->
@@ -388,6 +388,7 @@ $isMember = auth()->check() && $community->members->contains('id', auth()->id())
       <label for="reportDetails" class="form-label">Additional Details (Optional)</label>
       <textarea class="form-control" id="reportDetails" name="details" rows="3" placeholder="Provide any extra context..."></textarea>
     </div>
+    <div class="form-check"><input class="form-check-input" type="checkbox" id="reportBlockUser"><label class="form-check-label" for="reportBlockUser">Also block this account from direct messages</label><div class="form-text">Blocking does not remove this person from shared groups.</div></div>
   </form>
   <x-slot:footer>
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

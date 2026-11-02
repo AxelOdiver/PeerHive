@@ -2,7 +2,16 @@ $(document).ready(function () {
   const $editForm = $('#communityForm');
   const $saveButton = $('#saveCommunityBtn');
   const $modalTitle = $('.modal-title');
+  const communityModal = document.getElementById('communityModal');
+  let communityModalOpener = null;
   let formMode = 'create';
+
+  communityModal?.addEventListener('hide.bs.modal', function () {
+    if (communityModal.contains(document.activeElement)) document.activeElement.blur();
+  });
+  communityModal?.addEventListener('hidden.bs.modal', function () {
+    communityModalOpener?.focus();
+  });
 
   function clearValidationErrors() {
     $editForm.find('.is-invalid').removeClass('is-invalid');
@@ -45,6 +54,7 @@ $(document).ready(function () {
   }
 
   $('.create-community-btn').on('click', function () {
+    communityModalOpener = this;
     $editForm[0].reset();
     clearValidationErrors();
     setModalMode('create');
@@ -72,6 +82,10 @@ $(document).ready(function () {
       url: url,
       method: method,
       data: formData,
+      headers: {
+        Accept: 'application/json',
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+      },
       success: function (response) {
         window.toast('success', response.message || 'Community saved successfully.');
         clearValidationErrors();
@@ -84,7 +98,10 @@ $(document).ready(function () {
           window.toast('error', 'Please fix the highlighted fields.');
           return;
         }
-        window.toast('error', 'Failed to save community details.');
+        const fieldMessages = xhr.responseJSON?.errors ? Object.values(xhr.responseJSON.errors).flat().join(' ') : '';
+        const safeMessage = xhr.status >= 400 && xhr.status < 500 ? xhr.responseJSON?.message : '';
+        console.error('Community save failed', xhr.status, xhr.responseJSON || xhr.responseText);
+        window.toast('error', fieldMessages || safeMessage || `Could not save community (error ${xhr.status || 'network'}). See the browser console for details.`);
       },
     });
   });

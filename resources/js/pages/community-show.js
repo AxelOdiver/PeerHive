@@ -226,10 +226,10 @@ $(document).ready(function () {
                                 // 1. Determine which avatar to show (Picture or Initial)
                                 let avatarHtml = '';
                                 if (user.profile_picture) {
-                                    avatarHtml = `<img src="/storage/${user.profile_picture}" alt="${user.name}" class="rounded-circle object-fit-cover shadow-sm" style="width: 32px; height: 32px;">`;
+                                    avatarHtml = '';
                                 } else {
                                     avatarHtml = `<div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                                                    <span class="text-light fw-bold small">${user.name.charAt(0).toUpperCase()}</span>
+                                                    <span class="text-light fw-bold small"></span>
                                                   </div>`;
                                 }
                                 
@@ -240,12 +240,15 @@ $(document).ready(function () {
                                     html: `
                                         ${avatarHtml}
                                         <div>
-                                            <div class="fw-bold fs-6 mb-0" style="line-height: 1.2;">${user.name}</div>
-                                            <div class="small text-muted">${user.email}</div>
+                                            <div class="fw-bold fs-6 mb-0" style="line-height: 1.2;"></div>
+                                            <div class="small text-muted"></div>
                                         </div>
                                     `
                                 });
                                 
+                                $item.find('.fw-bold.fs-6').text(user.name);
+                                $item.find('.small.text-muted').text(user.username || '');
+                                $item.find('span').text(user.name.charAt(0).toUpperCase());
                                 // Click event to select the peer
                                 $item.on('click', function(e) {
                                     e.preventDefault();
@@ -375,7 +378,8 @@ $(document).ready(function () {
                 reportable_id: $('#reportable_id').val(),
                 reportable_type: $('#reportable_type').val(),
                 reason: $('#reportReason').val(),
-                details: $('#reportDetails').val()
+                details: $('#reportDetails').val(),
+                block_user: $('#reportBlockUser').is(':checked') ? 1 : 0
             },
             success: function(response) {
                 bootstrap.Modal.getInstance(document.getElementById('reportModal')).hide();

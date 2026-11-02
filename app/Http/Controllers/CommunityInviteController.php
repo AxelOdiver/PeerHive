@@ -38,6 +38,7 @@ class CommunityInviteController extends Controller
     public function searchUsers(Request $request)
     {
         $search = $request->get('q');
+        if (!is_string($search) || mb_strlen(trim($search)) < 2) return response()->json([]);
         
         // Search first_name or last_name
         $users = User::where(function($query) use ($search) {
@@ -45,7 +46,7 @@ class CommunityInviteController extends Controller
                       ->orWhere('last_name', 'like', "%{$search}%");
             })
             ->where('id', '!=', auth()->id())
-            ->select('id', 'first_name', 'last_name', 'email', 'profile_picture') 
+            ->select('id', 'first_name', 'last_name', 'username', 'profile_picture')
             ->take(5)
             ->get();
 
@@ -53,7 +54,7 @@ class CommunityInviteController extends Controller
             return [
                 'id' => $user->id,
                 'name' => $user->first_name . ' ' . $user->last_name,
-                'email' => $user->email,
+                'username' => $user->username,
                 'profile_picture' => $user->profile_picture,
                 'initials' => substr($user->first_name, 0, 1)
             ];
@@ -79,6 +80,7 @@ class CommunityInviteController extends Controller
 
         // 1. Verify TRUE membership by checking the pivot table
         $community = Community::findOrFail($request->community_id);
+        abort_unless(auth()->id() === $community->user_id || auth()->user()->role === 'admin', 403);
         $isAlreadyMember = $community->members()->where('user_id', $invitedUser->id)->exists();
 
         // 2. Look up their historical invite record
@@ -125,10 +127,14 @@ class CommunityInviteController extends Controller
         }
 
         // Add them to the community
-        $invite->community->members()->syncWithoutDetaching([auth()->id()]);
-        
-        // Update the invite status so it disappears from their pending list
-        $invite->update(['status' => 'accepted']);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($invite) {
+            $community = Community::whereKey($invite->community_id)->lockForUpdate()->firstOrFail();
+            $locked = CommunityInvite::whereKey($invite->id)->lockForUpdate()->firstOrFail();
+            abort_unless($locked->status === 'pending', 409, 'This invitation is no longer pending.');
+            abort_if($community->members()->count() >= $community->member_limit, 409, 'This community is full.');
+            $community->members()->syncWithoutDetaching([auth()->id()]);
+            $locked->update(['status' => 'accepted']);
+        });
 
         return redirect()->route('community.show', $invite->community)
                          ->with('success', 'You have joined the community!');
@@ -143,6 +149,7 @@ class CommunityInviteController extends Controller
         }
 
         // Update the status to declined so it disappears from the bell
+        abort_unless($invite->status === 'pending', 409, 'This invitation is no longer pending.');
         $invite->update(['status' => 'declined']);
 
         return back()->with('success', 'Invitation declined.');
