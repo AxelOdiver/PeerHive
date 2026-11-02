@@ -39,12 +39,19 @@ class OtpController extends Controller
             return $this->sessionExpiredResponse($request);
         }
 
-        $otp = LoginOtp::where('user_id', $userId)
-            ->where('code', $request->code)
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($request, $userId) {
+        $otp = LoginOtp::where('user_id', $userId)->lockForUpdate()
             ->latest()
             ->first();
 
-        if (! $otp) {
+        if ($otp && $otp->attempts >= 5) {
+            return response()->json(['message' => 'Too many attempts. Request a new code.'], 429);
+        }
+        if ($otp) $otp->increment('attempts');
+        $valid = $otp && ($otp->code_hash
+            ? \Illuminate\Support\Facades\Hash::check($request->code, $otp->code_hash)
+            : hash_equals($otp->code, $request->code));
+        if (! $valid) {
             if ($request->expectsJson()) {
                 return response()->json(['errors' => ['code' => ['Invalid code. Please try again.']]], 422);
             }
@@ -99,6 +106,7 @@ class OtpController extends Controller
 
         $redirect = Auth::user()->role === 'admin' ? redirect()->route('users') : redirect()->route('dashboard');
         return $cookie ? $redirect->withCookie($cookie) : $redirect;
+        });
     }
 
     public function resend(Request $request)
@@ -117,7 +125,8 @@ class OtpController extends Controller
 
         LoginOtp::create([
             'user_id'    => $userId,
-            'code'       => $code,
+            'code'       => '******',
+            'code_hash'  => \Illuminate\Support\Facades\Hash::make($code),
             'expires_at' => now()->addMinutes(10),
         ]);
 

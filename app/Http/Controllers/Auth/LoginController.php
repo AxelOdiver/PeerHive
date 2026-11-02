@@ -39,6 +39,7 @@ class LoginController extends Controller
         if ($deviceToken) {
             $trusted = TrustedDevice::where('user_id', $user->id)
                 ->where('token', $deviceToken)
+                ->where('created_at', '>', now()->subDays(30))
                 ->first();
 
             if ($trusted) {
@@ -67,7 +68,8 @@ class LoginController extends Controller
 
         LoginOtp::create([
             'user_id'    => $user->id,
-            'code'       => $code,
+            'code'       => '******',
+            'code_hash'  => \Illuminate\Support\Facades\Hash::make($code),
             'expires_at' => now()->addMinutes(10),
         ]);
 
