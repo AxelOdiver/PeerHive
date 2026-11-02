@@ -36,6 +36,12 @@ class Community extends Model
     public function members()
     {
         return $this->belongsToMany(User::class)->withTimestamps();
-        return $this->belongsToMany(User::class, 'community_user');
+    }
+
+    public function joinRequests() { return $this->hasMany(CommunityJoinRequest::class); }
+
+    public function memberCount(): int
+    {
+        return $this->members()->count() + ($this->members()->where('users.id', $this->user_id)->exists() ? 0 : 1);
     }
 }

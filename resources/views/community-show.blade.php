@@ -5,7 +5,7 @@
 @section('content')
 @php
 $isCommunityManager = auth()->check() && (auth()->id() === $community->user_id || auth()->user()->role === 'admin');
-$isMember = auth()->check() && $community->members->contains('id', auth()->id());
+$isMember = auth()->check() && (auth()->id() === $community->user_id || $community->members->contains('id', auth()->id()));
 @endphp
 <div class="container-fluid py-1">
   <a href="{{ route('community') }}" class="btn btn-primary mb-4">
@@ -13,6 +13,19 @@ $isMember = auth()->check() && $community->members->contains('id', auth()->id())
   </a>
   
   <!-- Main content area with community details -->
+  @if(!$isMember && !$isCommunityManager)
+  <div class="card border-0 shadow-sm rounded-4 p-4 mb-4"><p>Join this community to post, comment, and participate in study sessions.</p>@include('components.community-join-actions')</div>
+  @endif
+  @if($isCommunityManager)
+  <section class="card border-0 shadow-sm rounded-4 p-4 mb-4" id="join-requests">
+    <h3 class="h5 mb-3">Join requests ({{ $joinRequests->count() }})</h3>
+    @forelse($joinRequests as $request)
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 border-bottom py-2"><span>{{ $request->user->first_name }} {{ $request->user->last_name }} @if($request->user->username)<span class="text-muted">{{ '@'.$request->user->username }}</span>@endif</span>
+        <form action="{{ route('community.join.respond', [$community, $request]) }}" method="POST" class="d-flex gap-2">@csrf<button class="btn btn-primary btn-sm" name="decision" value="approved">Approve</button><button class="btn btn-outline-secondary btn-sm" name="decision" value="declined">Decline</button></form>
+      </div>
+    @empty<p class="text-muted mb-0">No pending join requests.</p>@endforelse
+  </section>
+  @endif
   <div class="card border-0 shadow-sm rounded-4 mb-4"><div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3"><div><h2 class="h5 mb-1">Study together</h2><p class="small text-muted mb-0">Find peer study groups and tutor-led sessions in this community.</p></div><div class="d-flex gap-2 ms-auto"><a class="btn btn-outline-primary" href="{{ route('study-sessions.index',['community'=>$community->id]) }}">View sessions</a>@if($isMember || $isCommunityManager)<a class="btn btn-primary" href="{{ route('study-sessions.create',['community'=>$community->id]) }}">Create a session</a>@endif</div></div></div>
   <div class="row align-items-stretch g-3 mb-4">
     
@@ -78,7 +91,7 @@ $isMember = auth()->check() && $community->members->contains('id', auth()->id())
       <div class="text-muted mb-3">
         <i class="bi bi-person-circle me-1"></i> Created by {{ $community->user?->first_name }} {{ $community->user?->last_name ?? 'Unknown' }}
         <span class="mx-2">|</span>
-        <i class="bi bi-people-fill me-1"></i> Member Limit: {{ $community->member_limit }}
+        <i class="bi bi-people-fill me-1"></i> Members: {{ $memberCount }} / {{ $community->member_limit }}
       </div>
       <div class="mt-auto pt-2">
         <div class="d-flex flex-wrap gap-2 align-items-start mb-1">
@@ -172,6 +185,7 @@ $isMember = auth()->check() && $community->members->contains('id', auth()->id())
 
 <!-- Full-width section for posts, files, or chat features -->
 <div class="card border-0 shadow-sm rounded-4 mb-4 mt-4">
+  @if($isMember)
   <div class="card-body p-4 border-bottom border-secondary-subtle">
     <div class="d-flex gap-3 align-items-center">
       <input type="text" class="form-control rounded-pill bg-body-tertiary border-0 px-4 py-2" placeholder="Create a new post..." data-bs-toggle="modal" data-bs-target="#createPostModal" readonly style="cursor: pointer;">
@@ -180,6 +194,7 @@ $isMember = auth()->check() && $community->members->contains('id', auth()->id())
   </div>
   
   <!-- Posts feed -->
+  @endif
   <div id="postsFeed">
     @forelse($community->posts as $post)
     <div class="p-4 border-bottom border-secondary-subtle">
@@ -239,6 +254,7 @@ $isMember = auth()->check() && $community->members->contains('id', auth()->id())
         </button>
       </div>
       <div class="collapse mt-3 pt-3 border-top" id="commentsSection{{ $post->id }}">
+        @if($isMember)
         <form action="{{ route('comments.store', $post->id) }}" method="POST" class="mb-3">
           @csrf
           <div class="input-group input-group-sm shadow-sm rounded-pill overflow-hidden">
@@ -246,6 +262,7 @@ $isMember = auth()->check() && $community->members->contains('id', auth()->id())
             <button type="submit" class="btn btn-primary fw-bold px-4">Reply</button>
           </div>
         </form>
+        @endif
         
         <!-- Comments List -->
         <div class="d-flex flex-column gap-2">

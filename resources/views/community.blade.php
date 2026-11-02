@@ -22,13 +22,13 @@
   <div class="col-12 col-md-6 col-xl-4 mb-4">
     <div class="card border-0 shadow-sm rounded-4 p-3 h-100 w-100 position-relative">
       @if($canDeleteCommunity)
-      <div class="position-absolute top-0 end-0 m-3">
+      <div class="position-absolute top-0 end-0 m-3 z-2">
         <button class="btn btn-sm btn-danger rounded-2 delete-community-btn" data-id="{{ $community->id }}" title="Delete Community">
           <i class="bi bi-trash"></i>
         </button>
       </div>
       @endif
-      <h3 class="fw-bold mb-2 pe-5">{{ $community->name }}</h3>
+      <h3 class="fw-bold mb-2 pe-5"><a href="{{ route('community.show', $community) }}" class="stretched-link text-body-emphasis text-decoration-none">{{ $community->name }}</a></h3>
       <div class="text-muted small mb-2 fw-medium">
         <i class="bi bi-person-circle me-1"></i> 
         Created by: {{ $community->user->first_name }} {{ $community->user->last_name ?? 'unknown' }}
@@ -54,15 +54,13 @@
         
         <span class="badge bg-secondary mb-2 p-2"><i class="bi bi-people-fill me-1"></i>Limit: {{ $community->member_limit }} members</span>
         @if($isMember || $isAdmin)
-        <a href="{{ route('community.show', $community->id) }}" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2 d-block text-center text-decoration-none">
+        <a href="{{ route('community.show', $community->id) }}" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2 d-block text-center text-decoration-none position-relative z-2">
           View Community
         </a>
         @else
-        <form action="{{ route('community.join', $community) }}" method="POST">
+        <form action="{{ route('community.join', $community) }}" method="POST" class="position-relative z-2">
           @csrf
-          <button type="submit" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2">
-            Join Community
-          </button>
+          <button type="submit" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2">Join Community</button>
         </form>
         @endif
       </div>
@@ -87,7 +85,7 @@
     
     <select name="visibility" id="visibilityInput" class="form-select mt-3 p-3" required>
       <option value="public">Public (Anyone can view and join)</option>
-      <option value="private">Private (Only invited members can view)</option>
+      <option value="private">Private (Join by approval or invitation)</option>
     </select> 
     
     <select name="subject" id="subjectInput" class="form-select mt-3 p-3" required>

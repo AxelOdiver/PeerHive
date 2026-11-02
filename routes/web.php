@@ -57,7 +57,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/catalog/suggestions', [\App\Http\Controllers\CatalogController::class, 'store'])->middleware('throttle:10,1')->name('catalog.suggest');
     Route::get('/admin/catalog', [\App\Http\Controllers\CatalogController::class, 'index'])->middleware('admin')->name('admin.catalog');
     Route::post('/admin/catalog/{entry}', [\App\Http\Controllers\CatalogController::class, 'review'])->middleware('admin')->name('admin.catalog.review');
-
     Route::get('/private/messages/{message}/attachment', [\App\Http\Controllers\PrivateFileController::class, 'message'])->name('private.message');
     Route::get('/private/qualifications/{qualification}', [\App\Http\Controllers\PrivateFileController::class, 'qualification'])->name('private.qualification');
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
@@ -99,7 +98,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/community', [CommunityController::class, 'index'])->name('community');
     Route::get('/community/{community}', [CommunityController::class, 'show'])->name('community.show');
     Route::post('/community', [CommunityController::class, 'store'])->name('community.store');
-    Route::post('/community/{community}/join', [CommunityController::class, 'join'])->name('community.join');
+    Route::post('/community/{community}/join', [\App\Http\Controllers\CommunityJoinRequestController::class, 'store'])->middleware('throttle:10,1')->name('community.join');
+    Route::delete('/community/{community}/join-request', [\App\Http\Controllers\CommunityJoinRequestController::class, 'cancel'])->name('community.join.cancel');
+    Route::post('/community/{community}/join-requests/{joinRequest}', [\App\Http\Controllers\CommunityJoinRequestController::class, 'respond'])->name('community.join.respond');
     Route::delete('/community/{community}', [CommunityController::class, 'destroy'])->name('community.destroy');
     Route::put('/community/{community}', [CommunityController::class, 'update'])->name('community.update');
     Route::put('/community/{id}/tags', [CommunityController::class, 'updateTags'])->name('community.tags.update');

@@ -42,67 +42,22 @@ class CommunityController extends Controller
         ], 201);
     }
 
-    public function join(Community $community)
-    {
-        if ($community->user_id === auth()->id()) {
-            return redirect()->route('community.show', $community);
-        }
-
-        if ($community->members()->where('user_id', auth()->id())->exists()) {
-            return redirect()->route('community.show', $community);
-        }
-
-        if ($community->visibility === 'private') {
-            
-            $isCreator = auth()->id() === $community->user_id;
-            $isMember = $community->members()->where('user_id', auth()->id())->exists();
-            $isAdmin = auth()->user()->role === 'admin';
-
-            // If they are NOT the creator AND NOT a member, kick them out
-            if (!$isCreator && !$isMember && !$isAdmin) {
-                return redirect()->route('community')
-                    ->with('error', 'This community is private. You must be invited to view it.');
-            }
-        }
-
-        $memberCount = $community->members()->count();
-
-        if (!$community->members()->where('user_id', $community->user_id)->exists()) {
-            $memberCount++;
-        }
-
-        if ($memberCount >= $community->member_limit) {
-            return back()->with('error', 'This community has reached its member limit.');
-        }
-
-        $community->members()->attach(auth()->id());
-
-        return redirect()
-            ->route('community.show', $community)
-            ->with('success', 'You joined the community.');
-    }
-    
-    //Load the community details page
     public function show(Community $community)
     {
-        //Block non-members from viewing private communities
-        if ($community->visibility === 'private') {
-            $isCreator = auth()->id() === $community->user_id;
-            $isMember = $community->members()->where('user_id', auth()->id())->exists();
-            $isAdmin = auth()->user()->role === 'admin';
-
-            if (!$isCreator && !$isMember && !$isAdmin) {
-                return redirect()->route('dashboard')
-                    ->with('error', 'This community is private. You must be invited to view it.');
-            }
+        $community->load('user')->loadCount('members');
+        $isMember = \App\Support\LearningHub::member(auth()->user(), $community);
+        $isManager = auth()->id() === $community->user_id || auth()->user()->role === 'admin';
+        $joinRequest = $community->joinRequests()->where('user_id', auth()->id())->first();
+        $pendingInvite = \App\Models\CommunityInvite::where('community_id', $community->id)
+            ->where('user_id', auth()->id())->where('status', 'pending')->first();
+        $memberCount = $community->memberCount();
+        if ($community->visibility === 'private' && !$isMember && !$isManager) {
+            return view('community-preview', compact('community', 'joinRequest', 'pendingInvite', 'memberCount'));
         }
 
-        //load the creator and the posts (newest first)
-        $community->load(['user', 'posts' => function($query) {
-            $query->latest(); 
-        }, 'posts.user', 'posts.comments']);
-
-        return view('community-show', compact('community'));
+        $community->load(['members', 'posts' => fn ($query) => $query->latest(), 'posts.user', 'posts.comments.user']);
+        $joinRequests = $isManager ? $community->joinRequests()->where('status', 'pending')->with('user')->oldest()->get() : collect();
+        return view('community-show', compact('community', 'joinRequest', 'pendingInvite', 'memberCount', 'joinRequests'));
     }
 
     // Handle the AJAX request to create a new post

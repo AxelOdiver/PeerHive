@@ -131,9 +131,12 @@ class CommunityInviteController extends Controller
             $community = Community::whereKey($invite->community_id)->lockForUpdate()->firstOrFail();
             $locked = CommunityInvite::whereKey($invite->id)->lockForUpdate()->firstOrFail();
             abort_unless($locked->status === 'pending', 409, 'This invitation is no longer pending.');
-            abort_if($community->members()->count() >= $community->member_limit, 409, 'This community is full.');
+            if (!$community->members()->where('users.id', auth()->id())->exists()) {
+                abort_if($community->memberCount() >= $community->member_limit, 409, 'This community is full.');
+            }
             $community->members()->syncWithoutDetaching([auth()->id()]);
             $locked->update(['status' => 'accepted']);
+            $community->joinRequests()->where('user_id', auth()->id())->where('status', 'pending')->update(['status' => 'approved']);
         });
 
         return redirect()->route('community.show', $invite->community)
