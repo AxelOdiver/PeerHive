@@ -54,6 +54,7 @@ class UserController extends Controller
      */
     public function store(StoreUserRequest $request)
     {
+        abort_unless(auth()->user()?->role === 'admin', 403);
         $validated = $request->validated();
 
         $user = User::create($validated);
@@ -70,6 +71,7 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
+        abort_unless(auth()->user()?->role === 'admin', 403);
         return response()->json([
             'user' => $user,
         ]);
@@ -80,6 +82,7 @@ class UserController extends Controller
      */
     public function update(UpdateUserRequest $request, User $user)
     {
+        abort_unless(auth()->user()?->role === 'admin', 403);
         $validated = $request->validated();
 
         if (empty($validated['password'])) {
@@ -100,7 +103,13 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
-        $user->delete();
+        abort_unless(auth()->user()?->role === 'admin', 403);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($user) {
+            $admins = User::where('role', 'admin')->orderBy('id')->lockForUpdate()->get();
+            abort_if($user->id === auth()->id(), 422, 'You cannot delete your own account.');
+            abort_if($user->role === 'admin' && $admins->count() <= 1, 422, 'The last administrator cannot be deleted.');
+            $user->delete();
+        });
 
         return response()->json([
             'message' => 'Deleted successfully!',

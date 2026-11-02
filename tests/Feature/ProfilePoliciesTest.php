@@ -74,7 +74,7 @@ class ProfilePoliciesTest extends TestCase
         $owner->forceFill(['school' => 'HiddenSchool123', 'school_location' => 'HiddenCampus123', 'course' => 'VisibleCourse123', 'expertise' => ['HiddenSkill123'], 'show_course' => true])->save();
         $viewer = User::factory()->create();
         $this->actingAs($viewer)->get('/users/'.$owner->id.'/profile')->assertOk()->assertSee('VisibleCourse123')->assertDontSee('HiddenSchool123')->assertDontSee('HiddenCampus123')->assertDontSee('HiddenSkill123');
-        $this->getJson('/users/'.$owner->id)->assertOk()->assertJsonMissingPath('user.school')->assertJsonMissingPath('user.school_location');
+        $this->getJson('/users/'.$owner->id)->assertForbidden();
         $owner->forceFill(['show_school' => true, 'show_school_location' => true, 'show_expertise' => true])->save();
         $this->get('/users/'.$owner->id.'/profile')->assertSee('HiddenSchool123')->assertSee('HiddenCampus123')->assertSee('HiddenSkill123')->assertSee('Self-described expertise');
         $owner->forceFill(['show_school' => false])->save();

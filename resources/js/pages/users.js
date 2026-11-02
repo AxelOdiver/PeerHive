@@ -110,8 +110,8 @@ $(document).ready(async function () {
       dataSrc: 'data',
     },
     columns: [
-      { data: 'name' },
-      { data: 'email' },
+      { data: 'name', render: DataTable.render.text() },
+      { data: 'email', render: DataTable.render.text() },
       { data: 'joined' },
       {
         data: null,
@@ -124,7 +124,7 @@ $(document).ready(async function () {
           }
 
           return `
-            <a href="#" class="btn btn-sm btn-primary mb-1 view-user" data-user-id="${row.id} title='View'">
+            <a href="#" class="btn btn-sm btn-primary mb-1 view-user" data-user-id="${row.id}" title="View">
               <i class="bi bi-eye"></i>
             </a>
             <a href="#" class="btn btn-sm btn-secondary mb-1 edit-user" data-user-id="${row.id}" title='Edit'>
