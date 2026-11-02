@@ -23,6 +23,17 @@ window.hideModal = hideModal;
 $(document).ready(function() {
   handleSessionToast();
   initThemeSelector();
+  document.querySelectorAll('[data-sidebar-tooltip]').forEach(element => {
+    const tooltip = new bootstrap.Tooltip(element, {
+      title: element.dataset.sidebarTooltip,
+      placement: 'right', container: 'body', trigger: 'hover focus',
+    });
+    element.addEventListener('show.bs.tooltip', event => {
+      if (!window.matchMedia('(min-width: 992px)').matches || !document.body.classList.contains('sidebar-collapse')) event.preventDefault();
+    });
+    document.getElementById('appSidebar')?.addEventListener('open.lte.push-menu', () => tooltip.hide());
+    element.addEventListener('click', () => tooltip.hide());
+  });
 
   // Load the global search on every authenticated (dashboard) page
   import('./pages/search.js').catch(err => console.error('Failed to load search:', err));

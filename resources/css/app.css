@@ -8,9 +8,31 @@
     height: 2.25rem;
 }
 
+.sidebar-brand-mini { display: none; }
 .session-finish-dialog .swal2-input { background: var(--bs-body-bg); color: var(--bs-body-color); border-color: var(--bs-border-color); }
 .session-finish-dialog .swal2-input::placeholder { color: var(--bs-secondary-color); }
 .session-finish-dialog .swal2-validation-message { background: var(--bs-tertiary-bg); color: var(--bs-body-color); }
+.sidebar-menu .nav-link { position: relative; display: flex; align-items: center; }
+.sidebar-unread-badge { margin-left: auto; }
+@media (min-width: 992px) {
+  .sidebar-mini.sidebar-collapse .app-sidebar,
+  .sidebar-mini.sidebar-collapse .app-sidebar:hover { min-width: 4.6rem; max-width: 4.6rem; }
+  .sidebar-mini.sidebar-collapse .sidebar-user-meta,
+  .sidebar-mini.sidebar-collapse .brand-text,
+  .sidebar-mini.sidebar-collapse .sidebar-menu .nav-link p,
+  .sidebar-mini.sidebar-collapse .logout-btn span { display: none !important; }
+  .sidebar-mini.sidebar-collapse .sidebar-brand-mini { display: inline; }
+  .sidebar-mini.sidebar-collapse .sidebar-user > div { padding: 1rem .25rem !important; }
+  .sidebar-mini.sidebar-collapse .sidebar-menu .nav-link,
+  .sidebar-mini.sidebar-collapse .sidebar-menu .nav-link:hover { display: flex; align-items: center; justify-content: center; width: 3.6rem; min-height: 44px; }
+  .sidebar-mini.sidebar-collapse .sidebar-menu .nav-icon { margin: 0; }
+  .sidebar-mini.sidebar-collapse .sidebar-unread-badge { position: absolute; top: 1px; right: 0; font-size: .6rem; }
+  .sidebar-mini.sidebar-collapse .logout-btn { width: 100%; min-height: 44px; text-align: center !important; }
+  .sidebar-mini.sidebar-collapse .logout-btn i { margin: 0 !important; }
+}
+@media (max-width: 991.98px) {
+  .sidebar-mini.sidebar-collapse .app-sidebar { min-width: var(--lte-sidebar-width); max-width: var(--lte-sidebar-width); }
+}
 
 .tutorial-icon { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 16px; background: rgba(var(--bs-primary-rgb), .12); color: var(--bs-primary); font-size: 1.6rem; }
 .tutorial-card .carousel-inner { min-height: 220px; }

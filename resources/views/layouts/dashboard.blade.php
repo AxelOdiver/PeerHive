@@ -120,7 +120,7 @@
   @vite(['resources/css/app.css', 'resources/js/app.js'])
   @stack('styles')
 </head>
-<body class="layout-fixed sidebar-expand-lg bg-body-tertiary" data-authenticated="true" data-page="{{ Route::currentRouteName() }}" @if(session('error')) data-error-message="{{ session('error') }}" @elseif(session('success')) data-success-message="{{ session('success') }}" @endif>
+<body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary" data-authenticated="true" data-page="{{ Route::currentRouteName() }}" @if(session('error')) data-error-message="{{ session('error') }}" @elseif(session('success')) data-success-message="{{ session('success') }}" @endif>
   <div class="app-wrapper">
     @include('layouts.dashboard.topnav')
     @include('layouts.dashboard.sidebar')

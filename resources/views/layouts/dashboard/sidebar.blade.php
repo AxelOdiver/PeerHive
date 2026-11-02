@@ -15,7 +15,7 @@
       [
           'href' => route('swap'),
           'icon' => 'bi bi-arrow-left-right',
-          'label' => 'Swap',
+          'label' => 'Requests',
           'active' => request()->routeIs('swap'),
       ],
       [
@@ -94,7 +94,8 @@
 
 <aside id="appSidebar" class="app-sidebar bg-dark-subtle shadow" data-bs-theme="dark">
   <div class="sidebar-brand">
-    <a href="{{ route('dashboard') }}" class="brand-link d-flex justify-content-center align-items-center w-100 p-0 gap-2">
+    <a href="{{ route('dashboard') }}" class="brand-link d-flex justify-content-center align-items-center w-100 p-0 gap-2" aria-label="PeerHive dashboard">
+      <span class="sidebar-brand-mini fw-bold" aria-hidden="true">PH</span>
       <span class="brand-text fw-semibold fs-2 display-6">PeerHive</span>
     </a>
   </div>
@@ -102,6 +103,7 @@
   <div class="sidebar-wrapper d-flex flex-column" style="min-height: calc(100vh - 60px);">
     <div class="sidebar-user border-bottom border-secondary-subtle">
       <div class="d-flex flex-column align-items-center text-center gap-2 p-3">
+        <a href="{{ route('profile') }}" aria-label="Edit profile" data-sidebar-tooltip="Edit profile">
         <img
           src="{{ auth()->user()->profile_picture_url ?? '/images/profile-placeholder.jpeg' }}"
           alt="{{ trim(auth()->user()->first_name . ' ' . auth()->user()->last_name) ?: 'User' }}"
@@ -110,6 +112,7 @@
           width="64"
           height="64"
         >
+        </a>
 
         <div class="sidebar-user-meta">
           <a href="{{ route('profile') }}" class="fw-semibold text-white text-decoration-none" id="sidebarUserName" aria-label="Edit profile">{{ trim(auth()->user()->first_name.' '.auth()->user()->middle_name.' '.auth()->user()->last_name) ?: 'User' }}</a>
@@ -141,10 +144,11 @@
     <div class="border-top border-secondary-subtle p-1">
       <form method="POST" action="{{ route('logout') }}" class="w-100">
         @csrf
-        <button type="submit" class="logout-btn text-start">
+        <button type="submit" class="logout-btn text-start" aria-label="Log out" data-sidebar-tooltip="Log out">
           <i class="bi bi-box-arrow-right me-2"></i>
           <span>Log out</span>
         </button>
       </form>
+  </div>
   </div>
 </aside>
