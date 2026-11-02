@@ -23,3 +23,5 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 /storage/security-before-*.zip
+/storage/catalog-before-*.zip
+/storage/community-before-*.zip

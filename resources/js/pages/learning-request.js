@@ -36,8 +36,8 @@ async function loadOptions() {
     peerSubjects = data.peer_subjects; mySubjects = data.my_subjects;
     $('#learningPeerName').text(data.peer_name);
     for (const [selector, subjects] of [['#requestedSubject', peerSubjects], ['#offeredSubject', mySubjects]]) {
-      $(selector).append(new Option('Choose a subject', ''));
-      subjects.forEach(subject => $(selector).append(new Option(subject, subject)));
+      $(selector).append(new Option('Choose a topic', ''));
+      subjects.forEach(subject => $(selector).append(new Option(data.topic_subjects?.[subject] ? `${data.topic_subjects[subject]} → ${subject}` : subject, subject)));
     }
     loading = false; renderType();
   } catch {

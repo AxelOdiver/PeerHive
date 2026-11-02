@@ -1,4 +1,15 @@
+import { initTopicPickers } from '../topic-picker.js';
+
 $(document).ready(function() {
+    initTopicPickers();
+    function revealTeachingVerification() {
+        if (window.location.hash === '#teaching-verification') {
+            const verification = document.getElementById('teaching-verification');
+            if (verification) verification.open = true;
+        }
+    }
+    window.addEventListener('hashchange', revealTeachingVerification);
+    revealTeachingVerification();
     const $form = $('#form');
     const placeholderImage = '/images/profile-placeholder.jpeg';
     
@@ -21,11 +32,19 @@ $(document).ready(function() {
         $('[name="last_name"]').val(user.last_name ?? '');
         $('[name="email"]').val(user.email ?? '');
         $('[name="username"]').val(user.username ?? '');
+        if (user.course && !$('[name="course"] option').toArray().some(option => option.value === user.course)) {
+            $('[name="course"]').append(new Option(user.course + ' (not in shared list)', user.course));
+        }
         for (const field of ['course', 'school', 'school_location']) {
             $(`[name="${field}"]`).val(user[field] ?? '');
         }
-        $('[name="learning_interests"]').val((user.learning_interests ?? []).join(', '));
-        $('[name="expertise"]').val((user.expertise ?? []).join(', '));
+        $('#course').trigger('change');
+        for (const field of ['learning_interests', 'expertise']) {
+            const $select = $(`[name="${field}[]"]`);
+            for (const value of user[field] ?? []) if (!$select.find('option').toArray().some(option => option.value === value)) $select.append(new Option(value + ' (previous entry)', value));
+            $select.val(user[field] ?? []);
+            $select[0]?.dispatchEvent(new Event('change', {bubbles: true}));
+        }
         for (const field of ['course', 'expertise', 'school', 'school_location']) {
             $(`#show_${field}`).prop('checked', Boolean(user[`show_${field}`]));
         }
@@ -56,6 +75,24 @@ $(document).ready(function() {
             console.error(xhr.responseText);
         }
     });
+
+    $('#course').on('change', function () {
+        const other = this.value === '__other';
+        $('#courseUnlisted').val(other ? '1' : '0');
+        $('#courseOtherWrap').prop('hidden', !other);
+        $('#course_other').prop('required', other);
+    });
+    function updateSuggestionFields() {
+        const topic = $('#catalogSuggestionKind').val() === 'topic';
+        $('#catalogSuggestionName').attr('placeholder', topic
+            ? 'For example: Japanese Conversation'
+            : 'For example: BS Tourism Management (BSTM)');
+        $('#catalogSubjectWrap').prop('hidden', !topic);
+        $('#catalogOtherSubjectWrap').prop('hidden', !topic || Boolean($('#catalogSubject').val()));
+        $('#catalogSubjectName').prop('required', topic && !$('#catalogSubject').val());
+    }
+    $('#catalogSuggestionKind, #catalogSubject').on('change', updateSuggestionFields);
+    updateSuggestionFields();
     
     $('#editDescriptionBtn').on('click', function() {
         $('#descriptionViewMode').hide();       // Hide the text
@@ -81,6 +118,9 @@ $(document).ready(function() {
         clearErrors($form);
         
         const formData = new FormData(this); // captures all form fields
+        for (const field of ['learning_interests', 'expertise']) {
+            if (!formData.has(`${field}[]`)) formData.set(field, '');
+        }
         formData.append('_method', 'PUT');
         formData.append('description', $('[name="description"]').val());
         for (const field of ['course', 'expertise', 'school', 'school_location']) {
@@ -127,6 +167,7 @@ $(document).ready(function() {
                     const labelError = Object.keys(errors).find(key => key.startsWith('expertise.'));
                     if (labelError) errors.expertise = errors[labelError];
                     showFormErrors($form, errors);
+                    for (const field of ['learning_interests', 'expertise']) if (errors[field]) $(`#${field}_picker`).addClass('is-invalid');
                     return;
                 }
                 toast('error', 'Sorry, something went wrong. Please try again.');

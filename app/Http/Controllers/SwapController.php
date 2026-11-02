@@ -21,6 +21,7 @@ class SwapController extends Controller
             'peer_name' => trim($user->first_name.' '.$user->last_name),
             'peer_subjects' => $subjects($user->id),
             'my_subjects' => $subjects($request->user()->id),
+            'topic_subjects' => \App\Models\CatalogEntry::topics()->mapWithKeys(fn ($topic) => [$topic->name => $topic->parent?->name])->all(),
         ]);
     }
 

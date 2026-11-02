@@ -54,6 +54,10 @@ Route::middleware('guest')->group(function () {
 */
 
 Route::middleware('auth')->group(function () {
+    Route::post('/catalog/suggestions', [\App\Http\Controllers\CatalogController::class, 'store'])->middleware('throttle:10,1')->name('catalog.suggest');
+    Route::get('/admin/catalog', [\App\Http\Controllers\CatalogController::class, 'index'])->middleware('admin')->name('admin.catalog');
+    Route::post('/admin/catalog/{entry}', [\App\Http\Controllers\CatalogController::class, 'review'])->middleware('admin')->name('admin.catalog.review');
+
     Route::get('/private/messages/{message}/attachment', [\App\Http\Controllers\PrivateFileController::class, 'message'])->name('private.message');
     Route::get('/private/qualifications/{qualification}', [\App\Http\Controllers\PrivateFileController::class, 'qualification'])->name('private.qualification');
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');

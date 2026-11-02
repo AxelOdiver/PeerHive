@@ -68,7 +68,7 @@
           'href' => route('admin.qualifications'), 
           'icon' => 'bi bi-shield-lock',
           'label' => 'Approvals',
-          'active' => request()->routeIs('admin.qualifications'),
+          'active' => request()->routeIs('admin.qualifications', 'admin.catalog*'),
       ],
       [
           'href' => route('admin.reports.index'),

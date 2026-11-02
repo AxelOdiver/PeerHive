@@ -22,6 +22,10 @@ class UpdateUserRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
+        if ($this->routeIs('profile.update') && $this->boolean('course_unlisted')) {
+            $other = $this->input('course_other');
+            $this->merge(['course' => is_string($other) ? trim($other) : $other]);
+        }
         if (is_string($this->input('username'))) {
             $this->merge(['username' => strtolower(trim($this->input('username')))]);
         }
@@ -36,6 +40,10 @@ class UpdateUserRequest extends FormRequest
     public function rules(): array
     {
         $user = $this->route('user') ?? $this->user();
+        $topicRule = function ($attribute, $value, $fail) use ($user) {
+            $field = str_starts_with($attribute, 'learning_interests') ? 'learning_interests' : 'expertise';
+            if (!in_array($value, $user?->{$field} ?? [], true) && !\App\Models\CatalogEntry::approved()->where('kind', 'topic')->where('name', $value)->exists()) $fail('Choose an approved catalog topic or suggest a missing topic.');
+        };
 
         return [
             'username' => ['nullable', 'string', 'min:3', 'max:30', 'regex:/^[a-z0-9_]+$/', Rule::unique('users', 'username')->ignore($user?->id)],
@@ -50,10 +58,14 @@ class UpdateUserRequest extends FormRequest
             ],
             'description' => ['nullable', 'string', 'max:200'],
             'learning_interests' => ['nullable', 'array', 'max:10'],
-            'learning_interests.*' => ['required', 'string', 'max:100', 'distinct'],
-            'course' => ['nullable', 'string', 'max:120'],
+            'learning_interests.*' => ['bail', 'required', 'string', 'max:100', 'distinct', $topicRule],
+            'course' => ['bail', 'nullable', 'string', 'max:120', function ($attribute, $value, $fail) use ($user) {
+                if ($this->routeIs('profile.update') && !$this->boolean('course_unlisted') && $value !== $user?->course && !\App\Models\CatalogEntry::approved()->where('kind', 'program')->where('name', $value)->exists()) $fail('Choose a degree program or select Other / Not listed.');
+            }],
+            'course_unlisted' => ['sometimes', 'boolean'],
+            'course_other' => ['required_if:course_unlisted,1', 'nullable', 'string', 'max:120'],
             'expertise' => ['nullable', 'array', 'max:10'],
-            'expertise.*' => ['required', 'string', 'max:40', 'distinct'],
+            'expertise.*' => ['bail', 'required', 'string', 'max:100', 'distinct', $topicRule],
             'school' => ['nullable', 'string', 'max:160'],
             'school_location' => ['nullable', 'string', 'max:160'],
             'show_course' => ['sometimes', 'boolean'],

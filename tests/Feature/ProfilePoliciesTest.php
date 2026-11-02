@@ -54,16 +54,16 @@ class ProfilePoliciesTest extends TestCase
     {
         $user = User::factory()->create();
         $data = ['first_name' => $user->first_name, 'last_name' => $user->last_name, 'email' => $user->email,
-            'course' => 'Computer Science', 'expertise' => ' Python, Design, Python, ', 'school' => 'Example College', 'school_location' => 'Taipei campus',
+            'course' => 'BSCS', 'expertise' => ' Python Basics, Graphic Design, Python Basics, ', 'school' => 'Example College', 'school_location' => 'Taipei campus',
             'show_course' => 1, 'show_expertise' => 1, 'show_school' => 0, 'show_school_location' => 0];
-        $this->actingAs($user)->putJson('/profile', $data)->assertOk()->assertJsonPath('user.expertise', ['Python', 'Design']);
+        $this->actingAs($user)->putJson('/profile', $data)->assertOk()->assertJsonPath('user.expertise', ['Python Basics', 'Graphic Design']);
         $user->refresh();
         $this->assertSame('Example College', $user->school);
         $this->assertArrayNotHasKey('school', $user->toArray());
         $this->assertArrayNotHasKey('expertise', $user->toArray());
         $this->getJson('/profile/show')->assertOk()->assertJsonPath('user.school', 'Example College');
         $this->withoutVite();
-        $this->get('/profile')->assertOk()->assertSee('show_school')->assertSee('Expertise labels');
+        $this->get('/profile')->assertOk()->assertSee('show_school')->assertSee('Skills &amp; interests', false);
         $this->assertNotSame('admin', $user->role);
     }
 

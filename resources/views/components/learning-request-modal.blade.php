@@ -9,11 +9,11 @@
     </select>
     <p class="small text-muted" id="learningRequestHint">You do not need a teaching qualification to learn. Your tutor must be verified for the selected subject.</p>
     <div class="mb-3">
-      <label class="form-label" for="requestedSubject">I want to learn</label>
+      <label class="form-label" for="requestedSubject">Topic I want to learn</label>
       <select id="requestedSubject" name="requested_subject" class="form-select" required disabled></select>
     </div>
     <div id="offeredSubjectWrap" class="mb-3" hidden>
-      <label class="form-label" for="offeredSubject">In return, I can teach</label>
+      <label class="form-label" for="offeredSubject">In return, I can teach this topic</label>
       <select id="offeredSubject" name="offered_subject" class="form-select" disabled></select>
       <a class="small" href="{{ route('profile') }}#teaching-verification">Apply for Teaching Verification</a>
     </div>

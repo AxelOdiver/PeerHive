@@ -4,7 +4,7 @@
 
 @section('content')
 <h2 class="mb-3 fw-bold">Profile</h2>
-<div class="row align-items-stretch row-cols-1 row-cols-xxl-2 g-3">
+<div class="row align-items-stretch row-cols-1 row-cols-lg-2 g-3">
   <!-- Profile Information Card -->
   <div class="d-flex mb-lg-0"> 
     <div class="card w-100">     
@@ -91,15 +91,33 @@
             <div class="form-text" id="username-help">3–30 letters, numbers or underscores. Your username is searchable by other members.</div>
           </div>
           <fieldset class="border rounded p-3 mb-3">
-            <legend class="float-none w-auto px-2 fs-6">Course, expertise and school</legend>
+            <legend class="float-none w-auto px-2 fs-6">Degree program, skills and school</legend>
             <p class="small text-muted">Optional. Visible fields are shared with other signed-in members. Keep city/campus general; do not enter a home address.</p>
-            @foreach(['course' => ['Course', 120, 'e.g. BS Computer Science'], 'expertise' => ['Expertise labels', 418, 'e.g. Python, Graphic Design'], 'school' => ['School', 160, 'School or university name'], 'school_location' => ['School location', 160, 'City or campus']] as $field => [$label, $limit, $placeholder])
+            <div id="learning-interests" class="mb-3">
+              <label class="form-label" for="learning_interests_picker">I want to learn</label>
+              @include('profile.topic-picker', ['field' => 'learning_interests', 'pickerLabel' => 'Add a topic to learn', 'selected' => auth()->user()->learning_interests ?? []])
+              <div class="form-text">Choose up to 10 topics. Recommendations match these to peers’ approved teaching topics, across degree programs.</div>
+              <div class="invalid-feedback d-block" data-error-for="learning_interests"></div>
+            </div>
+            @foreach(['course' => ['Degree program', 120, ''], 'expertise' => ['Skills & interests', 100, ''], 'school' => ['School', 160, 'School or university name'], 'school_location' => ['School location', 160, 'City or campus']] as $field => [$label, $limit, $placeholder])
               <div class="mb-3">
-                <label for="{{ $field }}" class="form-label">{{ $label }}</label>
-                <input id="{{ $field }}" name="{{ $field }}" class="form-control" maxlength="{{ $limit }}" placeholder="{{ $placeholder }}" value="{{ $field === 'expertise' ? implode(', ', auth()->user()->expertise ?? []) : auth()->user()->{$field} }}">
-                <div class="invalid-feedback" data-error-for="{{ $field }}"></div>
+                <label for="{{ $field === 'expertise' ? 'expertise_picker' : $field }}" class="form-label">{{ $label }}</label>
+                @if($field === 'course')
+                  <select id="course" name="course" class="form-select"><option value="">Select a degree program</option>
+                    @foreach($catalogPrograms as $program)<option value="{{ $program->name }}" @selected(auth()->user()->course === $program->name)>{{ $program->name }}</option>@endforeach
+                    @if(auth()->user()->course && !$catalogPrograms->contains('name', auth()->user()->course))<option value="{{ auth()->user()->course }}" selected>{{ auth()->user()->course }} (not in shared list)</option>@endif
+                    <option value="__other">Other / Not listed</option>
+                  </select>
+                  <input type="hidden" name="course_unlisted" id="courseUnlisted" value="0">
+                  <div id="courseOtherWrap" class="mt-2" hidden><label for="course_other" class="form-label">Your degree program</label><input id="course_other" name="course_other" maxlength="120" class="form-control"><div class="form-text">Saved on your profile immediately. Admin approval adds it to everyone’s program list.</div><div class="invalid-feedback" data-error-for="course_other"></div></div>
+                @elseif($field === 'expertise')
+                  @include('profile.topic-picker', ['field' => 'expertise', 'pickerLabel' => 'Add a skill or interest', 'selected' => auth()->user()->expertise ?? []])
+                @else
+                  <input id="{{ $field }}" name="{{ $field }}" class="form-control" maxlength="{{ $limit }}" placeholder="{{ $placeholder }}" value="{{ auth()->user()->{$field} }}">
+                @endif
+                <div class="invalid-feedback {{ $field === 'expertise' ? 'd-block' : '' }}" data-error-for="{{ $field }}"></div>
                 @if($field === 'expertise')
-                  <div class="form-text">Separate up to 10 labels with commas, 40 characters each. These are self-described skills, not approved qualifications.</div>
+                  <div class="form-text">Choose up to 10 topics. These are self-described skills, not approved teaching qualifications.</div>
                 @endif
                 <div class="form-check form-switch mt-2">
                   <input type="hidden" name="show_{{ $field }}" value="0">
@@ -138,9 +156,9 @@
     </div>
   </div>
   <!-- Right Column: Availability & Account Status -->
-  <div class="d-flex flex-column gap-1">
+  <div class="d-flex flex-column gap-1 align-self-start">
     <!-- Description Card -->
-    <div class="card flex-fill mb-3">
+    <div class="card mb-3">
       <div class="card-header d-flex align-items-center">
         <h3 class="card-title mb-0">Description</h3>
         <button type="button" id="editDescriptionBtn" class="btn btn-sm btn-primary ms-auto">Edit</button>
@@ -154,7 +172,7 @@
       </div>
     </div>
     <!-- Weekly Availability Card -->
-    <div class="card flex-fill mb-3">
+    <div class="card mb-3">
       <div class="card shadow-sm">
         <div class="card-header">
           <div class="d-flex justify-content-between align-items-center">
@@ -164,98 +182,16 @@
         </div>
         
         <div class="card-body">
-          <div class="row g-3 row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-7" id="weekTiles">
+          <div class="row g-3 row-cols-2 row-cols-md-3 row-cols-xl-4" id="weekTiles">
           </div>
         </div>
       </div>
     </div>
+    @include('profile.catalog-suggestions')
+    @include('profile.teaching-qualifications')
   </div>
 </div>
 
-<!-- Qualification Request Form -->
-<section id="teaching-verification" class="mt-4" aria-labelledby="teachingVerificationHeading">
-  <h3 class="h5 fw-bold" id="teachingVerificationHeading">Teaching Verification</h3>
-  <p class="text-muted small">Submit proof for the subject you want to teach. An administrator reviews your application. An approved qualification displays a subject-specific teaching badge. Expertise labels alone do not provide verification. You can request learning help without teaching verification; approval is required for any subject you offer in a skill swap.</p>
-  <x-teaching-badges :user="auth()->user()" />
-@php
-$latestQualification = \App\Models\UserSubjectQualification::where('user_id', auth()->id())->latest()->first();
-$attempts = \App\Models\UserSubjectQualification::where('user_id', auth()->id())->count();
-@endphp
-@if(!$latestQualification)
-  <p class="small text-muted">Status: Not submitted</p>
-@endif
-
-@if($latestQualification && ($latestQualification->status === 'pending' || $latestQualification->status === 'approved' || $attempts >= 3))
-<div class="card flex fill mt-4 p-4 text-center">
-  <h5 class="fw-bold mt-2"><i class="bi bi-award text-primary me-2"></i> {{ $latestQualification->subject_name }}</h5>
-  <p class="text-muted mb-4">Application Status</p>
-  
-  @if($latestQualification->status === 'pending')
-  <div class="alert alert-warning rounded-4 d-inline-block px-5 mb-0">
-    <i class="bi bi-hourglass-split me-2"></i> Your application is <strong>Pending Review</strong> by an Admin.
-  </div>
-  @elseif($latestQualification->status === 'approved')
-  <div class="alert alert-success rounded-4 d-inline-block px-5 mb-0">
-    <i class="bi bi-check-circle-fill me-2"></i> You are officially <strong>Approved</strong> to teach this subject!
-  </div>
-  @else
-  <div class="alert alert-danger rounded-4 d-inline-block px-5 mb-0">
-    <i class="bi bi-x-circle-fill me-2"></i> Your applications were <strong>Rejected</strong>.<br><br>
-    @if($latestQualification->rejection_reason)
-    <div class="text-start bg-body rounded-3 p-3 mb-3 border">
-      <div class="fw-semibold mb-1">Admin comment</div>
-      <div class="small">{{ $latestQualification->rejection_reason }}</div>
-    </div>
-    @endif
-    <small>You have reached the maximum number of attempts (3/3). Please kindly contact admin to appeal your submission.</small>
-  </div>
-  @endif
-</div>
-
-@else
-<form id="qualificationForm" action="{{ route('qualifications.store') }}" method="POST" enctype="multipart/form-data">
-  @csrf
-  <div class="card flex fill mt-4 p-4">
-    <h5 class="mb-4"><i class="bi bi-file-earmark-check me-2"></i> Apply for Teaching Verification</h5>
-    
-    @if($latestQualification && $latestQualification->status === 'rejected')
-    <div class="alert alert-danger rounded-3 mb-4 border-0">
-      <i class="bi bi-exclamation-triangle-fill me-2"></i> Your previous application was rejected. You have <strong>{{ 3 - $attempts }}</strong> attempts remaining.
-      @if($latestQualification->rejection_reason)
-      <div class="mt-3 p-3 bg-body rounded-3 border">
-        <div class="fw-semibold mb-1">Admin comment</div>
-        <div class="small">{{ $latestQualification->rejection_reason }}</div>
-      </div>
-      @endif
-    </div>
-    @endif
-    
-    <div class="mb-3">
-      <label class="form-label">Subject You Want to Teach</label>
-      <select name="subject" class="form-select" required>
-        <option value="" disabled selected>Select a subject...</option>
-        <option value="Coding">Coding</option>
-        <option value="Foreign Language">Foreign Language</option>
-        <option value="Graphic Design">Graphic Design</option>
-      </select>
-    </div>
-    
-    <div class="mb-2">
-      <label class="form-label">Upload Proof (Grade or Certificate)</label>
-      <input type="file" name="proof_document" class="form-control" accept=".jpg,.png,.pdf" required>
-      <small class="text-muted mt-1 d-block"><i class="bi bi-info-circle me-1"></i> Max file size: 10MB.</small>
-    </div>
-
-    <div class="text-start">
-      <button type="submit" class="btn btn-primary mt-2 px-4 rounded-pill">
-        Submit for Approval
-      </button>
-    </div>
-  </div>
-</form>
-@endif
-
-</section>
 
 <!-- Form Submit Button -->
 <div class="mt-3">

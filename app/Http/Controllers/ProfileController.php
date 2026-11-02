@@ -12,7 +12,12 @@ class ProfileController extends Controller
     // Own profile edit page
     public function index()
     {
-        return view('profile.edit');
+        $catalogTopics = \App\Models\CatalogEntry::topics();
+        $catalogPrograms = \App\Models\CatalogEntry::approved()->where('kind', 'program')->orderBy('name')->get();
+        $catalogSubjects = \App\Models\CatalogEntry::approved()->where('kind', 'subject')->orderBy('name')->get();
+        $catalogSuggestions = \App\Models\CatalogEntry::where('submitted_by', auth()->id())->with('parent')->latest()->get();
+        $qualifications = \App\Models\UserSubjectQualification::where('user_id', auth()->id())->latest('id')->get();
+        return view('profile.edit', compact('catalogTopics', 'catalogPrograms', 'catalogSubjects', 'catalogSuggestions', 'qualifications'));
     }
 
     // Returns own profile data as JSON (used by profile edit page via AJAX)
@@ -83,7 +88,10 @@ class ProfileController extends Controller
             $user->password = bcrypt($request->input('password'));
         }
 
-        $user->save();
+        \Illuminate\Support\Facades\DB::transaction(function () use ($user, $request) {
+            $user->save();
+            if ($request->boolean('course_unlisted') && $user->course) CatalogController::suggest('program', $user->course, $user->id);
+        });
 
         return response()->json([
             'message' => 'Profile updated successfully',
