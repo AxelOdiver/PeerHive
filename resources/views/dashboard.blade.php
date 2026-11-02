@@ -6,10 +6,6 @@
 
 <!-- Communities and Swap Section -->
 <div class="row g-3 mb-4"><div class="col-md-4"><a class="card shadow-sm border-0 h-100 text-decoration-none text-body" href="{{ route('progress.index') }}"><div class="card-body"><div class="small text-muted">My Progress</div><div class="fs-3 fw-bold">{{ $completedSessions }}</div><span class="small">Confirmed sessions <i class="bi bi-arrow-right ms-2"></i></span></div></a></div><div class="col-md-4"><a class="card shadow-sm border-0 h-100 text-decoration-none text-body" href="{{ route('rewards.index') }}"><div class="card-body"><div class="small text-muted">Rewards Hub</div><div class="fs-3 fw-bold">{{ $learningPoints }}</div><span class="small">Available points <i class="bi bi-arrow-right ms-2"></i></span></div></a></div><div class="col-md-4"><a class="card shadow-sm border-0 h-100 text-decoration-none text-body" href="{{ route('study-sessions.index') }}"><div class="card-body"><div class="small text-muted">Study Sessions</div><div class="fw-bold mt-2 text-break">{{ $nextSession?->title ?? 'Find your next study circle' }}</div><span class="small text-muted">{{ $nextSession?$nextSession->starts_at->copy()->setTimezone(auth()->user()->learning_timezone)->format('M j · g:i A').' · '.auth()->user()->learning_timezone:'Learn with your community' }}</span></div></a></div></div>
-<div class="d-flex flex-wrap gap-2 mb-4">
-  <a href="{{ route('study-sessions.index', ['filter'=>'mine']) }}" class="btn btn-outline-primary btn-sm">My sessions</a>
-  <a href="{{ route('study-sessions.create') }}" class="btn btn-primary btn-sm">Create a session</a>
-</div>
 <div class="row g-4 align-items-stretch mb-4">
   
   <!-- Left Column: Communities -->

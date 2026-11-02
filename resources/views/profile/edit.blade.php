@@ -139,6 +139,20 @@
   </div>
   <!-- Right Column: Availability & Account Status -->
   <div class="d-flex flex-column gap-1">
+    <!-- Description Card -->
+    <div class="card flex-fill mb-3">
+      <div class="card-header d-flex align-items-center">
+        <h3 class="card-title mb-0">Description</h3>
+        <button type="button" id="editDescriptionBtn" class="btn btn-sm btn-primary ms-auto">Edit</button>
+      </div>
+      <div class="card-body">
+        <div id="descriptionViewMode"><p id="descriptionText" class="form-text fs-5 mb-0">{{ auth()->user()->description ?? 'No description yet.' }}</p></div>
+        <div id="descriptionEditMode" style="display: none;">
+          <textarea name="description" class="form-control form-control-lg" rows="4" maxlength="200" placeholder="Enter your description">{{ old('description', auth()->user()->description) }}</textarea>
+          <div class="text-end mt-2"><button type="button" id="cancelEditBtn" class="btn btn-sm btn-secondary">Cancel</button></div>
+        </div>
+      </div>
+    </div>
     <!-- Weekly Availability Card -->
     <div class="card flex-fill mb-3">
       <div class="card shadow-sm">
@@ -151,30 +165,6 @@
         
         <div class="card-body">
           <div class="row g-3 row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-7" id="weekTiles">
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- Description Card -->
-    <div class="card flex-fill">
-      <div class="card-header d-flex align-items-center">
-        <h3 class="card-title mb-0">Description</h3>
-        <button type="button" id="editDescriptionBtn" class="btn btn-sm btn-primary justify-content-end d-flex align-items-center ms-auto">Edit</button>
-      </div>
-      <div class="card-body">
-        <div id="descriptionViewMode">
-          <p id="descriptionText" class="form-text m-2 fs-5">
-            {{ auth()->user()->description ?? 'No description yet.' }}
-          </p>
-        </div>
-        <div id="descriptionEditMode" style="display: none;">
-          <textarea name="description" 
-            class="form-control form-control-lg" 
-            rows="4" 
-            maxlength="200"
-            placeholder="Enter your description">{{ old('description', auth()->user()->description) }}</textarea>
-          <div class="text-end mt-2">
-            <button type="button" id="cancelEditBtn" class="btn btn-sm btn-secondary">Cancel</button>
           </div>
         </div>
       </div>

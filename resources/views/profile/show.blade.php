@@ -28,7 +28,7 @@
             </div>
 
             <h4 class="fw-bold mb-0">{{ $profileUser->first_name }} {{ $profileUser->middle_name }} {{ $profileUser->last_name }}</h4>
-            <p class="text-muted small mb-3">{{ $profileUser->email }}</p>
+            @if(auth()->id() === $profileUser->id)<p class="text-muted small mb-3">{{ $profileUser->email }}</p>@endif
             @if($profileUser->username)
                 <p class="text-muted small">{{ '@'.$profileUser->username }}</p>
             @endif

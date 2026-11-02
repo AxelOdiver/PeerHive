@@ -38,6 +38,7 @@
               <i class="bi bi-star"></i>
             </span>
           </p>
+          <x-teaching-badges :user="$student" />
 
           <div class="d-flex align-items-center flex-wrap gap-2 mt-2 mb-3">
             <div class="d-flex align-items-center">

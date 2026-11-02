@@ -22,7 +22,7 @@ class FavoriteController extends Controller
 
     public function index()
     {
-        $favorites = Auth::user()->favorites()->withCount(['likedBy', 'swaps'])->get();
+        $favorites = Auth::user()->favorites()->with('approvedTeachingQualifications')->withCount(['likedBy', 'swaps'])->get();
         $likedIds  = Auth::user()->likes->pluck('id')->toArray();
 
         return view('favorites', compact('favorites', 'likedIds'));
