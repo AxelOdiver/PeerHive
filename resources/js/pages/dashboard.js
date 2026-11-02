@@ -42,10 +42,11 @@ $(document).on('click', '.fav-btn', function () {
       item_id: itemId
     },
     success: function (response) {
+      const buttons = $(`.fav-btn[data-id="${itemId}"]`);
       if (response.action === 'swapped') {
-        btn.html('<i class="bi bi-bookmark-fill text-warning"></i>');
+        buttons.html('<i class="bi bi-bookmark-fill text-warning"></i>');
       } else {
-        btn.html('<i class="bi bi-bookmark"></i>');
+        buttons.html('<i class="bi bi-bookmark"></i>');
       }
     },
     error: function (xhr) {
@@ -69,8 +70,9 @@ $(document).on('click', '.like-btn', function () {
     success: function (res) {
       const liked = res.action === 'liked';
 
-      $btn.toggleClass('text-danger', liked);
-      $btn.find('i')
+      const buttons = $(`.like-btn[data-id="${userId}"]`);
+      buttons.toggleClass('text-danger', liked).attr('title', liked ? 'Unlike' : 'Like');
+      buttons.find('i')
         .toggleClass('bi-heart-fill', liked)
         .toggleClass('bi-heart', !liked);
 

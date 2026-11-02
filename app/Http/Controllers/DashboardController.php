@@ -13,6 +13,7 @@ class DashboardController extends Controller
         $currentUser = Auth::user();
 
         $students = \App\Support\PeerMatching::recommend($currentUser);
+        (new \Illuminate\Database\Eloquent\Collection($students->all()))->loadCount(['likedBy', 'swaps', 'comments']);
         $topstudents = User::where('id', '!=', $currentUser->id)->with('approvedTeachingQualifications')
             ->withCount(['likedBy', 'teachingRatings', 'swaps', 'comments'])->withAvg('teachingRatings', 'stars')
             ->orderByDesc('liked_by_count')->orderBy('id')->limit(3)->get();

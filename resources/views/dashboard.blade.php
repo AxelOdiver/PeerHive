@@ -109,85 +109,7 @@
   <h2 class="mb-3 fw-bold">Top Students</h2>
   <div class="row">
     @foreach($topstudents as $topstudent)
-    @php
-    $isLiked = in_array($topstudent->id, $likedIds);
-    $isFaved = in_array($topstudent->id, $favoritedIds);
-    @endphp
-    <div class="col-12 col-md-6 col-xl-4 mb-4 student-card-column">
-      <div class="card border-0 shadow-sm rounded-4 p-3 h-100 w-100 student-card">
-        <div class="d-flex align-items-start gap-2 gap-sm-3">
-          <a href="{{ route('users.profile', $topstudent->id) }}" class="text-decoration-none flex-shrink-0">
-          @if($topstudent->profile_picture_url)
-            <img src="{{ $topstudent->profile_picture_url }}"
-              alt="{{ $topstudent->first_name }}" 
-              class="rounded-circle shadow-sm" 
-              style="width: 60px; height: 60px; object-fit: cover;">
-          @else
-            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold bg-primary text-white shadow-sm"
-                style="width: 60px; height: 60px; font-size: 1.5rem;">
-              {{ strtoupper(substr($topstudent->first_name, 0, 1)) }}{{ strtoupper(substr($topstudent->last_name, 0, 1)) }}
-            </div>
-          @endif
-        </a>
-        
-        <div class="flex-grow-1 min-w-0">
-          <div class="d-flex justify-content-between align-items-start mb-1">
-            <a href="{{ route('users.profile', $topstudent->id) }}" class="text-decoration-none text-body-emphasis">
-              <h5 class="fw-bold mb-0 text-truncate">{{ $topstudent->first_name }} {{ $topstudent->last_name }}</h5>
-            </a>
-            <button type="button" class="text-muted btn btn-sm p-0 shadow-none line-height-1 ms-2 flex-shrink-0 fav-btn" data-id="{{ $topstudent->id }}">
-              @if($isFaved)
-              <i class="bi bi-bookmark-fill text-warning"></i>
-              @else
-              <i class="bi bi-bookmark"></i>
-              @endif
-            </button>
-          </div>
-          
-          <x-teaching-badges :user="$topstudent" />
-          <p class="text-muted small mb-1 text-truncate">Peer Student
-            <span class="text-warning text-nowrap ms-1" title="{{ $topstudent->teaching_ratings_count ? number_format($topstudent->teaching_ratings_avg_stars,1).' / 5 · '.$topstudent->teaching_ratings_count.' learner ratings' : 'No learner ratings yet' }}">
-              @for($i = 1; $i <= 5; $i++)<i class="bi {{ ($topstudent->teaching_ratings_avg_stars ?? 0) >= $i ? 'bi-star-fill' : (($topstudent->teaching_ratings_avg_stars ?? 0) >= $i-0.5 ? 'bi-star-half' : 'bi-star') }}" aria-hidden="true"></i>@endfor
-              <span class="visually-hidden">{{ $topstudent->teaching_ratings_count ? number_format($topstudent->teaching_ratings_avg_stars,1).' out of 5' : 'No learner ratings yet' }}</span>
-            </span>
-          </p>
-          
-          <div class="d-flex align-items-center flex-wrap gap-2 mt-2 mb-3">
-            <!-- Like button -->
-            <div class="d-flex align-items-center">
-              <button type="button"
-              class="btn btn-sm p-0 shadow-none fs-5 like-btn {{ $isLiked ? 'text-danger' : '' }}"
-              data-id="{{ $topstudent->id }}"
-              title="{{ $isLiked ? 'Unlike' : 'Like' }}">
-              <i class="bi {{ $isLiked ? 'bi-heart-fill' : 'bi-heart' }}"></i>
-            </button>
-            <small class="text-muted fw-semibold ms-1 like-count" data-id="{{ $topstudent->id }}">{{ $topstudent->liked_by_count }}</small>
-          </div>
-          
-          <!-- Swap count (display only) -->
-          <div class="d-flex align-items-center">
-            <button type="button" class="btn btn-sm p-0 shadow-none fs-5 open-swap-modal" data-id="{{ $topstudent->id }}" title="Send learn/swap request">
-              <i class="bi bi-arrow-left-right"></i>
-            </button>
-            <small class="text-muted fw-semibold ms-1">{{ $topstudent->swaps_count }}</small>
-          </div>
-          
-          <!-- View profile / comments -->
-          <div class="d-flex align-items-center">
-            <a href="{{ route('users.profile', $topstudent->id) }}" class="btn btn-sm p-0 shadow-none fs-5 text-body" title="View profile">
-              <i class="bi bi-chat-dots"></i>
-            </a>
-            <small class="text-muted fw-semibold ms-1">{{ $topstudent->comments_count }}</small>
-          </div>
-        </div>
-        
-        <button type="button" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2 open-swap-modal" data-id="{{ $topstudent->id }}">
-          Learn / Swap
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
+    @include('components.dashboard-peer-card', ['student' => $topstudent, 'showMatch' => false])
 @endforeach
 </div>
 
@@ -197,14 +119,7 @@
   @if(auth()->user()->learning_interests)<p class="small">You want to learn: <strong>{{ implode(', ', auth()->user()->learning_interests) }}</strong></p>@endif
   <div class="row g-3">
   @forelse($students as $student)
-    <div class="col-12 col-md-6 col-xl-4 student-card-column"><article class="card border-0 shadow-sm rounded-4 h-100 student-card"><div class="card-body d-flex flex-column">
-      <div class="d-flex align-items-center gap-3 mb-3">@if($student->profile_picture_url)<img src="{{ $student->profile_picture_url }}" alt="" class="rounded-circle object-fit-cover" width="52" height="52">@else<span class="rounded-circle bg-primary text-white d-inline-flex justify-content-center align-items-center flex-shrink-0" style="width:52px;height:52px;">{{ strtoupper(substr($student->first_name,0,1).substr($student->last_name,0,1)) }}</span>@endif<a href="{{ route('users.profile', $student) }}" class="fw-bold text-body text-decoration-none">{{ $student->first_name }} {{ $student->last_name }}</a></div>
-      <div class="d-flex justify-content-between align-items-center gap-2"><x-teaching-rating :user="$student" /><button type="button" class="btn btn-sm fav-btn" data-id="{{ $student->id }}" aria-label="Bookmark {{ $student->first_name }}"><i class="bi {{ in_array($student->id, $favoritedIds) ? 'bi-bookmark-fill text-warning' : 'bi-bookmark' }}"></i></button></div>
-      <x-teaching-badges :user="$student" />
-      <p class="small mt-2 mb-1">Matches your interests: <strong>{{ $student->matched_subjects->implode(', ') }}</strong></p>
-      @if($student->shared_availability)<p class="small text-success">Your weekly availability overlaps.</p>@else<p class="small text-muted">Discuss a suitable time together.</p>@endif
-      <button type="button" class="btn btn-primary mt-auto open-swap-modal" data-id="{{ $student->id }}">Learn / Swap</button>
-    </div></article></div>
+    @include('components.dashboard-peer-card', ['student' => $student, 'showMatch' => true])
   @empty
     <div class="col-12"><div class="card border-0 bg-body-tertiary p-4"><p class="mb-2">{{ empty(auth()->user()->learning_interests) ? 'Tell us what you want to learn to see relevant peers.' : 'No approved teachers match your subjects yet. Try a subject from the suggestions in Edit Profile, or check back later.' }}</p><a href="{{ route('profile') }}#learning-interests">Choose learning interests</a></div></div>
   @endforelse

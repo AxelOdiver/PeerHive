@@ -160,7 +160,9 @@ class SessionChatTest extends TestCase
         $outsider = User::factory()->create();
         $this->actingAs($outsider)->postJson($rating, ['stars'=>5])->assertForbidden();
         $learner->forceFill(['learning_interests'=>['Coding']])->save();
-        $this->actingAs($learner)->get('/dashboard')->assertOk()->assertSee('4.0 / 5')->assertSee('(1 rating)');
+        $this->actingAs($learner)->get('/dashboard')->assertOk()->assertSee('4.0 / 5')
+            ->assertViewHas('students', fn ($students) => $students->contains(fn ($student) => $student->id === $teacher->id
+                && $student->teaching_ratings_count === 1 && (float) $student->teaching_ratings_avg_stars === 4.0));
     }
 
     public function test_schedule_acceptance_rechecks_qualification_and_busy_times(): void {

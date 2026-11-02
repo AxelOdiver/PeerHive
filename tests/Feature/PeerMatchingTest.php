@@ -25,6 +25,9 @@ class PeerMatchingTest extends TestCase {
         $this->assertFalse($matches->contains('id', $wrong->id));
         $this->assertFalse($matches->contains('id', $pending->id));
         $this->assertArrayNotHasKey('learning_interests', $learner->toArray());
+        $this->withoutVite();
+        $this->actingAs($learner)->get('/dashboard')->assertOk()
+            ->assertSee('Matches your interests:')->assertSee('Your weekly availability overlaps.');
         $learner->forceFill(['learning_interests'=>[]])->save();
         $this->assertCount(0, PeerMatching::recommend($learner));
     }
@@ -40,7 +43,7 @@ class PeerMatchingTest extends TestCase {
     }
     public function test_learning_interests_save_from_profile_form(): void {
         $user=User::factory()->create();
-        $this->actingAs($user)->putJson('/profile', ['first_name'=>$user->first_name,'last_name'=>$user->last_name,'email'=>$user->email,'learning_interests'=>'Coding, Graphic Design'])->assertOk();
-        $this->assertSame(['Coding','Graphic Design'], $user->fresh()->learning_interests);
+        $this->actingAs($user)->putJson('/profile', ['first_name'=>$user->first_name,'last_name'=>$user->last_name,'email'=>$user->email,'learning_interests'=>'Python Basics, Graphic Design'])->assertOk();
+        $this->assertSame(['Python Basics','Graphic Design'], $user->fresh()->learning_interests);
     }
 }
