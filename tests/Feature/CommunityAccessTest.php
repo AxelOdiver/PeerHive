@@ -84,6 +84,7 @@ class CommunityAccessTest extends TestCase
         $this->withoutVite();
         $owner = User::factory()->create(); $user = User::factory()->create();
         $community = $this->community($owner, 'public');
+        $this->actingAs($owner)->get(route('community.show', $community))->assertOk()->assertDontSee('Join requests')->assertDontSee('No pending join requests.');
         $post = Post::create(['community_id' => $community->id, 'user_id' => $owner->id, 'title' => 'Public discussion', 'body' => 'Public content']);
         $this->actingAs($user)->get(route('community.show', $community))->assertOk()->assertSee('Public content')->assertSee('Join Community')->assertDontSee('placeholder="Write a comment..."', false)->assertDontSee('placeholder="Create a new post..."', false);
         $this->postJson('/community/'.$community->id.'/posts', ['title' => 'No membership', 'body' => 'No'])->assertForbidden();

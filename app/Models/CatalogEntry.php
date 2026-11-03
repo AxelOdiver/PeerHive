@@ -14,4 +14,9 @@ class CatalogEntry extends Model
     public function scopeApproved($query) { return $query->where('status', 'approved'); }
     public static function topics() { return self::approved()->where('kind', 'topic')->with('parent')->orderBy('name')->get(); }
     public static function names(): array { return self::topics()->pluck('name')->all(); }
+    public static function subjects()
+    {
+        return self::approved()->where('kind', 'subject')
+            ->where('name_key', '!=', self::key('Existing teaching subjects'))->orderBy('name')->get();
+    }
 }

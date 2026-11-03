@@ -103,13 +103,55 @@ $(document).ready(function () {
         });
     });
     
+    let mediaPreviewUrl = null;
+    function clearMediaPreview() {
+        $('#postMediaPreview').empty().prop('hidden', true);
+        $('#removePostMedia').prop('hidden', true);
+        if (mediaPreviewUrl) URL.revokeObjectURL(mediaPreviewUrl);
+        mediaPreviewUrl = null;
+        $('#postBody').prop('required', true);
+    }
+
+    $('#postMedia').on('change', function() {
+        clearMediaPreview();
+        const file = this.files[0];
+        if (!file) return;
+        const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm'];
+        if (!allowed.includes(file.type) || file.size > 20 * 1024 * 1024) {
+            this.value = '';
+            toast('error', 'Choose a JPG, PNG, GIF, WebP, MP4, or WebM file up to 20 MB.');
+            return;
+        }
+        mediaPreviewUrl = URL.createObjectURL(file);
+        const preview = document.createElement(file.type.startsWith('video/') ? 'video' : 'img');
+        preview.src = mediaPreviewUrl;
+        preview.className = 'img-fluid rounded-3';
+        preview.style.maxHeight = '280px';
+        if (file.type.startsWith('video/')) {
+            preview.controls = true;
+            preview.playsInline = true;
+        } else {
+            preview.alt = 'Attachment preview';
+        }
+        $('#postMediaPreview').append(preview).prop('hidden', false);
+        $('#removePostMedia').prop('hidden', false);
+        $('#postBody').prop('required', false);
+    });
+    $('#removePostMedia').on('click', function() {
+        $('#postMedia').val('');
+        clearMediaPreview();
+    });
+    $('#createPostModal').on('hidden.bs.modal', function() {
+        $('#postMediaPreview video').each(function() { this.pause(); });
+    });
+
     // Create Post AJAX Logic
     $('#createPostForm').on('submit', function(e) {
         e.preventDefault();
         
         let $form = $(this);
         let communityId = $('#communityIdForPost').val();
-        let formData = $form.serialize(); 
+        let formData = new FormData($form[0]);
         let $btn = $('#savePostBtn');
         
         // Loading state
@@ -121,6 +163,8 @@ $(document).ready(function () {
             url: `/community/${communityId}/posts`,
             type: 'POST', 
             data: formData,
+            processData: false,
+            contentType: false,
             dataType: 'json',
             headers: { 'Accept': 'application/json' },
             success: function(response) {
@@ -129,6 +173,7 @@ $(document).ready(function () {
                 
                 // Clear the form inputs for the next time it opens
                 $form[0].reset();
+                clearMediaPreview();
                 
                 // Refresh to show the new post in the feed
                 setTimeout(() => {
@@ -140,6 +185,8 @@ $(document).ready(function () {
                 
                 if (xhr.status === 422) {
                     showFormErrors($form, xhr.responseJSON.errors);
+                } else if (xhr.status === 413) {
+                    toast('error', 'This attachment exceeds the server upload limit. Please choose a smaller file.');
                 } else {
                     toast('error', xhr.responseJSON?.message || 'Something went wrong while posting.');
                 }

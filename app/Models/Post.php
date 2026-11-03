@@ -16,6 +16,8 @@ class Post extends Model
         'user_id',
         'title',
         'body',
+        'media_path',
+        'media_mime',
     ];
 
     // 2. Relationship: A post belongs to the student who wrote it

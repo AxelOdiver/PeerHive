@@ -4,30 +4,35 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Community;
+use App\Models\CatalogEntry;
+use Illuminate\Validation\Rule;
 use App\Models\Post;
 use App\Models\Comment;
+use Illuminate\Support\Facades\Storage;
 
 class CommunityController extends Controller
 {
     public function index()
     {
         $communities = Community::with(['user', 'members'])->latest()->get();
-        return view('community', compact('communities'));
+        $subjects = CatalogEntry::subjects();
+        return view('community', compact('communities', 'subjects'));
     }
 
     public function store (Request $request)
     {
-        // Older forms and profile qualifications use both labels. Keep the
-        // community value canonical while accepting either user-facing label.
+        // Accept older forms while saving the current catalog subject names.
         $request->merge([
             'subject' => match (trim((string) $request->input('subject'))) {
-                'Graphic Design' => 'Graphic Designing',
+                'Coding' => 'Programming',
+                'Foreign Language' => 'Languages',
+                'Graphic Design', 'Graphic Designing' => 'Design',
                 default => trim((string) $request->input('subject')),
             },
         ]);
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'subject' => 'required|string|in:Coding,Foreign Language,Graphic Designing',
+            'subject' => ['required', 'string', Rule::in(CatalogEntry::subjects()->pluck('name')->all())],
             'member_limit' => 'required|integer|min:3|max:25',
             'visibility' => 'required|in:public,private',
         ]);
@@ -47,7 +52,8 @@ class CommunityController extends Controller
         $community->load('user')->loadCount('members');
         $isMember = \App\Support\LearningHub::member(auth()->user(), $community);
         $isManager = auth()->id() === $community->user_id || auth()->user()->role === 'admin';
-        $joinRequest = $community->joinRequests()->where('user_id', auth()->id())->first();
+        $joinRequest = $community->visibility === 'private'
+            ? $community->joinRequests()->where('user_id', auth()->id())->first() : null;
         $pendingInvite = \App\Models\CommunityInvite::where('community_id', $community->id)
             ->where('user_id', auth()->id())->where('status', 'pending')->first();
         $memberCount = $community->memberCount();
@@ -56,7 +62,8 @@ class CommunityController extends Controller
         }
 
         $community->load(['members', 'posts' => fn ($query) => $query->latest(), 'posts.user', 'posts.comments.user']);
-        $joinRequests = $isManager ? $community->joinRequests()->where('status', 'pending')->with('user')->oldest()->get() : collect();
+        $joinRequests = $isManager && $community->visibility === 'private'
+            ? $community->joinRequests()->where('status', 'pending')->with('user')->oldest()->get() : collect();
         return view('community-show', compact('community', 'joinRequest', 'pendingInvite', 'memberCount', 'joinRequests'));
     }
 
@@ -68,19 +75,48 @@ class CommunityController extends Controller
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'body' => 'required|string',
+            'body' => 'required_without:media|nullable|string',
+            'media' => 'nullable|file|mimetypes:image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm|max:20480',
         ]);
 
         $validated['user_id'] = auth()->id();
         $validated['community_id'] = $community->id;
+        $validated['body'] = $validated['body'] ?? '';
+        unset($validated['media']);
 
-        $post = Post::create($validated);
+        if ($request->hasFile('media')) {
+            $validated['media_path'] = $request->file('media')->store('community-posts', 'local');
+            abort_unless($validated['media_path'], 500, 'The attachment could not be saved. Please try again.');
+            $validated['media_mime'] = $request->file('media')->getMimeType();
+        }
+
+        try {
+            $post = Post::create($validated);
+        } catch (\Throwable $exception) {
+            if (!empty($validated['media_path'])) Storage::disk('local')->delete($validated['media_path']);
+            throw $exception;
+        }
 
         return response()->json([
             'message' => 'Post created successfully!',
             'post' => $post
         ]);
     }   
+
+    public function postMedia(Request $request, Post $post)
+    {
+        $community = $post->community;
+        abort_unless($community && ($community->visibility === 'public'
+            || \App\Support\LearningHub::member($request->user(), $community)
+            || $request->user()->role === 'admin'), 403);
+        abort_unless($post->media_path && Storage::disk('local')->exists($post->media_path), 404);
+
+        return response()->file(Storage::disk('local')->path($post->media_path), [
+            'Content-Type' => $post->media_mime,
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ])->setPrivate();
+    }
 
     // Handle community deletion
     public function destroy(Community $community)
@@ -91,7 +127,9 @@ class CommunityController extends Controller
             ], 403);
         }
 
+        $mediaPaths = $community->posts()->whereNotNull('media_path')->pluck('media_path')->all();
         $community->delete();
+        Storage::disk('local')->delete($mediaPaths);
 
        return response()->json([
             'message' => 'Community deleted successfully.',
@@ -170,7 +208,9 @@ class CommunityController extends Controller
             return response()->json(['message' => 'Unauthorized action.'], 403);
         }
         
+        $mediaPath = $post->media_path;
         $post->delete();
+        if ($mediaPath) Storage::disk('local')->delete($mediaPath);
         return response()->json(['message' => 'Post deleted successfully.']);    }
     
 

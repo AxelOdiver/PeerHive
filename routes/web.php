@@ -105,6 +105,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/community/{community}', [CommunityController::class, 'update'])->name('community.update');
     Route::put('/community/{id}/tags', [CommunityController::class, 'updateTags'])->name('community.tags.update');
     Route::post('/community/{id}/posts', [CommunityController::class, 'storePost'])->name('community.posts.store');
+    Route::get('/posts/{post}/media', [CommunityController::class, 'postMedia'])->name('posts.media');
     Route::post('/communities/{community}/invite', [CommunityInviteController::class, 'store'])->name('community.invite.store');
     Route::post('/invites/{invite}/accept', [CommunityInviteController::class, 'accept'])->name('community.invite.accept');
     Route::post('/invites/{invite}/decline', [CommunityInviteController::class, 'decline'])->name('community.invite.decline');

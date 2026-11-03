@@ -88,11 +88,11 @@
       <option value="private">Private (Join by approval or invitation)</option>
     </select> 
     
-    <select name="subject" id="subjectInput" class="form-select mt-3 p-3" required>
+    <select name="subject" id="subjectInput" class="form-select mt-3 p-3" aria-label="Community subject" required>
       <option value="" selected disabled>Choose a Subject...</option>
-      <option value="Coding">Coding</option>
-      <option value="Foreign Language">Foreign Language</option>
-      <option value="Graphic Designing">Graphic Designing</option>
+      @foreach($subjects as $subject)
+      <option value="{{ $subject->name }}">{{ $subject->name }}</option>
+      @endforeach
     </select> 
     
     <div class="form-floating">

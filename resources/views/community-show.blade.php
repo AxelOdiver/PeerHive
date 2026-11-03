@@ -11,12 +11,12 @@ $isMember = auth()->check() && (auth()->id() === $community->user_id || $communi
   <a href="{{ route('community') }}" class="btn btn-primary mb-4">
     <i class="bi bi-arrow-left"></i> Back to Communities
   </a>
-  
+
   <!-- Main content area with community details -->
   @if(!$isMember && !$isCommunityManager)
   <div class="card border-0 shadow-sm rounded-4 p-4 mb-4"><p>Join this community to post, comment, and participate in study sessions.</p>@include('components.community-join-actions')</div>
   @endif
-  @if($isCommunityManager)
+  @if($isCommunityManager && $community->visibility === 'private')
   <section class="card border-0 shadow-sm rounded-4 p-4 mb-4" id="join-requests">
     <h3 class="h5 mb-3">Join requests ({{ $joinRequests->count() }})</h3>
     @forelse($joinRequests as $request)
@@ -27,22 +27,21 @@ $isMember = auth()->check() && (auth()->id() === $community->user_id || $communi
   </section>
   @endif
   <div class="card border-0 shadow-sm rounded-4 mb-4"><div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3"><div><h2 class="h5 mb-1">Study together</h2><p class="small text-muted mb-0">Find peer study groups and tutor-led sessions in this community.</p></div><div class="d-flex gap-2 ms-auto"><a class="btn btn-outline-primary" href="{{ route('study-sessions.index',['community'=>$community->id]) }}">View sessions</a>@if($isMember || $isCommunityManager)<a class="btn btn-primary" href="{{ route('study-sessions.create',['community'=>$community->id]) }}">Create a session</a>@endif</div></div></div>
-  <div class="row align-items-stretch g-3 mb-4">
-    
-    <!-- TOP LEFT: Community Description -->
-    <div class="col-12 col-lg-8">
-      <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+  <div class="row g-3 align-items-start">
+    <div class="col-12 col-lg-8" style="min-width: 0">
+<!-- Community title and description -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 mb-3">
         <div class="d-flex justify-content-between align-items-start mb-3">
           <h3 class="fw-bold mb-2">{{ $community->name }}</h3>
           @if($isCommunityManager)
           <button type="button" id="editDescriptionBtn" data-id="{{ $community->id }}" class="btn btn-sm btn-primary justify-content-end d-flex align-items-center ms-auto">Edit</button>
           @endif
         </div>
-        
+
         <div id="descriptionViewMode">
           <p class="lead mb-0" id="descriptionText">{{ $community->description }}</p>
         </div>
-        
+
         @if($isCommunityManager)
         <div id="descriptionEditMode" style="display:none;">
           <textarea name="description" id="descriptionInput" class="form-control form-control-lg" rows="8" placeholder="Enter your description">{{ old('description', $community->description) }}</textarea>
@@ -51,8 +50,8 @@ $isMember = auth()->check() && (auth()->id() === $community->user_id || $communi
             <button type="button" id="saveEditBtn" class="btn btn-sm btn-primary mt-2 px-4">Save</button>
           </div>
         </div>
-        @endif  
-        
+        @endif
+
         <div class="d-flex align-items-center mt-2 pt-2 flex-wrap gap-2">
           <span class="text-muted small me-1">Tags:</span>
           @if($isCommunityManager)
@@ -71,120 +70,9 @@ $isMember = auth()->check() && (auth()->id() === $community->user_id || $communi
           </div>
         </div>
       </div>
-    </div>
-    
-    <!-- TOP RIGHT: Community Info -->
-    <div class="col-12 col-lg-4">
-      <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
-        <div class="d-flex justify-content-between align-items-start mb-2">
-          <h3 class="fw-bold mb-0">{{ $community->name }}</h3>
-          
-          <!-- Only show to members who are NOT the creator -->
-          @if($isMember && auth()->id() !== $community->user_id)
-          <button class="btn btn-sm btn-danger leave-community-btn" 
-          data-url="{{ route('community.leave', $community->id) }}">
-          <i class="bi bi-box-arrow-right"></i> Leave
-        </button>
-        @endif
-      </div>
-      
-      <div class="text-muted mb-3">
-        <i class="bi bi-person-circle me-1"></i> Created by {{ $community->user?->first_name }} {{ $community->user?->last_name ?? 'Unknown' }}
-        <span class="mx-2">|</span>
-        <i class="bi bi-people-fill me-1"></i> Members: {{ $memberCount }} / {{ $community->member_limit }}
-      </div>
-      <div class="mt-auto pt-2">
-        <div class="d-flex flex-wrap gap-2 align-items-start mb-1">
-          <span class="badge bg-secondary-subtle text-secondary-emphasis px-3 py-2 rounded-pill">
-            <i class="bi bi-book-half me-1"></i> {{ $community->subject }}
-          </span>
-          @if($community->visibility === 'private')
-          <span class="badge bg-danger text-white rounded-pill px-3 py-2">
-            <i class="bi bi-lock-fill me-1"></i> Private
-          </span>
-          @else
-          <span class="badge bg-success text-white rounded-pill px-3 py-2">
-            <i class="bi bi-globe me-1"></i> Public
-          </span>
-          @endif
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- BOTTOM LEFT: Members List -->
-  <div class="col-12 col-lg-8">
-    <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
-      <h5 class="fw-bold mb-3"><i class="bi bi-people me-2"></i> Members ({{ $community->members->count() ?? 0 }})</h5>
-      
-      <div class="d-flex flex-column gap-2 pe-1" style="max-height: 120px; overflow-y: auto;">
-        @forelse($community->members->sortByDesc(fn($m) => $m->id === $community->user_id) as $member)
-        <div class="d-flex justify-content-between align-items-center p-2 border border-secondary-subtle rounded-3">
-          <div class="d-flex align-items-center">
-            @if($member->profile_picture)
-            <img src="{{ asset('storage/' . $member->profile_picture) }}" 
-            alt="{{ $member->first_name }}" 
-            class="rounded-circle me-2 object-fit-cover shadow-sm" 
-            style="width: 32px; height: 32px;">
-            @else
-            <!-- Fallback to the first letter -->
-            <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
-              <span class="text-light fw-bold small">{{ substr($member->first_name, 0, 1) }}</span>
-            </div>
-            @endif
-            <span class="fw-medium small text-truncate" style="max-width: 120px;">
-              {{ $member->first_name }} {{ $member->last_name }}
-            </span>
-            @if($member->id === $community->user_id)
-            <small class="text-muted mb-2 mt-2 ps-2 d-block">
-              <i class="bi bi-person-circle me-1"></i>Creator
-            </small>
-            @endif
-          </div>
-          @if($isCommunityManager && $member->id !== $community->user_id)
-          <button class="btn btn-sm btn-danger remove-member-btn px-2 py-1" 
-          data-url="{{ route('community.removeMember', ['community' => $community->id, 'user' => $member->id]) }}">
-          <i class="bi bi-person-x"></i>
-        </button>
-        @endif
-      </div>
-      @empty
-      <p class="text-muted small fst-italic mb-0 text-center py-2">No members have joined yet.</p>
-      @endforelse
-    </div>
-  </div>
-</div>
 
-<!-- BOTTOM RIGHT: Invite Peers -->
-@if($isCommunityManager)
-<div class="col-12 col-lg-4">
-  <div class="card border-0 shadow-sm rounded-4 p-4 h-100" id="inviteSearchWrapper">
-    <h5 class="fw-bold mb-3"><i class="bi bi-person-plus-fill me-2"></i>Invite Peers</h5>
-    
-    <div class="d-flex flex-column h-100">
-      <form action="{{ route('invite.send') }}" method="POST" class="mt-auto">
-        @csrf
-        <input type="hidden" name="community_id" value="{{ $community->id }}">
-        <input type="hidden" name="user_id" id="inviteUserId" required>
-        
-        <div class="mb-3 position-relative">
-          <label for="inviteSearchInput" class="form-label small text-muted">Search Student</label>
-          <div class="input-group input-group-sm">
-            <span class="input-group-text border-end-0"><i class="bi bi-search"></i></span>
-            <input type="text" class="form-control border-start-0 ps-2" id="inviteSearchInput" placeholder="Search students..." autocomplete="off">
-          </div>
-          <div id="inviteDropdown" class="dropdown-menu w-100 shadow-sm" style="display: none; position: absolute; top: 100%; z-index: 1050;"></div>
-        </div>
-        <button type="submit" class="btn btn-primary btn-sm w-100 rounded-pill">Send Invite</button>
-      </form>
-    </div>
-  </div>
-</div>
-@endif
-</div>
-
-<!-- Full-width section for posts, files, or chat features -->
-<div class="card border-0 shadow-sm rounded-4 mb-4 mt-4">
+<!-- Community post composer and feed -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
   @if($isMember)
   <div class="card-body p-4 border-bottom border-secondary-subtle">
     <div class="d-flex gap-3 align-items-center">
@@ -192,7 +80,7 @@ $isMember = auth()->check() && (auth()->id() === $community->user_id || $communi
       <button class="btn btn-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#createPostModal">Post</button>
     </div>
   </div>
-  
+
   <!-- Posts feed -->
   @endif
   <div id="postsFeed">
@@ -200,9 +88,9 @@ $isMember = auth()->check() && (auth()->id() === $community->user_id || $communi
     <div class="p-4 border-bottom border-secondary-subtle">
       <div class="d-flex align-items-center mb-2">
         @if($post->user->profile_picture)
-          <img src="{{ asset('storage/' . $post->user->profile_picture) }}" 
-            alt="{{ $post->user->first_name }}" 
-            class="rounded-circle me-2 object-fit-cover shadow-sm" 
+          <img src="{{ asset('storage/' . $post->user->profile_picture) }}"
+            alt="{{ $post->user->first_name }}"
+            class="rounded-circle me-2 object-fit-cover shadow-sm"
             style="width: 28px; height: 28px;">
         @else
         <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 28px; height: 28px;">
@@ -212,10 +100,10 @@ $isMember = auth()->check() && (auth()->id() === $community->user_id || $communi
         <small class="text-muted fw-medium me-2">{{ $post->user->first_name }} {{ $post->user->last_name }}</small>
         <small class="text-muted">• {{ $post->created_at->diffForHumans() }}</small>
       </div>
-      
+
       <div class="d-flex justify-content-between align-items-start mb-2">
         <h5 class="fw-bold mb-0 text-body-emphasis">{{ $post->title }}</h5>
-        
+
         <!-- Post Actions Dropdown -->
         <div class="dropdown">
           <button class="btn btn-sm text-muted bg-transparent border-0 px-2 shadow-none" style="box-shadow: none;" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -224,10 +112,10 @@ $isMember = auth()->check() && (auth()->id() === $community->user_id || $communi
           <ul class="dropdown-menu dropdown-menu-end shadow-sm">
             @if(auth()->check())
             <li>
-              <button class="dropdown-item text-warning report-btn" 
-                      data-bs-toggle="modal" 
+              <button class="dropdown-item text-warning report-btn"
+                      data-bs-toggle="modal"
                       data-bs-target="#reportModal"
-                      data-id="{{ $post->id }}" 
+                      data-id="{{ $post->id }}"
                       data-type="App\Models\Post">
                 <i class="bi bi-flag me-2"></i> Report
               </button>
@@ -245,11 +133,23 @@ $isMember = auth()->check() && (auth()->id() === $community->user_id || $communi
           </ul>
         </div>
       </div>
-      
+
       <p class="text-muted mb-3">{{ str()->limit($post->body, 250) }}</p>
+      @if($post->media_path)
+        <div class="mb-3 rounded-3 overflow-hidden bg-body-tertiary text-center">
+          @if(str_starts_with($post->media_mime, 'video/'))
+            <video controls playsinline preload="metadata" class="w-100" style="max-height: 400px; object-fit: contain" aria-label="Video attached to {{ $post->title }}">
+              <source src="{{ route('posts.media', $post) }}" type="{{ $post->media_mime }}">
+              Your browser does not support this video. <a href="{{ route('posts.media', $post) }}">Open video</a>
+            </video>
+          @else
+            <a href="{{ route('posts.media', $post) }}" target="_blank" rel="noopener"><img src="{{ route('posts.media', $post) }}" alt="Image attached to {{ $post->title }}" class="img-fluid" style="max-height: 400px; object-fit: contain" loading="lazy"></a>
+          @endif
+        </div>
+      @endif
       <div class="mt-auto">
         <button class="btn btn-swap btn-sm rounded-pill fw-medium text-muted px-3" data-bs-toggle="collapse" data-bs-target="#commentsSection{{ $post->id }}">
-          <i class="bi bi-chat-square-text me-1"></i> 
+          <i class="bi bi-chat-square-text me-1"></i>
           {{ $post->comments->count() }} Comments
         </button>
       </div>
@@ -263,15 +163,15 @@ $isMember = auth()->check() && (auth()->id() === $community->user_id || $communi
           </div>
         </form>
         @endif
-        
+
         <!-- Comments List -->
         <div class="d-flex flex-column gap-2">
           @forelse($post->comments as $comment)
           <div class="d-flex gap-2 align-items-start">
             @if($comment->user->profile_picture)
-              <img src="{{ asset('storage/' . $comment->user->profile_picture) }}" 
-                alt="{{ $comment->user->first_name }}" 
-                class="rounded-circle mt-1 object-fit-cover shadow-sm" 
+              <img src="{{ asset('storage/' . $comment->user->profile_picture) }}"
+                alt="{{ $comment->user->first_name }}"
+                class="rounded-circle mt-1 object-fit-cover shadow-sm"
                 style="width: 28px; height: 28px;">
             @else
             <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center mt-1 text-white fw-bold small" style="width: 28px; height: 28px;">
@@ -284,7 +184,7 @@ $isMember = auth()->check() && (auth()->id() === $community->user_id || $communi
                   <span class="fw-bold small">{{ $comment->user->first_name }}</span>
                   <small class="text-muted ms-2">{{ $comment->created_at->diffForHumans() }}</small>
                 </div>
-                
+
                 <!-- Comment Actions Dropdown -->
                 <div class="dropdown">
                   <button class="btn btn-sm btn-link text-muted p-0 border-0 text-decoration-none" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -293,10 +193,10 @@ $isMember = auth()->check() && (auth()->id() === $community->user_id || $communi
                   <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width: 120px;">
                     @if(auth()->check())
                     <li>
-                      <button class="dropdown-item text-warning small report-btn" 
-                              data-bs-toggle="modal" 
+                      <button class="dropdown-item text-warning small report-btn"
+                              data-bs-toggle="modal"
                               data-bs-target="#reportModal"
-                              data-id="{{ $comment->id }}" 
+                              data-id="{{ $comment->id }}"
                               data-type="App\Models\Comment">
                         <i class="bi bi-flag me-2"></i> Report
                       </button>
@@ -321,8 +221,8 @@ $isMember = auth()->check() && (auth()->id() === $community->user_id || $communi
           <p class="text-muted small fst-italic mb-0 text-center">No comments yet.</p>
           @endforelse
         </div>
-      </div> 
-    </div> 
+      </div>
+    </div>
     @empty
     <div class="p-5 text-center text-muted">
       <i class="bi bi-chat-square-dots fs-1 mb-3 text-secondary opacity-50"></i>
@@ -330,7 +230,114 @@ $isMember = auth()->check() && (auth()->id() === $community->user_id || $communi
       <p>Be the first to start a discussion in this community!</p>
     </div>
     @endforelse
-  </div> 
+  </div>
+</div>
+    </div>
+    <aside class="col-12 col-lg-4" aria-label="Community information">
+<!-- Community details -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 mb-3">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <h3 class="h5 fw-bold mb-0">About this community</h3>
+
+          <!-- Only show to members who are NOT the creator -->
+          @if($isMember && auth()->id() !== $community->user_id)
+          <button class="btn btn-sm btn-danger leave-community-btn"
+          data-url="{{ route('community.leave', $community->id) }}">
+          <i class="bi bi-box-arrow-right"></i> Leave
+        </button>
+        @endif
+      </div>
+
+      <div class="text-muted mb-3">
+        <i class="bi bi-person-circle me-1"></i> Created by {{ $community->user?->first_name }} {{ $community->user?->last_name ?? 'Unknown' }}
+        <br>
+        <i class="bi bi-people-fill me-1"></i> Members: {{ $memberCount }} / {{ $community->member_limit }}
+      </div>
+      <div class="mt-auto pt-2">
+        <div class="d-flex flex-wrap gap-2 align-items-start mb-1">
+          <span class="badge bg-secondary-subtle text-secondary-emphasis px-3 py-2 rounded-pill">
+            <i class="bi bi-book-half me-1"></i> {{ $community->subject }}
+          </span>
+          @if($community->visibility === 'private')
+          <span class="badge bg-danger text-white rounded-pill px-3 py-2">
+            <i class="bi bi-lock-fill me-1"></i> Private
+          </span>
+          @else
+          <span class="badge bg-success text-white rounded-pill px-3 py-2">
+            <i class="bi bi-globe me-1"></i> Public
+          </span>
+          @endif
+        </div>
+      </div>
+    </div>
+
+<!-- Community members -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-3">
+      <h5 class="fw-bold mb-3"><i class="bi bi-people me-2"></i> Members ({{ $community->members->count() ?? 0 }})</h5>
+
+      <div class="d-flex flex-column gap-2 pe-1" style="max-height: 240px; overflow-y: auto;">
+        @forelse($community->members->sortByDesc(fn($m) => $m->id === $community->user_id) as $member)
+        <div class="d-flex justify-content-between align-items-center p-2 border border-secondary-subtle rounded-3">
+          <div class="d-flex align-items-center">
+            @if($member->profile_picture)
+            <img src="{{ asset('storage/' . $member->profile_picture) }}"
+            alt="{{ $member->first_name }}"
+            class="rounded-circle me-2 object-fit-cover shadow-sm"
+            style="width: 32px; height: 32px;">
+            @else
+            <!-- Fallback to the first letter -->
+            <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+              <span class="text-light fw-bold small">{{ substr($member->first_name, 0, 1) }}</span>
+            </div>
+            @endif
+            <span class="fw-medium small text-truncate" style="max-width: 120px;">
+              {{ $member->first_name }} {{ $member->last_name }}
+            </span>
+            @if($member->id === $community->user_id)
+            <small class="text-muted mb-2 mt-2 ps-2 d-block">
+              <i class="bi bi-person-circle me-1"></i>Creator
+            </small>
+            @endif
+          </div>
+          @if($isCommunityManager && $member->id !== $community->user_id)
+          <button class="btn btn-sm btn-danger remove-member-btn px-2 py-1"
+          data-url="{{ route('community.removeMember', ['community' => $community->id, 'user' => $member->id]) }}">
+          <i class="bi bi-person-x"></i>
+        </button>
+        @endif
+      </div>
+      @empty
+      <p class="text-muted small fst-italic mb-0 text-center py-2">No members have joined yet.</p>
+      @endforelse
+    </div>
+  </div>
+
+<!-- Invite peers -->
+@if($isCommunityManager)
+  <div class="card border-0 shadow-sm rounded-4 p-4 mb-3" id="inviteSearchWrapper">
+    <h5 class="fw-bold mb-3"><i class="bi bi-person-plus-fill me-2"></i>Invite Peers</h5>
+
+    <div class="d-flex flex-column h-100">
+      <form action="{{ route('invite.send') }}" method="POST" class="mt-auto">
+        @csrf
+        <input type="hidden" name="community_id" value="{{ $community->id }}">
+        <input type="hidden" name="user_id" id="inviteUserId" required>
+
+        <div class="mb-3 position-relative">
+          <label for="inviteSearchInput" class="form-label small text-muted">Search Student</label>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text border-end-0"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control border-start-0 ps-2" id="inviteSearchInput" placeholder="Search students..." autocomplete="off">
+          </div>
+          <div id="inviteDropdown" class="dropdown-menu w-100 shadow-sm" style="display: none; position: absolute; top: 100%; z-index: 1050;"></div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm w-100 rounded-pill">Send Invite</button>
+      </form>
+    </div>
+  </div>
+@endif
+    </aside>
+  </div>
 </div>
 
 <!-- Modal for editing community tags -->
@@ -343,18 +350,18 @@ $isMember = auth()->check() && (auth()->id() === $community->user_id || $communi
     <div class="d-flex flex-wrap gap-2 mb-3">
       <input type="checkbox" class="btn-check" id="editTagBeginner" name="tags[]" value="Beginner Friendly" {{ collect($community->tags)->contains('Beginner Friendly') ? 'checked' : '' }}>
       <label class="btn btn-outline-secondary rounded-pill btn-sm" for="editTagBeginner">Beginner Friendly</label>
-      
+
       <input type="checkbox" class="btn-check" id="editTagStudy" name="tags[]" value="Study Group" {{ collect($community->tags)->contains('Study Group') ? 'checked' : '' }}>
       <label class="btn btn-outline-secondary rounded-pill btn-sm" for="editTagStudy">Study Group</label>
-      
+
       <input type="checkbox" class="btn-check" id="editTagProject" name="tags[]" value="Project Collab" {{ collect($community->tags)->contains('Project Collab') ? 'checked' : '' }}>
       <label class="btn btn-outline-secondary rounded-pill btn-sm" for="editTagProject">Project Collab</label>
-      
+
       <input type="checkbox" class="btn-check" id="editTagFast" name="tags[]" value="Fast Paced" {{ collect($community->tags)->contains('Fast Paced') ? 'checked' : '' }}>
       <label class="btn btn-outline-secondary rounded-pill btn-sm" for="editTagFast">Fast Paced</label>
     </div>
   </form>
-  
+
   <x-slot:footer>
   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
   <button type="submit" class="btn btn-primary" id="saveTagsBtn" form="editTagsForm">Save Tags</button>
@@ -363,20 +370,28 @@ $isMember = auth()->check() && (auth()->id() === $community->user_id || $communi
 
 <!-- Modals for creating posts -->
 <x-modal id="createPostModal" title="Create a Post">
-  <form id="createPostForm">
+  <form id="createPostForm" enctype="multipart/form-data">
     @csrf
     <input type="hidden" id="communityIdForPost" value="{{ $community->id }}">
-    
+
     <div class="form-floating mb-3 mt-3">
       <input type="text" class="form-control" id="postTitle" name="title" placeholder="Post Title" required>
       <label for="postTitle">Title <span class="text-danger">*</span></label>
       <div class="invalid-feedback" data-error-for="title"></div>
     </div>
-    
+
     <div class="form-floating mb-3">
       <textarea class="form-control" id="postBody" name="body" placeholder="What are your thoughts?" style="height: 150px" required></textarea>
-      <label for="postBody">Body <span class="text-danger">*</span></label>
+      <label for="postBody">Body (optional with an attachment)</label>
       <div class="invalid-feedback" data-error-for="body"></div>
+    </div>
+    <div class="mb-3">
+      <label for="postMedia" class="form-label"><i class="bi bi-images me-2"></i>Add an image or video</label>
+      <input type="file" class="form-control" id="postMedia" name="media" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm" aria-describedby="postMediaHelp">
+      <div class="invalid-feedback" data-error-for="media"></div>
+      <div id="postMediaHelp" class="form-text">One JPG, PNG, GIF, WebP, MP4, or WebM file, up to 20 MB. Add text, an attachment, or both.</div>
+      <div id="postMediaPreview" class="mt-3" hidden></div>
+      <button type="button" id="removePostMedia" class="btn btn-outline-secondary btn-sm mt-2" hidden>Remove attachment</button>
     </div>
   </form>
   <x-slot:footer>
@@ -389,7 +404,7 @@ $isMember = auth()->check() && (auth()->id() === $community->user_id || $communi
   <form id="reportForm">
     <input type="hidden" id="reportable_id" name="reportable_id">
     <input type="hidden" id="reportable_type" name="reportable_type">
-    
+
     <div class="mb-3">
       <label for="reportReason" class="form-label">Reason for Reporting</label>
       <select class="form-select" id="reportReason" name="reason" required>
@@ -400,7 +415,7 @@ $isMember = auth()->check() && (auth()->id() === $community->user_id || $communi
         <option value="Other">Other</option>
       </select>
     </div>
-    
+
     <div class="mb-3">
       <label for="reportDetails" class="form-label">Additional Details (Optional)</label>
       <textarea class="form-control" id="reportDetails" name="details" rows="3" placeholder="Provide any extra context..."></textarea>
