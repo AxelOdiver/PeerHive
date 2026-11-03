@@ -33,6 +33,12 @@
                 <p class="text-muted small">{{ '@'.$profileUser->username }}</p>
             @endif
             <x-teaching-badges :user="$profileUser" />
+            <div class="my-3">
+                <x-teaching-rating :user="$profileUser" />
+                @if($profileUser->teaching_ratings_count)
+                    <a href="#learner-reviews" class="small">View learner reviews</a>
+                @endif
+            </div>
             @if(count($learningBadges))<div class="my-3"><p class="small text-muted mb-1">Participation achievements</p><div class="d-flex gap-1 flex-wrap justify-content-center">@foreach($learningBadges as $badge)<span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-trophy me-1" aria-hidden="true"></i>{{ $badge }}</span>@endforeach</div></div>@endif
 
             @if($profileUser->description)
@@ -94,7 +100,7 @@
                     class="btn {{ $hasFavorited ? 'btn-warning' : 'btn-outline-warning' }} fav-profile-btn"
                     data-id="{{ $profileUser->id }}">
                     <i class="bi {{ $hasFavorited ? 'bi-bookmark-fill' : 'bi-bookmark' }} me-1"></i>
-                    <span class="fav-label">{{ $hasFavorited ? 'Saved' : 'Save' }}</span>
+                    <span class="fav-label">{{ $hasFavorited ? 'Favorited' : 'Add to favorites' }}</span>
                 </button>
             </div>
             @endif
@@ -128,6 +134,33 @@
                 @endforeach
             </div>
         </div>
+
+        <section id="learner-reviews" class="card border-0 shadow-sm rounded-4 p-4 mt-4" aria-labelledby="learner-reviews-title">
+            <h5 id="learner-reviews-title" class="fw-bold mb-2">Learner reviews</h5>
+            <p class="small text-muted mb-0">Feedback from learners after completed sessions.</p>
+            @forelse($learnerReviews as $review)
+                <article class="border-top pt-3 mt-3">
+                    <div class="d-flex flex-wrap justify-content-between gap-2">
+                        <strong>{{ trim(($review->learner?->first_name ?? '').' '.($review->learner?->last_name ?? '')) ?: 'PeerHive member' }}</strong>
+                        <time class="small text-muted" datetime="{{ $review->created_at->toIso8601String() }}">{{ $review->created_at->setTimezone(auth()->user()->learning_timezone)->format('M j, Y') }}</time>
+                    </div>
+                    <div class="small mt-1" aria-label="{{ $review->stars }} out of 5 stars">
+                        <span class="text-warning" aria-hidden="true">@for($star = 1; $star <= 5; $star++)<i class="bi {{ $review->stars >= $star ? 'bi-star-fill' : 'bi-star' }}"></i>@endfor</span>
+                        <span>{{ $review->stars }} / 5</span>
+                    </div>
+                    @if(filled($review->comment))
+                        <p class="text-break mt-2 mb-0" style="white-space:pre-wrap">{{ $review->comment }}</p>
+                    @else
+                        <p class="small text-muted mt-2 mb-0">Rated without a written review.</p>
+                    @endif
+                </article>
+            @empty
+                <p class="text-muted mt-3 mb-0">No learner reviews yet.</p>
+            @endforelse
+            @if($learnerReviews->hasPages())
+                <div class="mt-3">{{ $learnerReviews->links('pagination::simple-bootstrap-5') }}</div>
+            @endif
+        </section>
 
         {{-- Recent Posts --}}
         @if($profileUser->posts->count() > 0)

@@ -117,8 +117,18 @@
 </x-modal>
 <x-modal id="rateTeacherModal" title="Rate your teacher">
   <p>How was learning with <strong id="ratingTeacherName"></strong>?</p>
-  <p class="small text-muted">Rate the teaching in this session. Your stars contribute to their public average. One rating per completed session.</p>
-  <form id="rateTeacherForm"><input type="hidden" id="ratingConversationId"><div class="d-flex flex-wrap gap-3">@for($star=1;$star<=5;$star++)<label class="form-check-label"><input type="radio" class="form-check-input me-1" name="stars" value="{{ $star }}" required> {{ $star }} <i class="bi bi-star-fill text-warning" aria-hidden="true"></i></label>@endfor</div><p id="ratingError" class="small text-danger mt-2" role="alert"></p></form>
+  <p class="small text-muted">Rate the teaching in this session. Your stars contribute to their teaching average. One rating per completed session.</p>
+  <form id="rateTeacherForm">
+    <input type="hidden" id="ratingConversationId">
+    <div class="d-flex flex-wrap gap-3">@for($star=1;$star<=5;$star++)<label class="form-check-label"><input type="radio" class="form-check-input me-1" name="stars" value="{{ $star }}" required> {{ $star }} <i class="bi bi-star-fill text-warning" aria-hidden="true"></i></label>@endfor</div>
+    <div class="mt-3">
+      <label for="ratingComment" class="form-label">Write a review <span class="text-muted">(optional)</span></label>
+      <textarea id="ratingComment" name="comment" class="form-control" rows="3" maxlength="500" placeholder="What helped you learn?" aria-describedby="ratingCommentHelp ratingVisibilityHelp"></textarea>
+      <div id="ratingCommentHelp" class="form-text">Up to 500 characters. You can submit stars without a written review.</div>
+    </div>
+    <p id="ratingVisibilityHelp" class="small text-muted mt-3 mb-0">Your display name, stars, date, and any comment will be visible to other signed-in members on this teacher's profile.</p>
+    <p id="ratingError" class="small text-danger mt-2" role="alert"></p>
+  </form>
   <x-slot:footer><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Later</button><button type="submit" form="rateTeacherForm" class="btn btn-primary" id="submitRatingBtn">Submit rating</button></x-slot:footer>
 </x-modal>
 <x-modal id="createSessionModal" title="Create a session" dialogClass="modal-dialog-centered modal-dialog-scrollable"><div id="sessionProposalModalBody"></div></x-modal>

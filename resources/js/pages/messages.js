@@ -246,9 +246,10 @@ $(document).ready(function () {
   $(document).on('click', '#rateTeacherBtn', () => { if (pendingRating) showTeacherRating(pendingRating); });
   $(document).on('submit', '#rateTeacherForm', async function (e) {
     e.preventDefault(); const id = $('#ratingConversationId').val();
+    const formData = new FormData(this);
     $('#submitRatingBtn').prop('disabled', true); $('#ratingError').text('');
     try {
-      const response = await fetch(`/messages/conversations/${id}/rating`, {method:'POST', headers:{'Content-Type':'application/json', Accept:'application/json', 'X-CSRF-TOKEN':$('meta[name="csrf-token"]').attr('content')}, body:JSON.stringify({stars: Number(new FormData(this).get('stars'))})});
+      const response = await fetch(`/messages/conversations/${id}/rating`, {method:'POST', headers:{'Content-Type':'application/json', Accept:'application/json', 'X-CSRF-TOKEN':$('meta[name="csrf-token"]').attr('content')}, body:JSON.stringify({stars: Number(formData.get('stars')), comment: formData.get('comment')})});
       const result = await response.json();
       if (!response.ok) throw new Error(Object.values(result.errors || {}).flat()[0] || result.message);
       window.bootstrap.Modal.getInstance(document.getElementById('rateTeacherModal')).hide();

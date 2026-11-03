@@ -42,7 +42,7 @@ $(document).on('click', '.fav-profile-btn', function () {
 
       $btn.toggleClass('btn-warning', saved).toggleClass('btn-outline-warning', !saved);
       $btn.find('i').toggleClass('bi-bookmark-fill', saved).toggleClass('bi-bookmark', !saved);
-      $btn.find('.fav-label').text(saved ? 'Saved' : 'Save');
+      $btn.find('.fav-label').text(saved ? 'Favorited' : 'Add to favorites');
 
       if (window.toast) {
         window.toast('success', saved ? 'Added to favorites!' : 'Removed from favorites.');

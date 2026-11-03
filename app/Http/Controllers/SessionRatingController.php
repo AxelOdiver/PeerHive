@@ -7,7 +7,10 @@ use Illuminate\Support\Facades\DB;
 class SessionRatingController extends Controller
 {
     public function store(Request $request, Conversation $conversation) {
-        $data = $request->validate(['stars' => 'required|integer|between:1,5']);
+        $data = $request->validate([
+            'stars' => 'required|integer|between:1,5',
+            'comment' => 'nullable|string|max:500',
+        ]);
         DB::transaction(function () use ($conversation, $data, $request) {
             $chat = Conversation::whereKey($conversation->id)->lockForUpdate()->firstOrFail();
             abort_unless($chat->session_context && $chat->users()->where('users.id', $request->user()->id)->exists(), 403);
@@ -18,7 +21,11 @@ class SessionRatingController extends Controller
             $c = $chat->session_context;
             $teacher = $c['learner'] === $request->user()->id ? $c['teacher'] : $c['learner'];
             abort_if(SessionRating::where('study_session_id', $session->id)->where('learner_id', $request->user()->id)->exists(), 409, 'You already rated this session.');
-            SessionRating::create(['study_session_id' => $session->id, 'learner_id' => $request->user()->id, 'teacher_id' => $teacher, 'stars' => $data['stars']]);
+            SessionRating::create([
+                'study_session_id' => $session->id, 'learner_id' => $request->user()->id,
+                'teacher_id' => $teacher, 'stars' => $data['stars'],
+                'comment' => filled($data['comment'] ?? null) ? trim($data['comment']) : null,
+            ]);
         });
         return response()->json(['message' => 'Thank you. Your rating has been saved.']);
     }

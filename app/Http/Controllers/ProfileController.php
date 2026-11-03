@@ -34,6 +34,12 @@ class ProfileController extends Controller
         $user->load(['approvedTeachingQualifications', 'schedules', 'posts' => function ($q) {
             $q->latest()->take(3);
         }]);
+        $user->loadAvg('teachingRatings', 'stars')->loadCount('teachingRatings');
+        $learnerReviews = $user->teachingRatings()
+            ->with('learner:id,first_name,last_name')
+            ->latest('id')
+            ->simplePaginate(5, ['id', 'teacher_id', 'learner_id', 'stars', 'comment', 'created_at'], 'reviews_page')
+            ->fragment('learner-reviews');
 
         $currentUser = Auth::user();
 
@@ -52,6 +58,7 @@ class ProfileController extends Controller
             'hasLiked',
             'hasFavorited',
             'learningBadges',
+            'learnerReviews',
         ) + ['profileUser' => $user]);
     }
 
