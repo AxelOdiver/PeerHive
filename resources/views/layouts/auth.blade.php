@@ -1,17 +1,19 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-bs-theme="light">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Auth')</title>
     <link rel="icon" type="image/png" href="{{ asset('images/peerhive-logo.png') }}?v=2">
+    @include('layouts.partials.theme-init')
 
     {{-- Your Vite bundle (should import bootstrap + adminlte) --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
   </head>
 
-  <body class="@yield('body-class')" data-page="{{ Route::currentRouteName() }}">
+  <body class="auth-page @yield('body-class')" data-page="{{ Route::currentRouteName() }}">
+    <x-auth-theme-selector />
     @yield('content')
     @unless(request()->routeIs('register'))
       <div class="text-center small py-3">

@@ -8,36 +8,10 @@
   <link rel="icon" type="image/png" href="{{ asset('images/peerhive-logo.png') }}?v=2">
   @php($sidebarAvatarUrl = auth()->user()->profile_picture_url ?? route('profile-picture.show', ['filename' => 'default']))
   <link rel="preload" as="image" href="{{ $sidebarAvatarUrl }}" fetchpriority="high">
+  @include('layouts.partials.theme-init')
   
   <script>
-    // --- 1. Theme Configuration (Runs instantly to prevent white-flash) ---
-    (() => {
-      'use strict';
-      
-      const storedTheme = localStorage.getItem('theme');
-      
-      const getPreferredTheme = () => {
-        if (storedTheme) {
-          return storedTheme;
-        }
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      };
-      
-      const setTheme = function (theme) {
-        if (theme === 'auto') {
-          document.documentElement.setAttribute(
-            'data-bs-theme',
-            window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-          );
-        } else {
-          document.documentElement.setAttribute('data-bs-theme', theme);
-        }
-      };
-      
-      setTheme(getPreferredTheme());
-    })();
-
-    // --- 2. Global Unread Messages & Notifications (Waits for HTML to load) ---
+    // Global Unread Messages & Notifications (Waits for HTML to load)
     document.addEventListener("DOMContentLoaded", function () {
       const escapeNotification = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
       let badgeRequestPending = false;

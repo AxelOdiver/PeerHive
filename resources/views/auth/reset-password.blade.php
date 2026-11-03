@@ -35,8 +35,8 @@
           </div>
           <button type="submit" class="btn btn-primary w-100">Reset password</button>
         </form>
-        <p class="text-center mt-3 mb-1"><a href="{{ route('password.request') }}">Request a new reset link</a></p>
-        <p class="text-center mb-0"><a href="{{ route('login') }}">Back to log in</a></p>
+        <a href="{{ route('login') }}" class="btn auth-back-button w-100 mt-3">Back to log in</a>
+        <p class="text-center small mt-3 mb-0"><a href="{{ route('password.request') }}">Request a new reset link</a></p>
       </div>
     </div>
   </div>

@@ -107,13 +107,11 @@ export function handleSessionToast() {
 }
 
 export function getPreferredTheme() {
-  const storedTheme = localStorage.getItem('theme');
-
-  if (storedTheme) {
-    return storedTheme;
-  }
-
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  try {
+    const storedTheme = localStorage.getItem('theme');
+    if (['light', 'dark', 'auto'].includes(storedTheme)) return storedTheme;
+  } catch {}
+  return 'auto';
 }
 
 export function setTheme(theme) {
@@ -133,7 +131,7 @@ function getThemeIcon(theme) {
   }
 
   if (theme === 'auto') {
-    return 'bi-circle-fill-half-stroke';
+    return 'bi-circle-half';
   }
 
   return 'bi-sun-fill';
@@ -142,15 +140,11 @@ function getThemeIcon(theme) {
 export function showActiveTheme(theme) {
   const themeSwitcher = document.querySelector('#bd-theme');
 
-  if (!themeSwitcher) {
-    return;
-  }
-
   const activeTheme = theme === 'auto'
     ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
     : theme;
 
-  const activeIcon = themeSwitcher.querySelector('.theme-icon-active i');
+  const activeIcon = themeSwitcher?.querySelector('.theme-icon-active i');
 
   if (activeIcon) {
     activeIcon.className = `bi ${getThemeIcon(theme)} my-1`;
@@ -168,7 +162,7 @@ export function showActiveTheme(theme) {
     }
   });
 
-  themeSwitcher.setAttribute('aria-label', `Theme (${activeTheme})`);
+  themeSwitcher?.setAttribute('aria-label', `Theme (${theme === 'auto' ? 'auto, currently ' : ''}${activeTheme})`);
 }
 
 export function initThemeSelector() {
@@ -178,13 +172,16 @@ export function initThemeSelector() {
     return;
   }
 
+  let selectedTheme = getPreferredTheme();
   const applyTheme = (theme) => {
-    localStorage.setItem('theme', theme);
+    selectedTheme = theme;
+    try { localStorage.setItem('theme', theme); } catch {}
     setTheme(theme);
     showActiveTheme(theme);
   };
 
-  showActiveTheme(getPreferredTheme());
+  setTheme(selectedTheme);
+  showActiveTheme(selectedTheme);
 
   themeToggles.forEach((toggle) => {
     toggle.addEventListener('click', () => {
@@ -193,9 +190,7 @@ export function initThemeSelector() {
   });
 
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    const storedTheme = localStorage.getItem('theme') || 'auto';
-
-    if (storedTheme === 'auto') {
+    if (selectedTheme === 'auto') {
       setTheme('auto');
       showActiveTheme('auto');
     }

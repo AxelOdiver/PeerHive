@@ -20,7 +20,7 @@
           </div>
           <button type="submit" class="btn btn-primary w-100">Send reset link</button>
         </form>
-        <p class="text-center mt-3 mb-0"><a href="{{ route('login') }}">Back to log in</a></p>
+        <a href="{{ route('login') }}" class="btn auth-back-button w-100 mt-3">Back to log in</a>
       </div>
     </div>
   </div>
