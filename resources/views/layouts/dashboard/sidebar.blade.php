@@ -105,12 +105,15 @@
       <div class="d-flex flex-column align-items-center text-center gap-2 p-3">
         <a href="{{ route('profile') }}" aria-label="Edit profile" data-sidebar-tooltip="Edit profile">
         <img
-          src="{{ auth()->user()->profile_picture_url ?? '/images/profile-placeholder.jpeg' }}"
+          src="{{ $sidebarAvatarUrl ?? auth()->user()->profile_picture_url ?? route('profile-picture.show', ['filename' => 'default']) }}"
           alt="{{ trim(auth()->user()->first_name . ' ' . auth()->user()->last_name) ?: 'User' }}"
           id="sidebarUserAvatar"
           class="rounded-circle dashboard-avatar flex-shrink-0 object-fit-cover"
-          width="64"
-          height="64"
+          width="36"
+          height="36"
+          loading="eager"
+          decoding="sync"
+          fetchpriority="high"
         >
         </a>
 

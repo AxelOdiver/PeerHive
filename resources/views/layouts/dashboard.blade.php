@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>@yield('title', 'Dashboard')</title>
+  @php($sidebarAvatarUrl = auth()->user()->profile_picture_url ?? route('profile-picture.show', ['filename' => 'default']))
+  <link rel="preload" as="image" href="{{ $sidebarAvatarUrl }}" fetchpriority="high">
   
   <script>
     // --- 1. Theme Configuration (Runs instantly to prevent white-flash) ---
@@ -121,6 +123,15 @@
   @stack('styles')
 </head>
 <body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary" data-authenticated="true" data-page="{{ Route::currentRouteName() }}" @if(session('error')) data-error-message="{{ session('error') }}" @elseif(session('success')) data-success-message="{{ session('success') }}" @endif>
+  <script id="sidebar-initial-state">
+    // Apply the saved layout before any sidebar or page content can be painted.
+    (() => {
+      const desktop = window.matchMedia('(min-width: 992px)').matches;
+      let savedState = null;
+      try { savedState = localStorage.getItem('lte.sidebar.state'); } catch {}
+      document.body.classList.add(!desktop || savedState === 'sidebar-collapse' ? 'sidebar-collapse' : 'sidebar-open');
+    })();
+  </script>
   <div class="app-wrapper">
     @include('layouts.dashboard.topnav')
     @include('layouts.dashboard.sidebar')

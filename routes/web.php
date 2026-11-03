@@ -22,6 +22,8 @@ use App\Http\Controllers\MessageController;
 use App\Http\Controllers\MessagingActivityController;
 Route::view('/terms', 'legal.terms')->name('terms');
 Route::view('/privacy', 'legal.privacy')->name('privacy');
+Route::get('/profile-pictures/{filename}', [\App\Http\Controllers\ProfilePictureController::class, 'show'])
+    ->where('filename', '[a-zA-Z0-9_.-]+')->name('profile-picture.show');
 // Keep previously shared preview links working after the full modules launch.
 Route::get('/feature-preview', fn () => redirect()->route(match (request('tab')) { 'rewards' => 'rewards.index', 'sessions' => 'study-sessions.index', default => 'progress.index' }))->middleware('auth')->name('feature.preview');
 use App\Http\Controllers\ReportController;

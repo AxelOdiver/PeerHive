@@ -94,6 +94,10 @@ class User extends Authenticatable
             return null;
         }
 
+        if (dirname($this->profile_picture) === 'profile_pictures') {
+            return route('profile-picture.show', ['filename' => basename($this->profile_picture)]);
+        }
+
         return asset('storage/'.$this->profile_picture);
     }
 
