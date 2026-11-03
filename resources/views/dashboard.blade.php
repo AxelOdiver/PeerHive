@@ -116,7 +116,7 @@
 <section class="mb-4" aria-labelledby="recommendedPeersHeading">
   <div class="d-flex justify-content-between flex-wrap gap-2 mb-2"><h2 id="recommendedPeersHeading" class="h4 fw-bold">Recommended learning partners</h2><a href="{{ route('profile') }}#learning-interests">Edit learning interests</a></div>
   <p class="text-muted small">Up to six peers, matched to your learning subjects. Shared availability helps rank equally relevant matches.</p>
-  @if(auth()->user()->learning_interests)<p class="small">You want to learn: <strong>{{ implode(', ', auth()->user()->learning_interests) }}</strong></p>@endif
+  @if($focusTopic)<p class="small">Teachers for: <strong>{{ $focusTopic->name }}</strong> · <a href="{{ route('dashboard') }}#recommendedPeersHeading">Show my usual recommendations</a></p>@elseif(auth()->user()->learning_interests)<p class="small">You want to learn: <strong>{{ implode(', ', auth()->user()->learning_interests) }}</strong></p>@endif
   <div class="row g-3">
   @forelse($students as $student)
     @include('components.dashboard-peer-card', ['student' => $student, 'showMatch' => true])

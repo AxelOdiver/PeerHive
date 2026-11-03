@@ -32,9 +32,13 @@ class LearningProgressController extends Controller
         }
         $subjects = $records->flatMap(fn ($record) => array_filter([$record->session->subject, $record->session->conversation?->session_context['offered_subject'] ?? null]))->unique()->count();
         $balance = (int) DB::table('point_entries')->where('user_id', $user->id)->sum('points');
-        $goals = $user->learning_goals ?? ['learning' => 3, 'teaching' => 2, 'hours' => 4];
+        $interests = collect($user->learning_interests ?? [])->map(fn ($name) => \App\Models\CatalogEntry::key($name));
+        $topicProgress = collect(\App\Support\TopicProgress::forUser($user, $records));
+        $learningTopics = $topicProgress->filter(fn ($node) => $node['sessions'] > 0 || $node['passed']->isNotEmpty() || $interests->contains($node['topic']->name_key))
+            ->sortBy('topic.name')->take(3)->values();
+        $completedTopics = $topicProgress->where('status', 'Completed')->count();
         $recent = StudyParticipant::where('user_id', $user->id)->whereHas('session', fn ($q) => $q->where('status', 'completed'))->with('session')->latest('updated_at')->limit(5)->get();
-        return view('learning.progress', compact('records', 'stats', 'weekly', 'days', 'subjects', 'balance', 'goals', 'timezone', 'recent'));
+        return view('learning.progress', compact('records', 'stats', 'weekly', 'days', 'subjects', 'balance', 'timezone', 'recent', 'learningTopics', 'completedTopics'));
     }
 
     public function goals(Request $request)
@@ -42,6 +46,13 @@ class LearningProgressController extends Controller
         $data = $request->validate(['learning' => ['required', 'integer', 'between:1,20'], 'teaching' => ['required', 'integer', 'between:1,20'], 'hours' => ['required', 'integer', 'between:1,40'], 'timezone' => ['required', 'timezone']]);
         $request->user()->forceFill(['learning_goals' => collect($data)->except('timezone')->all(), 'learning_timezone' => $data['timezone']])->save();
         return back()->with('success', 'Weekly goals updated.');
+    }
+
+    public function settings(Request $request)
+    {
+        $data = $request->validate(['timezone' => ['required', 'timezone']]);
+        $request->user()->forceFill(['learning_timezone' => $data['timezone']])->save();
+        return back()->with('success', 'Progress settings updated.');
     }
 
     public function history()

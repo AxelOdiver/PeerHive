@@ -54,6 +54,13 @@ Route::middleware('guest')->group(function () {
 */
 
 Route::middleware('auth')->group(function () {
+    Route::get('/progress/skill-tree', [\App\Http\Controllers\SkillTreeController::class, 'index'])->name('progress.skill-tree');
+    Route::get('/admin/learning-paths', [\App\Http\Controllers\SkillTreeController::class, 'admin'])->middleware('admin')->name('admin.learning-paths');
+    Route::put('/admin/learning-paths/{topic}', [\App\Http\Controllers\SkillTreeController::class, 'update'])->middleware('admin')->name('admin.learning-paths.update');
+    Route::get('/messages/conversations/{conversation}/activities', [\App\Http\Controllers\SessionActivityController::class, 'index'])->name('session-activities.index');
+    Route::post('/messages/conversations/{conversation}/activities', [\App\Http\Controllers\SessionActivityController::class, 'store'])->middleware('throttle:10,1')->name('session-activities.store');
+    Route::post('/messages/conversations/{conversation}/activities/{activity}/submit', [\App\Http\Controllers\SessionActivityController::class, 'submit'])->middleware('throttle:10,1')->name('session-activities.submit');
+    Route::post('/messages/conversations/{conversation}/activities/{activity}/review', [\App\Http\Controllers\SessionActivityController::class, 'review'])->middleware('throttle:10,1')->name('session-activities.review');
     Route::post('/catalog/suggestions', [\App\Http\Controllers\CatalogController::class, 'store'])->middleware('throttle:10,1')->name('catalog.suggest');
     Route::get('/admin/catalog', [\App\Http\Controllers\CatalogController::class, 'index'])->middleware('admin')->name('admin.catalog');
     Route::post('/admin/catalog/{entry}', [\App\Http\Controllers\CatalogController::class, 'review'])->middleware('admin')->name('admin.catalog.review');
@@ -65,6 +72,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/search', [DashboardController::class, 'search'])->name('search');
     Route::get('/progress', [\App\Http\Controllers\LearningProgressController::class, 'index'])->name('progress.index');
     Route::put('/progress/goals', [\App\Http\Controllers\LearningProgressController::class, 'goals'])->name('progress.goals');
+    Route::put('/progress/settings', [\App\Http\Controllers\LearningProgressController::class, 'settings'])->name('progress.settings');
     Route::get('/rewards', [\App\Http\Controllers\RewardsController::class, 'index'])->name('rewards.index');
     Route::post('/rewards/unlock', [\App\Http\Controllers\RewardsController::class, 'unlock'])->name('rewards.unlock');
     Route::put('/rewards/equip', [\App\Http\Controllers\RewardsController::class, 'equip'])->name('rewards.equip');

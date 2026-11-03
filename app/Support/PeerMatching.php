@@ -8,8 +8,8 @@ class PeerMatching
     public static function normalize(string $subject): string {
         return mb_strtolower(preg_replace('/\s+/u', ' ', trim($subject)));
     }
-    public static function recommend(User $learner): Collection {
-        $interests = collect($learner->learning_interests ?? [])->map(fn ($s) => self::normalize($s))->unique();
+    public static function recommend(User $learner, ?array $topics = null): Collection {
+        $interests = collect($topics ?? $learner->learning_interests ?? [])->map(fn ($s) => self::normalize($s))->unique();
         if ($interests->isEmpty()) return collect();
         $availability = $learner->schedules;
         return User::where('id', '!=', $learner->id)->whereHas('approvedTeachingQualifications')

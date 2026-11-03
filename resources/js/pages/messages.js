@@ -1,6 +1,10 @@
 import { initGroupMemberSearch } from './group-member-search.js';
 
+import { initSessionActivities, openSessionActivities } from './session-activities.js';
+
 $(document).ready(function () {
+  initSessionActivities();
+  let activityAutoOpened = false;
   const groupMembers = initGroupMemberSearch(document);
   let creatingGroup = false;
   // Markup lives in messages.blade.php. Values are already escaped by callers;
@@ -255,6 +259,14 @@ $(document).ready(function () {
   });
   function applySessionPanel(response) {
     setSessionFinished(response.session_finished);
+    $('#sessionActivitiesBtn').remove();
+    if (response.activities_url) {
+      $('<a>', {id: 'sessionActivitiesBtn', href: response.activities_url, class: 'btn btn-outline-primary btn-sm', text: 'Activities', 'data-session-activities': ''}).insertBefore('#chatInfoBtn');
+      if (!activityAutoOpened && new URLSearchParams(window.location.search).get('activities') === '1') {
+        activityAutoOpened = true;
+        openSessionActivities(response.activities_url);
+      }
+    }
     pendingRating = response.rating || null;
     $('#rateTeacherBtn').remove();
     if (pendingRating) {

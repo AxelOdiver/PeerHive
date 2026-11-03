@@ -8,11 +8,12 @@ use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $currentUser = Auth::user();
 
-        $students = \App\Support\PeerMatching::recommend($currentUser);
+        $focusTopic = \App\Models\CatalogEntry::approved()->where('kind', 'topic')->find($request->integer('learn_topic'));
+        $students = \App\Support\PeerMatching::recommend($currentUser, $focusTopic ? [$focusTopic->name] : null);
         (new \Illuminate\Database\Eloquent\Collection($students->all()))->loadCount(['likedBy', 'swaps', 'comments']);
         $topstudents = User::where('id', '!=', $currentUser->id)->with('approvedTeachingQualifications')
             ->withCount(['likedBy', 'teachingRatings', 'swaps', 'comments'])->withAvg('teachingRatings', 'stars')
@@ -27,7 +28,7 @@ class DashboardController extends Controller
         $completedSessions = \App\Models\StudyParticipant::where('user_id', $currentUser->id)->whereNotNull('confirmed_at')->whereHas('session', fn ($q) => $q->where('status', 'completed'))->count();
         $learningPoints = (int) \Illuminate\Support\Facades\DB::table('point_entries')->where('user_id', $currentUser->id)->sum('points');
         $nextSession = \App\Models\StudySession::whereHas('participants', fn ($q) => $q->where('user_id', $currentUser->id))->where('status', 'scheduled')->where('starts_at', '>', now())->orderBy('starts_at')->first();
-        return view('dashboard', compact('topstudents', 'communityPosts', 'students', 'favoritedIds', 'likedIds', 'completedSessions', 'learningPoints', 'nextSession'));
+        return view('dashboard', compact('topstudents', 'communityPosts', 'students', 'favoritedIds', 'likedIds', 'completedSessions', 'learningPoints', 'nextSession', 'focusTopic'));
     }
 
     public function search(Request $request)

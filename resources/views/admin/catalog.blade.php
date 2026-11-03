@@ -3,6 +3,7 @@
 @section('content')
 <a href="{{ route('admin.qualifications') }}" class="btn btn-outline-secondary mb-3">Back to teaching qualifications</a>
 <h2 class="h4">Programs, subjects and topics</h2>
+<a href="{{ route('admin.learning-paths') }}" class="btn btn-outline-primary mb-3">Manage Skill Tree learning paths</a>
 <p class="text-muted">Catalog approval makes an entry selectable by everyone. Teaching qualification approval is separate.</p>
 @if(session('catalog_status'))<div class="alert alert-success">{{ session('catalog_status') }}</div>@endif
 <div class="list-group">@foreach($entries as $entry)<div class="list-group-item">

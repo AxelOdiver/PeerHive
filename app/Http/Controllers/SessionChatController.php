@@ -30,6 +30,7 @@ class SessionChatController extends Controller
             }
         }
         return response()->json(['html' => view('messages.session-panel', compact('conversation', 'session'))->render(),
+            'activities_url' => route('session-activities.index', $conversation),
             'rating' => $rating,
             'session_finished' => $conversation->isSessionFinished(),
             'before_start' => $session && $session->starts_at->isFuture(),

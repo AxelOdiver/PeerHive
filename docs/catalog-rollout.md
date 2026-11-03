@@ -16,6 +16,8 @@ An unlisted program can be saved on a user's profile immediately and is submitte
 
 Existing degree text, skills, interests, qualifications, requests, messages, and sessions are preserved. Existing qualification names are imported as catalog topics under Existing teaching subjects where they are not already in the initial catalog. An approved Coding qualification continues to permit Coding only; it does not imply Python Basics or Java Basics approval. New applications have separate three-attempt limits per topic; approved/pending duplicates are rejected. Past self-described fields can be retained or removed; new additions must be approved catalog topics.
 
+The November 4 follow-up migration retires that temporary import category and assigns its topics to real subjects (Coding → Programming), retaining topic IDs and qualification names. Approved subjects and topics appear dynamically in the Skill Tree. See `docs/skill-activities-rollout.md` for the later Overview changes and selective recovery details.
+
 Matching continues to rank exact normalized topic matches first, with availability and learner ratings as tie breakers. Degrees do not restrict matches. Request payload field names remain compatible; selectors now show subject → topic labels with only each participant's approved qualifications.
 
 ## Reverting

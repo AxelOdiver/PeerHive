@@ -11,6 +11,9 @@ class CatalogController extends Controller
 {
     public static function suggest(string $kind, string $name, int $user, ?int $parent = null): CatalogEntry
     {
+        if ($kind === 'subject' && CatalogEntry::key($name) === CatalogEntry::key('Existing teaching subjects')) {
+            throw ValidationException::withMessages(['subject_name' => 'Enter a real subject name. This placeholder category has been retired.']);
+        }
         $entry = CatalogEntry::firstOrCreate(['kind' => $kind, 'name_key' => CatalogEntry::key($name)], ['name' => trim($name), 'parent_id' => $parent, 'submitted_by' => $user]);
         return $entry;
     }

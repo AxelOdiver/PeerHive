@@ -4,6 +4,10 @@
 @section('page-title', 'Messages')
 
 @section('content')
+<x-modal id="sessionActivitiesModal" title="Session activities" size="lg" dialog-class="modal-dialog-centered modal-dialog-scrollable">
+  <div id="sessionActivitiesError" class="text-danger mb-2" role="alert"></div>
+  <div id="sessionActivitiesBody"></div>
+</x-modal>
 <div class="card shadow-sm chat-wrapper">
   <div class="messaging-columns h-100">
     
@@ -33,7 +37,7 @@
         <div class="flex-grow-1 overflow-auto p-3" id="chatMessages"></div>
       <div id="typingIndicator" class="px-3 py-1 text-muted small" role="status" aria-live="polite" style="display:none;"><span id="typingNames"></span><span class="typing-dots" aria-hidden="true"><span>●</span><span>●</span><span>●</span></span></div>
       <div class="p-2 border-top" id="chatFooter" style="display:none;">
-        <div id="sessionFinishedNotice" class="d-none text-center text-muted py-3" role="status">— Session finished —<div class="small mt-1">This conversation is read-only. You can still review your messages and rate your teacher.</div></div>
+        <div id="sessionFinishedNotice" class="d-none text-center text-muted py-3" role="status">— Session finished —<div class="small mt-1">This conversation is read-only. You can still review messages, rate your teacher, and open Activities.</div></div>
 
         <div id="replyPreview" class="px-3 py-2 small border-start border-3 border-primary mx-2 mb-2 rounded shadow-sm" style="display:none; position:relative;">
           <div class="fw-bold text-primary" id="replyPreviewName" style="font-size: 0.75rem;"></div>

@@ -57,6 +57,7 @@ $(document).ready(function() {
     'community.show': () => import('./pages/community-show.js'),
     'messages': () => import('./pages/messages.js'),
     'study-sessions.show': () => import('./pages/study-session.js'),
+    'progress.skill-tree': () => import('./pages/skill-tree.js'),
   };
   
   // Dynamically import only the required page script
