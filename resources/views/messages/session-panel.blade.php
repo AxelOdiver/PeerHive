@@ -13,7 +13,7 @@
   @if($c['message'])<p class="small text-break">Original request: {{ $c['message'] }}</p>@endif
   @if(isset($c['proposal']))
     <p class="small mb-1">{{ \Carbon\Carbon::parse($c['proposal']['starts_at'])->setTimezone($c['proposal']['timezone'])->format('M j, Y · g:i A') }} · {{ $c['proposal']['timezone'] }} · {{ $c['proposal']['duration'] }} minutes</p>
-    <p class="small text-break">{{ $c['proposal']['meeting_method'] === 'online' ? 'Online' : 'In person' }}: {{ $c['proposal']['meeting_details'] }}</p>
+    <div class="small mb-3"><x-meeting-details :method="$c['proposal']['meeting_method']" :details="$c['proposal']['meeting_details']" /></div>
     @if($c['type'] === 'skill_swap')<p class="small">{{ $c['proposal']['teaching_minutes'] }} minutes learning {{ $c['subject'] }}, then {{ $c['proposal']['duration'] - $c['proposal']['teaching_minutes'] }} minutes learning {{ $c['offered_subject'] }}.</p>@endif
   @endif
   @if($state === 'proposed')
@@ -29,7 +29,7 @@
       <div class="col-sm-6"><label class="form-label small">Duration (minutes)<input class="form-control form-control-sm" type="number" name="duration" value="60" min="15" max="240" required></label></div>
       @if($c['type'] === 'skill_swap')<div class="col-sm-6"><label class="form-label small">Minutes for {{ $teacher->first_name }} to teach {{ $c['subject'] }}<input class="form-control form-control-sm" type="number" name="teaching_minutes" value="30" min="1" max="239" required></label></div>@endif
       <div class="col-sm-6"><label class="form-label small">Meeting method<select class="form-select form-select-sm" name="meeting_method"><option value="online">Online</option><option value="in_person">In person</option></select></label></div>
-      <div class="col-12"><label class="form-label small w-100">Meeting link or venue<input name="meeting_details" class="form-control form-control-sm" maxlength="1000" required></label></div>
+      <div class="col-12"><label class="form-label small w-100">Meeting link or venue<input name="meeting_details" class="form-control form-control-sm" maxlength="1000" required></label><div class="form-text">{{ \App\Support\MeetingLink::HELP }}</div></div>
       <div class="col-12"><button class="btn btn-primary btn-sm" type="submit">Propose a session</button></div>
     </form>
   @endif

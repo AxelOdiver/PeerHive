@@ -230,7 +230,7 @@ class MessageController extends Controller
                 'id' => $m->id,
                 'client_message_id' => $m->sender_id === $authId ? $m->client_message_id : null,
                 'body' => $m->is_unsent ? null : $m->body,
-                'session_event' => $m->session_event ? array_merge($m->session_event, ['current' => ($m->session_event['context']['revision'] ?? -1) === ($conversation->session_context['revision'] ?? -2)]) : null,
+                'session_event' => $m->session_event ? array_merge($m->session_event, ['meeting_url' => ($m->session_event['context']['proposal']['meeting_method'] ?? null) === 'online' ? \App\Support\MeetingLink::url($m->session_event['context']['proposal']['meeting_details'] ?? null) : null, 'current' => ($m->session_event['context']['revision'] ?? -1) === ($conversation->session_context['revision'] ?? -2)]) : null,
                 'attachment_url' => (!$m->is_unsent && $m->attachment_path) ? route('private.message', $m) : null,
                 'attachment_name' => $m->is_unsent ? null : $m->attachment_name,
                 'attachment_type' => $m->is_unsent ? null : $m->attachment_type,

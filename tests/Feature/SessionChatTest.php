@@ -25,7 +25,7 @@ class SessionChatTest extends TestCase
     }
 
     private function propose($user, $chat): void {
-        $this->actingAs($user)->postJson('/messages/conversations/'.$chat->id.'/session', ['action' => 'propose', 'revision' => 0, 'starts_at' => now()->addDay()->format('Y-m-d\TH:i'), 'timezone' => 'UTC', 'duration' => '60', 'teaching_minutes' => '35', 'meeting_method' => 'online', 'meeting_details' => 'private-room'])->assertOk();
+        $this->actingAs($user)->postJson('/messages/conversations/'.$chat->id.'/session', ['action' => 'propose', 'revision' => 0, 'starts_at' => now()->addDay()->format('Y-m-d\TH:i'), 'timezone' => 'UTC', 'duration' => '60', 'teaching_minutes' => '35', 'meeting_method' => 'online', 'meeting_details' => 'https://meet.google.com/abc-defg-hij'])->assertOk();
     }
 
     public function test_completed_session_chat_is_read_only_but_ratings_and_direct_messages_remain_available(): void {

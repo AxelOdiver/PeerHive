@@ -47,7 +47,7 @@ class SessionChatController extends Controller
             $session = $chat->studySession;
             if ($action === 'propose') {
                 abort_unless(!$session && in_array($c['state'], ['scheduling', 'proposed']), 409);
-                $data = $request->validate(['starts_at' => 'required|date_format:Y-m-d\TH:i', 'timezone' => 'required|timezone', 'duration' => 'required|integer|between:15,240', 'teaching_minutes' => 'nullable|integer|min:1', 'meeting_method' => 'required|in:online,in_person', 'meeting_details' => 'required|string|max:1000']);
+                $data = $request->validate(['starts_at' => 'required|date_format:Y-m-d\TH:i', 'timezone' => 'required|timezone', 'duration' => 'required|integer|between:15,240', 'teaching_minutes' => 'nullable|integer|min:1', 'meeting_method' => 'required|in:online,in_person', 'meeting_details' => ['required', 'string', 'max:1000', new \App\Rules\OnlineMeetingLink($request->input('meeting_method') === 'online')]]);
                 $start = Carbon::createFromFormat('Y-m-d\TH:i', $data['starts_at'], $data['timezone'])->seconds(0)->utc();
                 abort_unless($start->isFuture(), 422, 'Choose a future time.');
                 if ($c['type'] === 'skill_swap') abort_unless(($data['teaching_minutes'] ?? 0) > 0 && $data['teaching_minutes'] < $data['duration'], 422, 'Divide the duration between both teaching portions.');

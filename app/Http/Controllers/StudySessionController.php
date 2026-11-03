@@ -50,7 +50,7 @@ class StudySessionController extends Controller
             'format' => ['required', 'in:peer,tutor'], 'starts_at' => ['required', 'date_format:Y-m-d\TH:i'],
             'timezone' => ['required', 'timezone'], 'duration' => ['required', 'integer', 'between:15,240'],
             'capacity' => ['required', 'integer', 'between:2,50'], 'meeting_method' => ['required', 'in:online,in_person'],
-            'meeting_details' => ['required', 'string', 'max:1000'],
+            'meeting_details' => ['required', 'string', 'max:1000', new \App\Rules\OnlineMeetingLink($request->input('meeting_method') === 'online')],
         ]);
         $community = Community::findOrFail($data['community_id']);
         abort_unless(LearningHub::member($request->user(), $community), 403, 'Join this community before hosting a session.');

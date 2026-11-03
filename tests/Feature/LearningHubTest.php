@@ -20,7 +20,7 @@ class LearningHubTest extends TestCase
 
     private function payload(Community $group, array $overrides = []): array
     {
-        return array_replace(['community_id' => $group->id, 'title' => 'Python practice', 'description' => 'Practise together.', 'subject' => 'Coding', 'format' => 'peer', 'starts_at' => now()->addDay()->setTimezone('Asia/Taipei')->format('Y-m-d\TH:i'), 'timezone' => 'Asia/Taipei', 'duration' => 60, 'capacity' => 3, 'meeting_method' => 'online', 'meeting_details' => 'secret-room-code'], $overrides);
+        return array_replace(['community_id' => $group->id, 'title' => 'Python practice', 'description' => 'Practise together.', 'subject' => 'Coding', 'format' => 'peer', 'starts_at' => now()->addDay()->setTimezone('Asia/Taipei')->format('Y-m-d\TH:i'), 'timezone' => 'Asia/Taipei', 'duration' => 60, 'capacity' => 3, 'meeting_method' => 'online', 'meeting_details' => 'https://meet.google.com/abc-defg-hij'], $overrides);
     }
 
     private function createSession(User $host, Community $group, array $extra = []): StudySession
@@ -130,9 +130,9 @@ class LearningHubTest extends TestCase
         $private = $this->createSession($host, $this->group($host, [$member], 'private'));
         $this->actingAs($outsider)->get('/study-sessions/'.$private->id)->assertForbidden();
         $this->get('/study-sessions')->assertDontSee('Python practice');
-        $this->actingAs($member)->get('/study-sessions/'.$private->id)->assertOk()->assertDontSee('secret-room-code');
+        $this->actingAs($member)->get('/study-sessions/'.$private->id)->assertOk()->assertDontSee('https://meet.google.com/abc-defg-hij');
         $this->post('/study-sessions/'.$private->id.'/join')->assertRedirect();
-        $this->get('/study-sessions/'.$private->id)->assertSee('secret-room-code');
+        $this->get('/study-sessions/'.$private->id)->assertSee('https://meet.google.com/abc-defg-hij');
         $this->assertArrayNotHasKey('meeting_details', $private->toArray());
         $this->actingAs($outsider)->postJson('/study-sessions/'.$private->id.'/join')->assertForbidden();
     }

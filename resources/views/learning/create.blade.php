@@ -17,7 +17,7 @@
 <div class="col-md-2"><label for="duration" class="form-label">Minutes</label><input type="number" id="duration" name="duration" min="15" max="240" class="form-control" value="{{ old('duration',60) }}" required></div>
 <div class="col-md-2"><label for="capacity" class="form-label">Places</label><input type="number" id="capacity" name="capacity" min="2" max="50" class="form-control" value="{{ old('capacity',8) }}" required><div class="form-text">Including you.</div></div>
 <div class="col-md-4"><label for="meeting_method" class="form-label">Meeting method</label><select id="meeting_method" name="meeting_method" class="form-select"><option value="online" @selected(old('meeting_method')==='online')>Online</option><option value="in_person" @selected(old('meeting_method')==='in_person')>In person</option></select></div>
-<div class="col-md-8"><label for="meeting_details" class="form-label">Meeting link or venue</label><textarea id="meeting_details" name="meeting_details" class="form-control" maxlength="1000" rows="2" required>{{ old('meeting_details') }}</textarea><div class="form-text">Only booked participants and the host can see these details. Avoid sharing home addresses.</div></div>
+<div class="col-md-8"><label for="meeting_details" class="form-label">Meeting link or venue</label><textarea id="meeting_details" name="meeting_details" class="form-control" maxlength="1000" rows="2" required>{{ old('meeting_details') }}</textarea><div class="form-text">{{ \App\Support\MeetingLink::HELP }} Only booked participants and the host can see these details. Avoid sharing home addresses.</div></div>
 <div class="col-12"><button class="btn btn-primary px-4" type="submit">Create session</button></div>
 </form></div></div>
 @endif
