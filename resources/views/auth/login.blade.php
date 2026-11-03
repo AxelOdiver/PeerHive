@@ -7,7 +7,7 @@
   <div class="login-box">
 
     <div class="login-logo">
-      <a href="{{ url('/') }}"><b>Peer</b>Hive</a>
+      <a href="{{ url('/') }}" class="peerhive-auth-brand" aria-label="PeerHive home"><x-peerhive-logo /><span>PeerHive</span></a>
     </div>
 
     <div class="card">

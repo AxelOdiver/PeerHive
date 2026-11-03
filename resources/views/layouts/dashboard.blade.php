@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>@yield('title', 'Dashboard')</title>
+  <link rel="icon" type="image/png" href="{{ asset('images/peerhive-logo.png') }}?v=2">
   @php($sidebarAvatarUrl = auth()->user()->profile_picture_url ?? route('profile-picture.show', ['filename' => 'default']))
   <link rel="preload" as="image" href="{{ $sidebarAvatarUrl }}" fetchpriority="high">
   

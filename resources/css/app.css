@@ -8,7 +8,20 @@
     height: 2.25rem;
 }
 
-.sidebar-brand-mini { display: none; }
+.peerhive-logo-mark { width:40px;height:40px;flex:0 0 auto;display:grid;place-items:center;background:#fff;border-radius:9px;position:relative;z-index:1; }
+.peerhive-logo-mark img { display:block;width:100%;height:100%;object-fit:contain; }
+.app-sidebar .sidebar-brand { padding:0; }
+.app-sidebar .peerhive-sidebar-brand { display:flex;align-items:center;width:100%;padding:0;gap:0;overflow:hidden; }
+.peerhive-logo-slot { display:grid;place-items:center;flex:0 0 4.6rem;height:3.5rem; }
+.peerhive-wordmark-clip { display:block;overflow:hidden;min-width:0;max-width:180px;transition:max-width .3s ease-in-out; }
+.peerhive-wordmark { display:block;white-space:nowrap;font-size:1.5rem;font-weight:600;opacity:1;transform:translateX(0);transition:transform .3s ease-in-out,opacity .2s ease-in-out; }
+.peerhive-auth-brand { display:inline-flex;align-items:center;justify-content:center;gap:12px;text-decoration:none;color:var(--bs-body-color);font-size:2rem;font-weight:600; }
+.peerhive-auth-brand:hover { color:var(--bs-body-color); }
+.peerhive-auth-brand .peerhive-logo-mark { width:64px;height:64px;border-radius:12px; }
+body:not(.app-loaded) .peerhive-wordmark-clip, body:not(.app-loaded) .peerhive-wordmark { transition:none; }
+@media (prefers-reduced-motion: reduce) {
+  .peerhive-wordmark-clip, .peerhive-wordmark { transition:none; }
+}
 .session-finish-dialog .swal2-input { background: var(--bs-body-bg); color: var(--bs-body-color); border-color: var(--bs-border-color); }
 .session-finish-dialog .swal2-input::placeholder { color: var(--bs-secondary-color); }
 .session-finish-dialog .swal2-validation-message { background: var(--bs-tertiary-bg); color: var(--bs-body-color); }
@@ -18,10 +31,10 @@
   .sidebar-mini.sidebar-collapse .app-sidebar,
   .sidebar-mini.sidebar-collapse .app-sidebar:hover { min-width: 4.6rem; max-width: 4.6rem; }
   .sidebar-mini.sidebar-collapse .sidebar-user-meta,
-  .sidebar-mini.sidebar-collapse .brand-text,
   .sidebar-mini.sidebar-collapse .sidebar-menu .nav-link p,
   .sidebar-mini.sidebar-collapse .logout-btn span { display: none !important; }
-  .sidebar-mini.sidebar-collapse .sidebar-brand-mini { display: inline; }
+  .sidebar-mini.sidebar-collapse .peerhive-wordmark-clip { max-width:0; }
+  .sidebar-mini.sidebar-collapse .peerhive-wordmark { transform:translateX(-100%);opacity:0; }
   .sidebar-mini.sidebar-collapse .sidebar-user > div { padding: 1rem .25rem !important; }
   .sidebar-mini.sidebar-collapse .sidebar-menu .nav-link,
   .sidebar-mini.sidebar-collapse .sidebar-menu .nav-link:hover { display: flex; align-items: center; justify-content: center; width: 3.6rem; min-height: 44px; }

@@ -94,9 +94,9 @@
 
 <aside id="appSidebar" class="app-sidebar bg-dark-subtle shadow" data-bs-theme="dark">
   <div class="sidebar-brand">
-    <a href="{{ route('dashboard') }}" class="brand-link d-flex justify-content-center align-items-center w-100 p-0 gap-2" aria-label="PeerHive dashboard">
-      <span class="sidebar-brand-mini fw-bold" aria-hidden="true">PH</span>
-      <span class="brand-text fw-semibold fs-2 display-6">PeerHive</span>
+    <a href="{{ route('dashboard') }}" class="brand-link peerhive-sidebar-brand" aria-label="PeerHive dashboard">
+      <span class="peerhive-logo-slot"><x-peerhive-logo /></span>
+      <span class="peerhive-wordmark-clip"><span class="peerhive-wordmark">PeerHive</span></span>
     </a>
   </div>
 

@@ -3,7 +3,7 @@
 @section('body-class', 'login-page bg-body-tertiary')
 @section('content')
   <div class="login-box">
-    <div class="login-logo"><a href="{{ url('/') }}"><b>Peer</b>Hive</a></div>
+    <div class="login-logo"><a href="{{ url('/') }}" class="peerhive-auth-brand" aria-label="PeerHive home"><x-peerhive-logo /><span>PeerHive</span></a></div>
     <div class="card">
       <div class="card-body login-card-body">
         <h1 class="h4 text-center mb-2">Choose a new password</h1>
