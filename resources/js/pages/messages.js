@@ -56,7 +56,7 @@ $(document).ready(function () {
   function updateComposerState() {
     const blocked = Boolean(activeConversation?.blocked_by_me);
     const readOnly = sessionFinished || blocked;
-    $('#blockedConversationNotice').toggleClass('d-none', !blocked);
+    $('#blockedConversationNotice').toggleClass('d-none', !blocked || sessionFinished);
     $('#unblockConversationBtn').attr('data-user-id', activeConversation?.other_user_id || '');
     $messageForm.toggleClass('d-none', readOnly);
     $messageForm.find('input, button').prop('disabled', readOnly);
@@ -1199,7 +1199,7 @@ $(document).ready(function () {
     const visibleTop = Math.max(panel.top, 0), visibleBottom = Math.min(panel.bottom, window.innerHeight);
     if (visibleBottom <= visibleTop) return;
     let lastVisible = 0;
-    $chatMessages.find('.message-row').each(function () {
+    $chatMessages.find('[data-message-id]').each(function () {
       const rect = this.getBoundingClientRect();
       if (rect.bottom > visibleTop && rect.top < visibleBottom) lastVisible = Math.max(lastVisible, Number(this.dataset.messageId));
     });

@@ -25,6 +25,18 @@ class MessagingActivityTest extends TestCase
         return Message::create(['conversation_id' => $chat->id, 'sender_id' => $sender->id, 'body' => $body]);
     }
 
+    public function test_viewed_session_records_clear_conversation_and_sidebar_unread_counts(): void
+    {
+        [$chat, $author, $reader] = $this->chat();
+        $record = $this->message($chat, $author, 'Session completed');
+        $record->forceFill(['session_event' => ['context' => ['state' => 'completed']]])->save();
+        $this->actingAs($reader)->getJson('/messages/conversations')->assertJsonPath('conversations.0.unread_count', 1);
+        $this->getJson('/messages/unread-count')->assertJsonPath('count', 1);
+        $this->postJson('/messages/conversations/'.$chat->id.'/read', ['message_id' => $record->id])->assertNoContent();
+        $this->getJson('/messages/conversations')->assertJsonPath('conversations.0.unread_count', 0);
+        $this->getJson('/messages/unread-count')->assertJsonPath('count', 0);
+    }
+
     public function test_fetching_or_sending_does_not_mark_unseen_messages_read(): void
     {
         [$chat, $author, $reader] = $this->chat();

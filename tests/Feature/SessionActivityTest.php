@@ -39,6 +39,22 @@ class SessionActivityTest extends TestCase
         return collect(TopicProgress::forUser($user))->first(fn($node)=>$node['topic']->name === $topic);
     }
 
+    public function test_activity_assignment_and_submission_reach_the_correct_notification_bell(): void
+    {
+        [$learner, $teacher, $chat] = $this->chat();
+        $activity = $this->assign($teacher, $chat);
+        $url = route('session-activities.index', $chat);
+        $this->actingAs($learner)->getJson('/messages/unread-count')->assertOk()
+            ->assertJsonFragment(['name' => 'Activity assigned: Introduce yourself', 'url' => $url, 'read' => false]);
+        $this->actingAs($teacher)->getJson('/messages/unread-count')->assertOk()
+            ->assertJsonMissing(['name' => 'Activity assigned: Introduce yourself']);
+        $this->actingAs($learner)->postJson(route('session-activities.submit', [$chat, $activity]), ['revision' => 0, 'answer' => 'My solution'])->assertOk();
+        $this->actingAs($teacher)->getJson('/messages/unread-count')->assertOk()
+            ->assertJsonFragment(['name' => 'Activity submitted: Introduce yourself', 'url' => $url, 'read' => false]);
+        $this->actingAs($learner)->getJson('/messages/unread-count')->assertOk()
+            ->assertJsonMissing(['name' => 'Activity submitted: Introduce yourself']);
+    }
+
     public function test_activity_lifecycle_requires_mutual_completion_and_preserves_revision_history(): void
     {
         [$learner,$teacher,$chat]=$this->chat('learning',false);

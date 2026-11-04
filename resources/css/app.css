@@ -22,7 +22,7 @@ body:not(.app-loaded) .peerhive-wordmark-clip, body:not(.app-loaded) .peerhive-w
 @media (prefers-reduced-motion: reduce) {
   .peerhive-wordmark-clip, .peerhive-wordmark { transition:none; }
 }
-.session-finish-dialog .swal2-input { background: var(--bs-body-bg); color: var(--bs-body-color); border-color: var(--bs-border-color); }
+.session-finish-dialog .swal2-input { width:calc(100% - 4rem); min-width:0; max-width:100%; box-sizing:border-box; background: var(--bs-body-bg); color: var(--bs-body-color); border-color: var(--bs-border-color); }
 .session-finish-dialog .swal2-input::placeholder { color: var(--bs-secondary-color); }
 .session-finish-dialog .swal2-validation-message { background: var(--bs-tertiary-bg); color: var(--bs-body-color); }
 .sidebar-menu .nav-link { position: relative; display: flex; align-items: center; }

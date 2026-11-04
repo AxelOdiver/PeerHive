@@ -101,7 +101,13 @@ class SessionActivityController extends Controller
 
     private function notify(SessionActivity $activity, int $user, string $event, string $body): void
     {
-        BellNotifications::record($user, 'activity:'.$activity->id.':'.$activity->revision.':'.$event, 'activity', $activity->title, $body,
+        $label = match ($event) {
+            'assigned' => 'Activity assigned',
+            'submitted' => 'Activity submitted',
+            'revision' => 'Activity revision requested',
+            'passed' => 'Activity passed',
+        };
+        BellNotifications::record($user, 'activity:'.$activity->id.':'.$activity->revision.':'.$event, 'activity', $label.': '.$activity->title, $body,
             route('session-activities.index', $activity->conversation_id));
     }
 
