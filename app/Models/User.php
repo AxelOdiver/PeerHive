@@ -52,7 +52,7 @@ class User extends Authenticatable
         ];
     }
 
-    public function teachingRatings() { return $this->hasMany(SessionRating::class, 'teacher_id'); }
+    public function teachingRatings() { return $this->hasMany(SessionRating::class, 'teacher_id')->whereDoesntHave('reports', fn ($query) => $query->where('status', 'resolved')); }
 
     public function getProfileFrameClassAttribute(): string
     {

@@ -38,7 +38,7 @@ class ProfileController extends Controller
         $learnerReviews = $user->teachingRatings()
             ->with('learner:id,first_name,last_name')
             ->latest('id')
-            ->simplePaginate(5, ['id', 'teacher_id', 'learner_id', 'stars', 'comment', 'created_at'], 'reviews_page')
+            ->simplePaginate(5, ['id', 'teacher_id', 'learner_id', 'stars', 'comment', 'created_at', 'updated_at'], 'reviews_page')
             ->fragment('learner-reviews');
 
         $currentUser = Auth::user();
@@ -60,6 +60,38 @@ class ProfileController extends Controller
             'learningBadges',
             'learnerReviews',
         ) + ['profileUser' => $user]);
+    }
+
+    public function reviews(Request $request, User $user)
+    {
+        $data = $request->validate([
+            'stars' => 'nullable|integer|between:1,5',
+            'sort' => 'nullable|in:newest,highest,lowest',
+            'page' => 'nullable|integer|min:1|max:1000000',
+        ]);
+        $stars = $data['stars'] ?? null;
+        $sort = $data['sort'] ?? 'newest';
+        $counts = $user->teachingRatings()->selectRaw('stars, COUNT(*) as total')->groupBy('stars')->pluck('total', 'stars');
+        $query = $user->teachingRatings()->with('learner:id,first_name,last_name');
+        if ($stars !== null) $query->where('stars', $stars);
+        if ($sort !== 'newest') $query->orderBy('stars', $sort === 'highest' ? 'desc' : 'asc');
+        $learnerReviews = $query->latest('id')->paginate(5, ['id', 'teacher_id', 'learner_id', 'stars', 'comment', 'created_at', 'updated_at'])->withQueryString();
+        $user->loadAvg('teachingRatings', 'stars')->loadCount('teachingRatings');
+        return response()->json(['html' => view('profile.all-reviews', compact('user', 'counts', 'stars', 'sort', 'learnerReviews'))->render()]);
+    }
+
+    public function updateReview(Request $request, \App\Models\SessionRating $rating)
+    {
+        abort_unless($rating->learner_id === $request->user()->id, 403);
+        $data = $request->validate(['stars' => 'required|integer|between:1,5', 'comment' => 'nullable|string|max:500', 'version' => 'required|string|size:64']);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $rating, $data) {
+            $locked = \App\Models\SessionRating::whereKey($rating->id)->lockForUpdate()->firstOrFail();
+            abort_unless($locked->canEditBy($request->user()), 403, 'Reviews can only be edited within 24 hours of posting.');
+            abort_unless(hash_equals($locked->reviewVersion(), $data['version']), 409, 'This review changed. Reopen reviews before editing.');
+            $comment = trim($data['comment'] ?? '');
+            $locked->update(['stars' => $data['stars'], 'comment' => $comment === '' ? null : $comment]);
+        });
+        return response()->json(['message' => 'Review updated.']);
     }
 
     public function update(UpdateUserRequest $request)

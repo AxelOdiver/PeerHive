@@ -35,7 +35,15 @@ class ReportController extends Controller
             abort(403, 'Unauthorized. Admins only.');
         }
 
-        $report->update(['status' => 'dismissed']);
+        if ($report->reportable_type === \App\Models\SessionRating::class) {
+            DB::transaction(function () use ($report) {
+                $locked = Report::whereKey($report->id)->lockForUpdate()->firstOrFail();
+                abort_unless($locked->status === 'pending', 409, 'This report has already been reviewed.');
+                $locked->update(['status' => 'dismissed']);
+            });
+        } else {
+            $report->update(['status' => 'dismissed']);
+        }
         
         return back()->with('success', 'Report dismissed successfully.');
     }
@@ -45,6 +53,17 @@ class ReportController extends Controller
     {
         if (auth()->user()->role !== 'admin') {
             abort(403, 'Unauthorized. Admins only.');
+        }
+
+        if ($report->reportable_type === \App\Models\SessionRating::class) {
+            DB::transaction(function () use ($report) {
+                $locked = Report::whereKey($report->id)->lockForUpdate()->firstOrFail();
+                abort_unless($locked->status === 'pending', 409, 'This report has already been reviewed.');
+                // Retain the session's rating record to prevent a replacement submission.
+                \App\Models\SessionRating::whereKey($locked->reportable_id)->lockForUpdate()->first();
+                $locked->update(['status' => 'resolved']);
+            });
+            return back()->with('success', 'Review removed from public ratings and report resolved.');
         }
 
         if ($report->reportable instanceof CommunityBanner) {

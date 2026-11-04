@@ -1,9 +1,12 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Profile')
+@section('title', 'Edit Profile')
 
 @section('content')
-<h2 class="mb-3 fw-bold">Profile</h2>
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+  <h2 class="mb-0 fw-bold">Edit Profile</h2>
+  <a href="{{ route('users.profile', auth()->user()) }}" class="btn btn-outline-primary">View my profile</a>
+</div>
 <div class="row align-items-stretch row-cols-1 row-cols-lg-2 g-3">
   <!-- Profile Information Card -->
   <div class="d-flex mb-lg-0"> 

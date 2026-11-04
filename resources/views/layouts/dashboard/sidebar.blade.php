@@ -109,7 +109,7 @@
   <div class="sidebar-wrapper d-flex flex-column" style="min-height: calc(100vh - 60px);">
     <div class="sidebar-user border-bottom border-secondary-subtle">
       <div class="d-flex flex-column align-items-center text-center gap-2 p-3">
-        <a href="{{ route('profile') }}" aria-label="Edit profile" data-sidebar-tooltip="Edit profile">
+        <a href="{{ route('users.profile', auth()->user()) }}" aria-label="View my profile" data-sidebar-tooltip="View my profile">
         <img
           src="{{ $sidebarAvatarUrl ?? auth()->user()->profile_picture_url ?? route('profile-picture.show', ['filename' => 'default']) }}"
           alt="{{ trim(auth()->user()->first_name . ' ' . auth()->user()->last_name) ?: 'User' }}"
@@ -124,7 +124,7 @@
         </a>
 
         <div class="sidebar-user-meta">
-          <a href="{{ route('profile') }}" class="fw-semibold text-white text-decoration-none" id="sidebarUserName" aria-label="Edit profile">{{ trim(auth()->user()->first_name.' '.auth()->user()->middle_name.' '.auth()->user()->last_name) ?: 'User' }}</a>
+          <a href="{{ route('users.profile', auth()->user()) }}" class="fw-semibold text-white text-decoration-none" id="sidebarUserName" aria-label="View my profile">{{ trim(auth()->user()->first_name.' '.auth()->user()->middle_name.' '.auth()->user()->last_name) ?: 'User' }}</a>
           <small class="text-white-50 d-block" id="sidebarUserEmail">{{ auth()->user()->email ?? '' }}</small>
         </div>
       </div>

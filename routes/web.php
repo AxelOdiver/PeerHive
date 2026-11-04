@@ -170,6 +170,8 @@ Route::middleware('auth')->group(function () {
 
     // Public profile page for any user
     Route::get('/users/{user}/profile', [ProfileController::class, 'showUser'])->name('users.profile');
+    Route::get('/users/{user}/reviews', [ProfileController::class, 'reviews'])->name('users.reviews');
+    Route::patch('/reviews/{rating}', [ProfileController::class, 'updateReview'])->middleware('throttle:10,1,review-edit:')->name('reviews.update');
 
     Route::middleware('admin')->group(function () {
         Route::get('/users', [UserController::class, 'index'])->name('users');

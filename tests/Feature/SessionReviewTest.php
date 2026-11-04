@@ -70,7 +70,7 @@ class SessionReviewTest extends TestCase
 
         $viewer = User::factory()->create();
         $response = $this->actingAs($viewer)->get('/users/'.$teacher->id.'/profile')->assertOk()
-            ->assertSee('4.5 / 5')->assertSee('(2 ratings)')->assertSee('View learner reviews')->assertSee('Learner reviews')
+            ->assertSee('4.5 / 5')->assertSee('(2 ratings)')->assertSee('View all reviews (2)')->assertSee('Learner reviews')->assertDontSee('View learner reviews')
             ->assertSee($learner->first_name.' '.$learner->last_name)->assertSee($comment)
             ->assertDontSee($comment, false)->assertDontSee('Another teacher only')->assertDontSee($learner->email)
             ->assertDontSee('Private lesson title')->assertDontSee('private-meeting');
@@ -122,5 +122,88 @@ class SessionReviewTest extends TestCase
         $this->get('/users/'.$teacher->id.'/profile')->assertRedirect('/login');
         $this->postJson('/messages/conversations/'.$chat->id.'/rating', ['stars' => 5, 'comment' => 'Guest review'])->assertUnauthorized();
         $this->actingAs($learner)->get('/users/'.$teacher->id.'/profile')->assertOk()->assertSee('No learner ratings yet')->assertSee('No learner reviews yet.');
+    }
+
+    public function test_all_reviews_filter_sort_counts_pagination_and_validation(): void
+    {
+        $teacher = User::factory()->create();
+        foreach ([5, 4, 5, 1, 5, 3, 4, 5] as $index => $stars) {
+            [$learner, , $chat] = $this->reviewSession($teacher);
+            SessionRating::create(['study_session_id' => $chat->study_session_id, 'learner_id' => $learner->id, 'teacher_id' => $teacher->id,
+                'stars' => $stars, 'comment' => 'Review '.$index.' <script>alert(1)</script>']);
+        }
+        $url = route('users.reviews', $teacher);
+        $this->getJson($url)->assertUnauthorized();
+        $this->actingAs($teacher);
+        $html = $this->getJson($url)->assertOk()->json('html');
+        $this->assertStringContainsString('Based on all 8 reviews.', $html);
+        $this->assertStringNotContainsString('@else', $html);
+        $this->assertStringContainsString('Showing 1–5 of 8 reviews', $html);
+        $this->assertStringNotContainsString('<script>alert(1)</script>', $html);
+        $this->assertStringContainsString('&lt;script&gt;', $html);
+        $this->assertStringContainsString('Review 7', $html);
+        $this->assertStringNotContainsString('Review 0 ', $html);
+        $filtered = $this->getJson($url.'?stars=5&sort=lowest')->assertOk()->json('html');
+        $this->assertStringContainsString('Showing 1–4 of 4 reviews', $filtered);
+        $this->assertStringContainsString('Based on all 8 reviews.', $filtered);
+        $this->assertStringNotContainsString('Review 3 ', $filtered);
+        $this->assertStringContainsString('No reviews with this rating yet.', $this->getJson($url.'?stars=2')->assertOk()->json('html'));
+        $low = $this->getJson($url.'?sort=lowest')->assertOk()->json('html');
+        $this->assertLessThan(strpos($low, 'Review 5 '), strpos($low, 'Review 3 '));
+        $high = $this->getJson($url.'?sort=highest')->assertOk()->json('html');
+        $this->assertLessThan(strpos($high, 'Review 6 '), strpos($high, 'Review 7 '));
+        $page = $this->getJson($url.'?page=2')->assertOk()->json('html');
+        $this->assertStringContainsString('Showing 6–8 of 8 reviews', $page);
+        $other = User::factory()->create();
+        $this->assertStringContainsString('No learner reviews yet.', $this->getJson(route('users.reviews', $other))->assertOk()->json('html'));
+        foreach (['stars=0', 'stars=6', 'stars[]=5', 'sort=invalid', 'page=0'] as $invalid) $this->getJson($url.'?'.$invalid)->assertUnprocessable();
+    }
+
+    public function test_only_the_author_can_edit_within_24_hours_and_stale_updates_are_rejected(): void
+    {
+        [$learner, $teacher, $chat] = $this->reviewSession();
+        $review = SessionRating::create(['study_session_id' => $chat->study_session_id, 'learner_id' => $learner->id, 'teacher_id' => $teacher->id, 'stars' => 2, 'comment' => 'Original']);
+        $url = route('reviews.update', $review);
+        $payload = ['stars' => 4, 'comment' => 'Corrected feedback', 'version' => $review->reviewVersion(), 'teacher_id' => $learner->id];
+        $this->actingAs($teacher)->patchJson($url, $payload)->assertForbidden();
+        $this->actingAs($learner)->getJson(route('users.reviews', $teacher))->assertOk()->assertSee('Edit your review');
+        $this->travel(1)->minutes();
+        $this->patchJson($url, $payload)->assertOk();
+        $this->assertDatabaseHas('session_ratings', ['id' => $review->id, 'stars' => 4, 'comment' => 'Corrected feedback', 'teacher_id' => $teacher->id]);
+        $this->patchJson($url, $payload)->assertStatus(409);
+        $this->getJson(route('users.reviews', $teacher))->assertOk()->assertSee('Edited');
+        $payload['version'] = $review->fresh()->reviewVersion();
+        $this->patchJson($url, array_replace($payload, ['stars' => 0]))->assertUnprocessable();
+        $this->patchJson($url, array_replace($payload, ['comment' => str_repeat('x', 501)]))->assertUnprocessable();
+        $this->travel(24)->hours();
+        $this->patchJson($url, $payload)->assertForbidden();
+        $this->assertDatabaseCount('session_ratings', 1);
+    }
+
+    public function test_recipient_reports_preserve_a_snapshot_and_only_admins_can_remove_reviews(): void
+    {
+        [$learner, $teacher, $chat] = $this->reviewSession();
+        $review = SessionRating::create(['study_session_id' => $chat->study_session_id, 'learner_id' => $learner->id, 'teacher_id' => $teacher->id, 'stars' => 1, 'comment' => 'Reported original']);
+        $payload = ['reportable_id' => $review->id, 'reportable_type' => SessionRating::class, 'reason' => 'Harassment or threats', 'details' => 'Please review.'];
+        $this->actingAs($learner)->postJson('/reports', $payload)->assertUnprocessable();
+        $this->actingAs(User::factory()->create())->postJson('/reports', $payload)->assertForbidden();
+        $this->actingAs($teacher)->postJson('/reports', array_replace($payload, ['reason' => 'I disagree']))->assertUnprocessable();
+        $this->postJson('/reports', $payload)->assertOk();
+        $this->postJson('/reports', $payload)->assertUnprocessable();
+        $this->assertDatabaseHas('session_ratings', ['id' => $review->id]);
+        $report = \App\Models\Report::where('reportable_type', SessionRating::class)->firstOrFail();
+        $this->assertStringContainsString('Reported original', $report->details);
+        $this->actingAs($learner)->patchJson(route('reviews.update', $review), ['stars' => 5, 'comment' => 'Changed after report', 'version' => $review->reviewVersion()])->assertOk();
+        $this->assertStringContainsString('Reported original', $report->fresh()->details);
+        $this->deleteJson(route('admin.reports.destroyContent', $report))->assertForbidden();
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($admin)->get(route('admin.reports.index'))->assertOk()->assertSee('Learner review')->assertSee('Changed after report');
+        $this->delete(route('admin.reports.destroyContent', $report))->assertRedirect();
+        $this->assertDatabaseHas('session_ratings', ['id' => $review->id]);
+        $this->assertDatabaseHas('reports', ['id' => $report->id, 'status' => 'resolved']);
+        $this->assertSame(0, $teacher->teachingRatings()->count());
+        $this->patchJson(route('admin.reports.dismiss', $report))->assertStatus(409);
+        $this->actingAs($learner)->postJson('/messages/conversations/'.$chat->id.'/rating', ['stars' => 1])->assertStatus(409);
+        $this->patchJson(route('reviews.update', $review), ['stars' => 1, 'version' => $review->fresh()->reviewVersion()])->assertForbidden();
     }
 }

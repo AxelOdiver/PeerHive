@@ -35,7 +35,7 @@
             </td>
             <td>
               <span class="badge border text-secondary px-2 py-1 rounded-pill fw-medium">
-                {{ $report->reportable_type === \App\Models\CommunityBanner::class ? 'Community banner' : class_basename($report->reportable_type) }}
+                {{ $report->reportable_type === \App\Models\CommunityBanner::class ? 'Community banner' : ($report->reportable_type === \App\Models\SessionRating::class ? 'Learner review' : class_basename($report->reportable_type)) }}
               </span>
             </td>
             <td>
@@ -44,8 +44,9 @@
                   $item = $report->reportable;
                   $isAccount = $report->reportable_type === \App\Models\User::class;
                   $isBanner = $item instanceof \App\Models\CommunityBanner;
-                  $author = $isAccount ? $item : ($isBanner ? $item->uploader : ($item->sender ?? $item->user ?? null));
-                  $preview = $isAccount ? 'Reported account' : ($isBanner ? 'Reported community banner' : ($item->body ?? $item->title ?? '[Message attachment or empty message]'));
+                  $isReview = $item instanceof \App\Models\SessionRating;
+                  $author = $isAccount ? $item : ($isReview ? $item->learner : ($isBanner ? $item->uploader : ($item->sender ?? $item->user ?? null)));
+                  $preview = $isAccount ? 'Reported account' : ($isReview ? $item->stars.'/5 — '.($item->comment ?? 'No written review') : ($isBanner ? 'Reported community banner' : ($item->body ?? $item->title ?? '[Message attachment or empty message]')));
                   $community = $isBanner || $report->reportable_type === \App\Models\Post::class
                     ? $item->community
                     : ($report->reportable_type === \App\Models\Comment::class ? ($item->post->community ?? null) : null);
@@ -105,7 +106,7 @@
                     @csrf
                     @method('DELETE')
                     <button type="button" class="btn btn-danger btn-sm rounded-2 px-3 delete-content-btn">
-                      {{ $report->reportable instanceof \App\Models\CommunityBanner ? ($report->reportable->removed_at ? 'Resolve banner report' : 'Remove banner') : 'Delete Content' }}
+                      {{ $report->reportable instanceof \App\Models\SessionRating ? 'Remove review' : ($report->reportable instanceof \App\Models\CommunityBanner ? ($report->reportable->removed_at ? 'Resolve banner report' : 'Remove banner') : 'Delete Content') }}
                     </button>
                   </form>
                   @endif

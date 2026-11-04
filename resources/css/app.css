@@ -8,6 +8,8 @@
     height: 2.25rem;
 }
 
+.profile-summary [aria-label="Approved teaching qualifications"] { justify-content:center; margin:0 !important; }
+
 .peerhive-logo-mark { width:40px;height:40px;flex:0 0 auto;display:grid;place-items:center;background:#fff;border-radius:9px;position:relative;z-index:1; }
 .peerhive-logo-mark img { display:block;width:100%;height:100%;object-fit:contain; }
 .app-sidebar .sidebar-brand { padding:0; }

@@ -3,16 +3,19 @@
 @section('title', $profileUser->first_name . ' ' . $profileUser->last_name)
 
 @section('content')
-<div class="mb-3">
-    <a href="{{ url()->previous() }}" class="btn btn-sm btn-primary">
+<div class="mb-3 d-flex align-items-center justify-content-between gap-2">
+    <a href="{{ auth()->id() === $profileUser->id ? route('dashboard') : url()->previous() }}" class="btn btn-sm btn-primary">
         <i class="bi bi-arrow-left me-1"></i> Back
     </a>
+    @if(auth()->id() === $profileUser->id)
+        <a href="{{ route('profile') }}" class="btn btn-primary"><i class="bi bi-pencil-square me-1" aria-hidden="true"></i>Edit Profile</a>
+    @endif
 </div>
 
 <div class="row g-4">
     {{-- Left: Profile Card --}}
     <div class="col-12 col-lg-4">
-        <div class="card border-0 shadow-sm rounded-4 p-4 text-center">
+        <div class="card profile-summary border-0 shadow-sm rounded-4 p-4 text-center">
             <div class="mb-3">
                 @if($profileUser->profile_picture_url)
                     <img src="{{ $profileUser->profile_picture_url }}"
@@ -27,19 +30,18 @@
                 @endif
             </div>
 
-            <h4 class="fw-bold mb-0">{{ $profileUser->first_name }} {{ $profileUser->middle_name }} {{ $profileUser->last_name }}</h4>
-            @if(auth()->id() === $profileUser->id)<p class="text-muted small mb-3">{{ $profileUser->email }}</p>@endif
+            <div class="mb-3">
+            <h4 class="fw-bold text-break mb-1">{{ $profileUser->first_name }} {{ $profileUser->middle_name }} {{ $profileUser->last_name }}</h4>
+            @if(auth()->id() === $profileUser->id)<p class="text-muted text-break small mb-1">{{ $profileUser->email }}</p>@endif
             @if($profileUser->username)
-                <p class="text-muted small">{{ '@'.$profileUser->username }}</p>
+                <p class="text-muted text-break small mb-0">{{ '@'.$profileUser->username }}</p>
             @endif
-            <x-teaching-badges :user="$profileUser" />
-            <div class="my-3">
-                <x-teaching-rating :user="$profileUser" />
-                @if($profileUser->teaching_ratings_count)
-                    <a href="#learner-reviews" class="small">View learner reviews</a>
-                @endif
             </div>
-            @if(count($learningBadges))<div class="my-3"><p class="small text-muted mb-1">Participation achievements</p><div class="d-flex gap-1 flex-wrap justify-content-center">@foreach($learningBadges as $badge)<span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-trophy me-1" aria-hidden="true"></i>{{ $badge }}</span>@endforeach</div></div>@endif
+            <x-teaching-badges :user="$profileUser" />
+            <div class="border-top border-bottom py-3 my-3">
+                <x-teaching-rating :user="$profileUser" />
+            </div>
+            @if(count($learningBadges))<div class="mb-3"><p class="small text-muted mb-1">Participation achievements</p><div class="d-flex gap-1 flex-wrap justify-content-center">@foreach($learningBadges as $badge)<span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-trophy me-1" aria-hidden="true"></i>{{ $badge }}</span>@endforeach</div></div>@endif
 
             @if($profileUser->description)
                 <p class="text-muted small fst-italic mb-3">{{ $profileUser->description }}</p>
@@ -65,7 +67,7 @@
             </div>
 
             {{-- Stats Row --}}
-            <div class="d-flex justify-content-center gap-4 mb-4">
+            <div class="d-flex justify-content-center gap-4 border-top pt-3">
                 <div class="text-center">
                     <div class="fw-bold fs-5" id="profile-like-count">{{ $likeCount }}</div>
                     <div class="text-muted" style="font-size:0.75rem;">Likes</div>
@@ -82,7 +84,7 @@
 
             {{-- Action Buttons --}}
             @if(auth()->id() !== $profileUser->id)
-            <div class="d-flex flex-column gap-2">
+            <div class="d-flex flex-column gap-2 mt-3">
                 <button type="button"
                     class="btn {{ $hasLiked ? 'btn-danger' : 'btn-outline-danger' }} like-profile-btn"
                     data-id="{{ $profileUser->id }}">
@@ -136,27 +138,12 @@
         </div>
 
         <section id="learner-reviews" class="card border-0 shadow-sm rounded-4 p-4 mt-4" aria-labelledby="learner-reviews-title">
-            <h5 id="learner-reviews-title" class="fw-bold mb-2">Learner reviews</h5>
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                <h5 id="learner-reviews-title" class="fw-bold mb-0">Learner reviews</h5>
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#allReviewsModal">View all reviews ({{ $profileUser->teaching_ratings_count }})</button>
+            </div>
             <p class="small text-muted mb-0">Feedback from learners after completed sessions.</p>
-            @forelse($learnerReviews as $review)
-                <article class="border-top pt-3 mt-3">
-                    <div class="d-flex flex-wrap justify-content-between gap-2">
-                        <strong>{{ trim(($review->learner?->first_name ?? '').' '.($review->learner?->last_name ?? '')) ?: 'PeerHive member' }}</strong>
-                        <time class="small text-muted" datetime="{{ $review->created_at->toIso8601String() }}">{{ $review->created_at->setTimezone(auth()->user()->learning_timezone)->format('M j, Y') }}</time>
-                    </div>
-                    <div class="small mt-1" aria-label="{{ $review->stars }} out of 5 stars">
-                        <span class="text-warning" aria-hidden="true">@for($star = 1; $star <= 5; $star++)<i class="bi {{ $review->stars >= $star ? 'bi-star-fill' : 'bi-star' }}"></i>@endfor</span>
-                        <span>{{ $review->stars }} / 5</span>
-                    </div>
-                    @if(filled($review->comment))
-                        <p class="text-break mt-2 mb-0" style="white-space:pre-wrap">{{ $review->comment }}</p>
-                    @else
-                        <p class="small text-muted mt-2 mb-0">Rated without a written review.</p>
-                    @endif
-                </article>
-            @empty
-                <p class="text-muted mt-3 mb-0">No learner reviews yet.</p>
-            @endforelse
+            @include('profile.review-items')
             @if($learnerReviews->hasPages())
                 <div class="mt-3">{{ $learnerReviews->links('pagination::simple-bootstrap-5') }}</div>
             @endif
@@ -180,5 +167,9 @@
 
 {{-- Swap Modal --}}
 <x-learning-request-modal />
+
+<x-modal id="allReviewsModal" title="All learner reviews" size="lg" dialogClass="modal-dialog-centered modal-dialog-scrollable">
+    <div id="allReviewsContent" data-reviews-url="{{ route('users.reviews', $profileUser) }}" aria-live="polite"><p class="text-muted mb-0">Loading reviews…</p></div>
+</x-modal>
 
 @endsection
