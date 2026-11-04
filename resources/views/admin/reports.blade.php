@@ -35,7 +35,7 @@
             </td>
             <td>
               <span class="badge border text-secondary px-2 py-1 rounded-pill fw-medium">
-                {{ class_basename($report->reportable_type) }}
+                {{ $report->reportable_type === \App\Models\CommunityBanner::class ? 'Community banner' : class_basename($report->reportable_type) }}
               </span>
             </td>
             <td>
@@ -43,15 +43,22 @@
                 @php
                   $item = $report->reportable;
                   $isAccount = $report->reportable_type === \App\Models\User::class;
-                  $author = $isAccount ? $item : ($item->sender ?? $item->user ?? null);
-                  $preview = $isAccount ? 'Reported account' : ($item->body ?? $item->title ?? '[Message attachment or empty message]');
-                  $community = $report->reportable_type === \App\Models\Post::class
+                  $isBanner = $item instanceof \App\Models\CommunityBanner;
+                  $author = $isAccount ? $item : ($isBanner ? $item->uploader : ($item->sender ?? $item->user ?? null));
+                  $preview = $isAccount ? 'Reported account' : ($isBanner ? 'Reported community banner' : ($item->body ?? $item->title ?? '[Message attachment or empty message]'));
+                  $community = $isBanner || $report->reportable_type === \App\Models\Post::class
                     ? $item->community
                     : ($report->reportable_type === \App\Models\Comment::class ? ($item->post->community ?? null) : null);
                 @endphp
                 <div class="small fw-medium text-truncate mb-1" style="max-width: 250px;" title="{{ $preview }}">
                   “{{ $preview }}”
                 </div>
+                @if($isBanner)
+                  <a href="{{ route('community.banner.show', $item) }}" target="_blank" rel="noopener noreferrer" class="d-inline-block mb-2">
+                    <img src="{{ route('community.banner.show', $item) }}" alt="Reported community banner" class="rounded" style="width:140px;height:70px;object-fit:cover"><span class="d-block small">View reported image</span>
+                  </a>
+                  @if($item->removed_at)<p class="small text-muted mb-2">This banner was already replaced or removed.</p>@endif
+                @endif
                 
                 <div class="text-muted d-flex flex-column gap-1" style="font-size: 0.75rem;">
                   <div>
@@ -94,11 +101,11 @@
                   </form>
                   
                   @if(!($report->reportable instanceof \App\Models\User))
-                  <form action="{{ route('admin.reports.destroyContent', $report->id) }}" method="POST" class="delete-content-form">
+                  <form action="{{ route('admin.reports.destroyContent', $report->id) }}" method="POST" class="delete-content-form" @if($report->reportable instanceof \App\Models\CommunityBanner) data-confirm-title="Remove reported banner" data-confirm-text="Remove this reported banner and resolve the report? The community and any replacement banner are kept." @endif>
                     @csrf
                     @method('DELETE')
                     <button type="button" class="btn btn-danger btn-sm rounded-2 px-3 delete-content-btn">
-                      Delete Content
+                      {{ $report->reportable instanceof \App\Models\CommunityBanner ? ($report->reportable->removed_at ? 'Resolve banner report' : 'Remove banner') : 'Delete Content' }}
                     </button>
                   </form>
                   @endif
@@ -137,8 +144,8 @@
             const $form = $(this).closest('form');
             
             const result = await window.confirmAction(
-                'Are you sure you want to delete this content? This action will permanently remove it from the community and automatically mark this report as resolved.',
-                'Delete Content'
+                $form.data('confirm-text') || 'Are you sure you want to delete this content? This action will permanently remove it from the community and automatically mark this report as resolved.',
+                $form.data('confirm-title') || 'Delete Content'
             );
             
             if (result.isConfirmed) {

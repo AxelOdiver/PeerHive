@@ -8,6 +8,7 @@ use App\Models\Message;
 use App\Models\Post;
 use App\Models\User;
 use App\Models\UserBlock;
+use App\Models\CommunityBanner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -18,7 +19,7 @@ class ReportController extends Controller
     {
         $validated = $request->validate([
             'reportable_id' => 'required|integer',
-            'reportable_type' => ['required', Rule::in([Post::class, Comment::class, Message::class, User::class])],
+            'reportable_type' => ['required', Rule::in([Post::class, Comment::class, Message::class, User::class, CommunityBanner::class])],
             'reason' => 'required|string|max:255',
             'details' => 'nullable|string|max:1000',
             'block_user' => ['nullable', 'boolean'],
@@ -30,6 +31,7 @@ class ReportController extends Controller
             $reportable instanceof Message => $reportable->sender_id,
             $reportable instanceof Post => $reportable->user_id,
             $reportable instanceof Comment => $reportable->user_id,
+            $reportable instanceof CommunityBanner => $reportable->uploaded_by ?? $reportable->community->user_id,
         };
         abort_if($targetUserId === auth()->id(), 422, 'You cannot report your own account or content.');
 
@@ -41,6 +43,7 @@ class ReportController extends Controller
             $community = $reportable instanceof Post ? $reportable->community : $reportable->post?->community;
             abort_unless($community && ($community->visibility === 'public' || \App\Support\LearningHub::member($request->user(), $community)), 403);
         }
+        if ($reportable instanceof CommunityBanner) abort_if($reportable->removed_at, 409, 'This banner changed. Refresh the community before reporting it.');
 
         // Prevent duplicate reports from the same user on the same item
         $exists = Report::where('user_id', auth()->id())
@@ -57,6 +60,11 @@ class ReportController extends Controller
         }
 
         DB::transaction(function () use ($reportable, $validated, $targetUserId) {
+            if ($reportable instanceof CommunityBanner) {
+                $reportable = CommunityBanner::whereKey($reportable->id)->lockForUpdate()->firstOrFail();
+                abort_if($reportable->removed_at, 409, 'This banner changed. Refresh the community before reporting it.');
+                abort_if($reportable->reports()->where('user_id', auth()->id())->exists(), 422, 'You have already reported this item.');
+            }
             $report = new Report([
                 'user_id' => auth()->id(),
                 'reason' => $validated['reason'],

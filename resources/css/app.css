@@ -58,6 +58,20 @@ body:not(.app-loaded) .peerhive-wordmark-clip, body:not(.app-loaded) .peerhive-w
 .tutorial-dot.is-active span { width: 22px; border-radius: 6px; background: var(--bs-primary); opacity: 1; }
 .tutorial-dot:hover { background: rgba(var(--bs-primary-rgb), .1); }
 .tutorial-dot:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: -4px; }
+.community-banner-image { display: block; width: 100%; height: 160px; object-fit: cover; object-position: var(--banner-x, 50%) var(--banner-y, 50%); }
+.community-banner-image--card { height: 120px; }
+.community-banner-image--header { height: clamp(180px, 22vw, 320px); }
+.community-content { padding-top: 0 !important; }
+.community-hero { margin: 0 -1rem 1rem; }
+.community-banner--header::after { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: linear-gradient(to bottom, transparent 48%, var(--bs-tertiary-bg) 100%); }
+@media (min-width: 992px) { .community-hero { margin-inline: -1.5rem; } }
+.community-banner-trigger:focus-visible { outline: 3px solid var(--bs-primary); outline-offset: -3px; }
+.community-banner-viewer-image { display: block; max-height: 65vh; max-width: 100%; margin: auto; object-fit: contain; }
+.community-banner-crop { position: relative; width: 100%; aspect-ratio: 5 / 1; overflow: hidden; border: 1px solid var(--bs-border-color); border-radius: .5rem; background: var(--bs-tertiary-bg); cursor: grab; touch-action: none; user-select: none; }
+.community-banner-crop.is-dragging { cursor: grabbing; }
+.community-banner-crop:focus-visible { outline: 3px solid var(--bs-primary); outline-offset: 2px; }
+.community-banner-upload-preview { display: block; width: 100%; height: 100%; object-fit: cover; object-position: var(--banner-x, 50%) var(--banner-y, 50%); pointer-events: none; }
+.community-banner-image, .community-banner-upload-preview { transform: scale(var(--banner-zoom, 1)); transform-origin: var(--banner-x, 50%) var(--banner-y, 50%); }
 @media (prefers-reduced-motion: reduce) {
   .tutorial-card .carousel-item, .tutorial-dot, .tutorial-dot span { transition: none; }
 }

@@ -14,7 +14,7 @@ class CommunityController extends Controller
 {
     public function index()
     {
-        $communities = Community::with(['user', 'members'])->latest()->get();
+        $communities = Community::with(['user', 'members', 'banner'])->latest()->get();
         $subjects = CatalogEntry::subjects();
         return view('community', compact('communities', 'subjects'));
     }
@@ -49,7 +49,7 @@ class CommunityController extends Controller
 
     public function show(Community $community)
     {
-        $community->load('user')->loadCount('members');
+        $community->load(['user', 'banner'])->loadCount('members');
         $isMember = \App\Support\LearningHub::member(auth()->user(), $community);
         $isManager = auth()->id() === $community->user_id || auth()->user()->role === 'admin';
         $joinRequest = $community->visibility === 'private'
@@ -128,8 +128,10 @@ class CommunityController extends Controller
         }
 
         $mediaPaths = $community->posts()->whereNotNull('media_path')->pluck('media_path')->all();
+        $bannerPaths = $community->banners()->pluck('path')->all();
         $community->delete();
         Storage::disk('local')->delete($mediaPaths);
+        Storage::disk('local')->delete($bannerPaths);
 
        return response()->json([
             'message' => 'Community deleted successfully.',

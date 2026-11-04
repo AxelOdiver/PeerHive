@@ -106,6 +106,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/schedule', [ScheduleController::class, 'destroy'])->name('schedule.destroy');
 
     Route::get('/community', [CommunityController::class, 'index'])->name('community');
+    Route::post('/community/{community}/banner', [\App\Http\Controllers\CommunityBannerController::class, 'store'])->middleware('throttle:5,10,community-banner:')->name('community.banner.store');
+    Route::delete('/community/{community}/banner', [\App\Http\Controllers\CommunityBannerController::class, 'destroy'])->middleware('throttle:5,10,community-banner:')->name('community.banner.destroy');
+    Route::get('/community-banners/{banner}', [\App\Http\Controllers\CommunityBannerController::class, 'show'])->name('community.banner.show');
     Route::get('/community/{community}', [CommunityController::class, 'show'])->name('community.show');
     Route::post('/community', [CommunityController::class, 'store'])->name('community.store');
     Route::post('/community/{community}/join', [\App\Http\Controllers\CommunityJoinRequestController::class, 'store'])->middleware('throttle:10,1,community-join:')->name('community.join');

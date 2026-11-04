@@ -16,9 +16,7 @@
     @endphp
     @if($featuredCommunity)
     <div class="card card-hover border-0 shadow-sm rounded-2 overflow-hidden h-100 d-flex flex-column">
-      <div style="overflow: hidden; height: 200px; flex-shrink: 0;">
-        <img src="https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg" class="w-100 h-100" style="object-fit: cover; object-position: center;" />
-      </div>
+      <x-community-banner :community="$featuredCommunity" size="dashboard" />
       <div class="card-body d-flex flex-column p-4">
         
         <!-- Description at the top -->

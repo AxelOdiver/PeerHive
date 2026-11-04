@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Report;
 use App\Models\Message;
 use App\Models\User;
+use App\Models\CommunityBanner;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
 
@@ -19,7 +21,7 @@ class ReportController extends Controller
         }
 
         $reports = Report::with(['reporter', 'reportable'])
-            ->orderByRaw("FIELD(status, 'pending') DESC") // Show pending first
+            ->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")
             ->latest()
             ->paginate(20);
 
@@ -43,6 +45,17 @@ class ReportController extends Controller
     {
         if (auth()->user()->role !== 'admin') {
             abort(403, 'Unauthorized. Admins only.');
+        }
+
+        if ($report->reportable instanceof CommunityBanner) {
+            DB::transaction(function () use ($report) {
+                $locked = Report::whereKey($report->id)->lockForUpdate()->firstOrFail();
+                abort_unless($locked->status === 'pending', 409, 'This report has already been reviewed.');
+                $banner = CommunityBanner::whereKey($locked->reportable_id)->lockForUpdate()->first();
+                if ($banner && !$banner->removed_at) $banner->update(['removed_at' => now()]);
+                $locked->update(['status' => 'resolved']);
+            });
+            return back()->with('success', 'Banner report resolved. The community remains available.');
         }
 
         // Account reports are reviewed and dismissed separately; never delete an account here.

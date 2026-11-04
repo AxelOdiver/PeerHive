@@ -23,6 +23,9 @@ window.hideModal = hideModal;
 $(document).ready(function() {
   handleSessionToast();
   initThemeSelector();
+  if (document.getElementById('communityBannerViewer')) {
+    import('./pages/community-banners.js').then(module => module.initCommunityBanners());
+  }
   document.querySelectorAll('[data-sidebar-tooltip]').forEach(element => {
     const tooltip = new bootstrap.Tooltip(element, {
       title: element.dataset.sidebarTooltip,

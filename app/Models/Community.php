@@ -39,6 +39,8 @@ class Community extends Model
     }
 
     public function joinRequests() { return $this->hasMany(CommunityJoinRequest::class); }
+    public function banners() { return $this->hasMany(CommunityBanner::class); }
+    public function banner() { return $this->hasOne(CommunityBanner::class)->whereNull('removed_at')->latest('id'); }
 
     public function memberCount(): int
     {

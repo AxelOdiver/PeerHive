@@ -22,12 +22,13 @@
   <div class="col-12 col-md-6 col-xl-4 mb-4">
     <div class="card border-0 shadow-sm rounded-4 p-3 h-100 w-100 position-relative">
       @if($canDeleteCommunity)
-      <div class="position-absolute top-0 end-0 m-3 z-2">
+      <div class="position-absolute top-0 end-0 m-3 z-3">
         <button class="btn btn-sm btn-danger rounded-2 delete-community-btn" data-id="{{ $community->id }}" title="Delete Community">
           <i class="bi bi-trash"></i>
         </button>
       </div>
       @endif
+      <div class="rounded-3 overflow-hidden mb-3"><x-community-banner :community="$community" size="card" /></div>
       <h3 class="fw-bold mb-2 pe-5"><a href="{{ route('community.show', $community) }}" class="stretched-link text-body-emphasis text-decoration-none">{{ $community->name }}</a></h3>
       <div class="text-muted small mb-2 fw-medium">
         <i class="bi bi-person-circle me-1"></i> 

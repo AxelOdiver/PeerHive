@@ -1,7 +1,7 @@
 $(document).ready(function () {
   const $editForm = $('#communityForm');
   const $saveButton = $('#saveCommunityBtn');
-  const $modalTitle = $('.modal-title');
+  const $modalTitle = $('#communityModal .modal-title');
   const communityModal = document.getElementById('communityModal');
   let communityModalOpener = null;
   let formMode = 'create';

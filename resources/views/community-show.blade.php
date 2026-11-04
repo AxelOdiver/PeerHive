@@ -1,12 +1,14 @@
 @extends('layouts.dashboard')
 
 @section('title', 'Community')
+@section('content-class', 'community-content')
 
 @section('content')
 @php
 $isCommunityManager = auth()->check() && (auth()->id() === $community->user_id || auth()->user()->role === 'admin');
 $isMember = auth()->check() && (auth()->id() === $community->user_id || $community->members->contains('id', auth()->id()));
 @endphp
+<div class="community-hero"><x-community-banner :community="$community" size="header" :manage="$isCommunityManager" :viewable="true" /></div>
 <div class="container-fluid py-1">
   <a href="{{ route('community') }}" class="btn btn-primary mb-4">
     <i class="bi bi-arrow-left"></i> Back to Communities
