@@ -35,18 +35,18 @@ use App\Http\Controllers\ReportController;
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');
-    Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:5,1')->name('login.store');
+    Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:5,1,login:')->name('login.store');
     Route::get('/register', [RegisterController::class, 'index'])->name('register');
-    Route::post('/register', [RegisterController::class, 'store'])->middleware('throttle:5,10')->name('register.store');
+    Route::post('/register', [RegisterController::class, 'store'])->middleware('throttle:5,10,register:')->name('register.store');
 
     Route::get('/forgot-password', [PasswordResetController::class, 'request'])->name('password.request');
-    Route::post('/forgot-password', [PasswordResetController::class, 'email'])->middleware('throttle:5,1')->name('password.email');
+    Route::post('/forgot-password', [PasswordResetController::class, 'email'])->middleware('throttle:5,1,password-email:')->name('password.email');
     Route::get('/reset-password/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
-    Route::post('/reset-password', [PasswordResetController::class, 'update'])->middleware('throttle:5,1')->name('password.update');
+    Route::post('/reset-password', [PasswordResetController::class, 'update'])->middleware('throttle:5,1,password-update:')->name('password.update');
 
     Route::get('/otp', [OtpController::class, 'show'])->name('otp.show');
-    Route::post('/otp', [OtpController::class, 'verify'])->middleware('throttle:5,1')->name('otp.verify');
-    Route::post('/otp/resend', [OtpController::class, 'resend'])->middleware('throttle:2,1')->name('otp.resend');
+    Route::post('/otp', [OtpController::class, 'verify'])->middleware('throttle:5,1,otp-verify:')->name('otp.verify');
+    Route::post('/otp/resend', [OtpController::class, 'resend'])->middleware('throttle:2,1,otp-resend:')->name('otp.resend');
 });
 
 /*
@@ -60,10 +60,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/learning-paths', [\App\Http\Controllers\SkillTreeController::class, 'admin'])->middleware('admin')->name('admin.learning-paths');
     Route::put('/admin/learning-paths/{topic}', [\App\Http\Controllers\SkillTreeController::class, 'update'])->middleware('admin')->name('admin.learning-paths.update');
     Route::get('/messages/conversations/{conversation}/activities', [\App\Http\Controllers\SessionActivityController::class, 'index'])->name('session-activities.index');
-    Route::post('/messages/conversations/{conversation}/activities', [\App\Http\Controllers\SessionActivityController::class, 'store'])->middleware('throttle:10,1')->name('session-activities.store');
-    Route::post('/messages/conversations/{conversation}/activities/{activity}/submit', [\App\Http\Controllers\SessionActivityController::class, 'submit'])->middleware('throttle:10,1')->name('session-activities.submit');
-    Route::post('/messages/conversations/{conversation}/activities/{activity}/review', [\App\Http\Controllers\SessionActivityController::class, 'review'])->middleware('throttle:10,1')->name('session-activities.review');
-    Route::post('/catalog/suggestions', [\App\Http\Controllers\CatalogController::class, 'store'])->middleware('throttle:10,1')->name('catalog.suggest');
+    Route::post('/messages/conversations/{conversation}/activities', [\App\Http\Controllers\SessionActivityController::class, 'store'])->middleware('throttle:10,1,activity-store:')->name('session-activities.store');
+    Route::post('/messages/conversations/{conversation}/activities/{activity}/submit', [\App\Http\Controllers\SessionActivityController::class, 'submit'])->middleware('throttle:10,1,activity-submit:')->name('session-activities.submit');
+    Route::post('/messages/conversations/{conversation}/activities/{activity}/review', [\App\Http\Controllers\SessionActivityController::class, 'review'])->middleware('throttle:10,1,activity-review:')->name('session-activities.review');
+    Route::post('/catalog/suggestions', [\App\Http\Controllers\CatalogController::class, 'store'])->middleware('throttle:10,1,catalog-suggest:')->name('catalog.suggest');
     Route::get('/admin/catalog', [\App\Http\Controllers\CatalogController::class, 'index'])->middleware('admin')->name('admin.catalog');
     Route::post('/admin/catalog/{entry}', [\App\Http\Controllers\CatalogController::class, 'review'])->middleware('admin')->name('admin.catalog.review');
     Route::get('/private/messages/{message}/attachment', [\App\Http\Controllers\PrivateFileController::class, 'message'])->name('private.message');
@@ -88,7 +88,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/study-sessions/{session}/complete', [\App\Http\Controllers\StudySessionController::class, 'complete'])->name('study-sessions.complete');
     Route::post('/study-sessions/{session}/confirm', [\App\Http\Controllers\StudySessionController::class, 'confirm'])->name('study-sessions.confirm');
 
-    Route::post('/apply-to-teach', [QualificationController::class, 'store'])->middleware('throttle:5,10')->name('qualifications.store');
+    Route::post('/apply-to-teach', [QualificationController::class, 'store'])->middleware('throttle:5,10,qualification-store:')->name('qualifications.store');
 
     Route::post('/favorite/toggle', [FavoriteController::class, 'toggleFavorite'])->name('favorite.toggle');
     Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
@@ -108,7 +108,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/community', [CommunityController::class, 'index'])->name('community');
     Route::get('/community/{community}', [CommunityController::class, 'show'])->name('community.show');
     Route::post('/community', [CommunityController::class, 'store'])->name('community.store');
-    Route::post('/community/{community}/join', [\App\Http\Controllers\CommunityJoinRequestController::class, 'store'])->middleware('throttle:10,1')->name('community.join');
+    Route::post('/community/{community}/join', [\App\Http\Controllers\CommunityJoinRequestController::class, 'store'])->middleware('throttle:10,1,community-join:')->name('community.join');
     Route::delete('/community/{community}/join-request', [\App\Http\Controllers\CommunityJoinRequestController::class, 'cancel'])->name('community.join.cancel');
     Route::post('/community/{community}/join-requests/{joinRequest}', [\App\Http\Controllers\CommunityJoinRequestController::class, 'respond'])->name('community.join.respond');
     Route::delete('/community/{community}', [CommunityController::class, 'destroy'])->name('community.destroy');
@@ -119,8 +119,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/communities/{community}/invite', [CommunityInviteController::class, 'store'])->name('community.invite.store');
     Route::post('/invites/{invite}/accept', [CommunityInviteController::class, 'accept'])->name('community.invite.accept');
     Route::post('/invites/{invite}/decline', [CommunityInviteController::class, 'decline'])->name('community.invite.decline');
-    Route::post('/invite', [CommunityInviteController::class, 'sendInvite'])->middleware('throttle:10,1')->name('invite.send');
-    Route::get('/users/search', [CommunityInviteController::class, 'searchUsers'])->middleware('throttle:60,1')->name('users.search');
+    Route::post('/invite', [CommunityInviteController::class, 'sendInvite'])->middleware('throttle:10,1,invite-send:')->name('invite.send');
+    Route::get('/users/search', [CommunityInviteController::class, 'searchUsers'])->middleware('throttle:60,1,users-search:')->name('users.search');
     Route::delete('/community/{community}/member/{user}', [CommunityController::class, 'removeMember'])->name('community.removeMember');
     Route::delete('/community/{community}/leave', [CommunityController::class, 'leaveCommunity'])->name('community.leave');
     Route::post('/posts/{id}/comments', [CommunityController::class, 'storeComment'])->name('comments.store');
@@ -131,15 +131,15 @@ Route::middleware('auth')->group(function () {
     Route::delete('/users/{user}/block', [\App\Http\Controllers\UserBlockController::class, 'destroy'])->name('users.unblock');
 
     Route::get('/schedule', [ScheduleController::class, 'index'])->name('schedule');
-    Route::post('/presence/heartbeat', [MessagingActivityController::class, 'heartbeat'])->middleware('throttle:6,1')->name('presence.heartbeat');
+    Route::post('/presence/heartbeat', [MessagingActivityController::class, 'heartbeat'])->middleware('throttle:6,1,presence-heartbeat:')->name('presence.heartbeat');
     Route::get('/messages/conversations/{conversation}/state', [MessagingActivityController::class, 'state'])->name('messages.state');
-    Route::post('/messages/conversations/{conversation}/typing', [MessagingActivityController::class, 'typing'])->middleware('throttle:60,1')->name('messages.typing');
-    Route::post('/messages/conversations/{conversation}/read', [MessagingActivityController::class, 'read'])->middleware('throttle:60,1')->name('messages.read');
-    Route::post('/messages/conversations/{conversation}/rating', [\App\Http\Controllers\SessionRatingController::class, 'store'])->middleware('throttle:20,1');
+    Route::post('/messages/conversations/{conversation}/typing', [MessagingActivityController::class, 'typing'])->middleware('throttle:60,1,messages-typing:')->name('messages.typing');
+    Route::post('/messages/conversations/{conversation}/read', [MessagingActivityController::class, 'read'])->middleware('throttle:60,1,messages-read:')->name('messages.read');
+    Route::post('/messages/conversations/{conversation}/rating', [\App\Http\Controllers\SessionRatingController::class, 'store'])->middleware('throttle:20,1,messages-rating:');
     Route::get('/messages/conversations/{conversation}/session', [\App\Http\Controllers\SessionChatController::class, 'show']);
     Route::post('/messages/conversations/{conversation}/session', [\App\Http\Controllers\SessionChatController::class, 'update']);
     Route::get('/messages', [MessageController::class, 'index'])->name('messages');
-    Route::get('/messages/member-search', [MessageController::class, 'searchMembers'])->middleware('throttle:60,1')->name('messages.member-search');
+    Route::get('/messages/member-search', [MessageController::class, 'searchMembers'])->middleware('throttle:60,1,messages-member-search:')->name('messages.member-search');
     Route::get('/messages/unread-count', [MessageController::class, 'unreadCount'])->name('messages.unread-count');
     Route::post('/notifications/read-all', [\App\Http\Controllers\BellNotificationController::class, 'readAll']);
     Route::post('/notifications/clear-read', [\App\Http\Controllers\BellNotificationController::class, 'clearRead']);
@@ -148,7 +148,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/messages/conversations', [MessageController::class, 'store'])->name('messages.conversations.store');
     Route::delete('/messages/conversations/{conversation}', [MessageController::class, 'destroyConversation'])->name('messages.conversations.destroy');
     Route::get('/messages/conversations/{conversation}', [MessageController::class, 'fetch'])->name('messages.conversations.fetch');
-    Route::post('/messages/conversations/{conversation}', [MessageController::class, 'storeMessage'])->middleware('throttle:30,1')->name('messages.conversations.message');
+    Route::post('/messages/conversations/{conversation}', [MessageController::class, 'storeMessage'])->middleware('throttle:30,1,messages-send:')->name('messages.conversations.message');
     Route::post('/messages/conversations/{conversation}/members', [MessageController::class, 'addMember'])->name('messages.conversations.members.add');
     Route::delete('/messages/conversations/{conversation}/members/{user}', [MessageController::class, 'removeMember'])->name('messages.conversations.members.remove');
     Route::post('/messages/{message}/reactions', [MessageController::class, 'react'])->name('messages.react');
