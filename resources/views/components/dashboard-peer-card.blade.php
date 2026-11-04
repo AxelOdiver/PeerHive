@@ -2,7 +2,7 @@
 $isLiked = in_array($student->id, $likedIds);
 $isFaved = in_array($student->id, $favoritedIds);
 @endphp
-    <div class="col-12 col-md-6 col-xl-4 mb-4 student-card-column">
+    <div class="{{ $columnClass ?? 'col-12 col-md-6 col-xl-4' }} mb-4 student-card-column">
       <div class="card border-0 shadow-sm rounded-4 p-3 h-100 w-100 student-card">
         <div class="d-flex align-items-start gap-2 gap-sm-3">
           <a href="{{ route('users.profile', $student->id) }}" class="text-decoration-none flex-shrink-0">

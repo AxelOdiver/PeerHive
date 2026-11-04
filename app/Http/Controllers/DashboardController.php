@@ -19,6 +19,7 @@ class DashboardController extends Controller
             ->withCount(['likedBy', 'teachingRatings', 'swaps', 'comments'])->withAvg('teachingRatings', 'stars')
             ->orderByDesc('liked_by_count')->orderBy('id')->limit(3)->get();
         $communityPosts = \App\Models\Post::with(['user', 'community'])->whereHas('community', fn ($q) => $q->where('user_id', $currentUser->id)->orWhereHas('members', fn ($m) => $m->where('users.id', $currentUser->id)))->latest()->limit(5)->get();
+        $communitySuggestion = \App\Support\CommunityMatching::forUser($currentUser);
 
         $favoritedIds = $currentUser->favorites->pluck('id')->toArray();
 
@@ -28,7 +29,7 @@ class DashboardController extends Controller
         $completedSessions = \App\Models\StudyParticipant::where('user_id', $currentUser->id)->whereNotNull('confirmed_at')->whereHas('session', fn ($q) => $q->where('status', 'completed'))->count();
         $learningPoints = (int) \Illuminate\Support\Facades\DB::table('point_entries')->where('user_id', $currentUser->id)->sum('points');
         $nextSession = \App\Models\StudySession::whereHas('participants', fn ($q) => $q->where('user_id', $currentUser->id))->where('status', 'scheduled')->where('starts_at', '>', now())->orderBy('starts_at')->first();
-        return view('dashboard', compact('topstudents', 'communityPosts', 'students', 'favoritedIds', 'likedIds', 'completedSessions', 'learningPoints', 'nextSession', 'focusTopic'));
+        return view('dashboard', compact('topstudents', 'communityPosts', 'communitySuggestion', 'students', 'favoritedIds', 'likedIds', 'completedSessions', 'learningPoints', 'nextSession', 'focusTopic'));
     }
 
     public function search(Request $request)

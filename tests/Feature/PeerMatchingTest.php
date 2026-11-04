@@ -46,4 +46,27 @@ class PeerMatchingTest extends TestCase {
         $this->actingAs($user)->putJson('/profile', ['first_name'=>$user->first_name,'last_name'=>$user->last_name,'email'=>$user->email,'learning_interests'=>'Python Basics, Graphic Design'])->assertOk();
         $this->assertSame(['Python Basics','Graphic Design'], $user->fresh()->learning_interests);
     }
+
+    public function test_dashboard_community_fallback_shows_the_newest_owned_or_joined_group(): void {
+        $this->withoutVite();
+        $user = User::factory()->create();
+        $owner = User::factory()->create();
+        $eligible = [];
+        foreach (['Old joined group', 'Owned group', 'Python circle', 'Design circle', 'Unjoined newer group'] as $index => $name) {
+            $community = Community::create([
+                'user_id' => $index === 1 ? $user->id : $owner->id, 'name' => $name,
+                'subject' => 'Programming', 'visibility' => 'private', 'member_limit' => 20,
+                'created_at' => now()->subMinutes(5 - $index),
+            ]);
+            if (in_array($index, [0, 2, 3])) $community->members()->attach($user->id);
+            if ($index < 4) $eligible[] = $community->id;
+        }
+        $this->actingAs($user)->get('/dashboard')->assertOk()
+            ->assertViewHas('communitySuggestion', fn ($suggestion) => $suggestion['community']?->id === end($eligible) && !$suggestion['matches_interests'])
+            ->assertSee('Design circle')->assertDontSee('Python circle')->assertDontSee('Owned group')
+            ->assertDontSee('Old joined group')->assertDontSee('Unjoined newer group');
+        $this->actingAs(User::factory()->create())->get('/dashboard')->assertOk()
+            ->assertViewHas('communitySuggestion', fn ($suggestion) => $suggestion['community'] === null)
+            ->assertSee('No matching or joined communities yet.');
+    }
 }
