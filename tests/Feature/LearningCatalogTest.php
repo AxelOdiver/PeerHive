@@ -13,6 +13,30 @@ class LearningCatalogTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_approval_pages_have_shared_category_tabs_and_remain_admin_only(): void
+    {
+        $this->withoutVite();
+        foreach (['/admin/qualifications', '/admin/catalog'] as $url) {
+            $this->actingAs(User::factory()->create())->get($url)->assertForbidden();
+            $this->actingAs(User::factory()->create(['role' => 'admin']))->get($url)->assertOk()->assertSee('Approval categories')->assertSee('Teaching qualifications')->assertSee('Programs')->assertSee('Subjects')->assertSee('Topics')->assertSee('aria-current="page"', false);
+        }
+    }
+
+    public function test_admin_catalog_tabs_separate_programs_subjects_and_topics(): void
+    {
+        $this->withoutVite();
+        $admin = User::factory()->create(['role' => 'admin']);
+        foreach (['program', 'subject', 'topic'] as $kind) {
+            $this->actingAs($admin)->get('/admin/catalog?kind='.$kind)->assertOk()
+                ->assertViewHas('kind', $kind)
+                ->assertViewHas('entries', fn ($entries) => $entries->isNotEmpty() && $entries->every(fn ($entry) => $entry->kind === $kind))
+                ->assertSee('Programs')->assertSee('Subjects')->assertSee('Topics');
+        }
+        $this->get('/admin/catalog')->assertOk()->assertViewHas('kind', 'program');
+        $this->get('/admin/catalog?kind=invalid')->assertNotFound();
+        $this->get('/admin/catalog?kind[]=program')->assertNotFound();
+    }
+
     private function profile(User $user, array $extra = []): array
     {
         return $extra + ['first_name' => $user->first_name, 'last_name' => $user->last_name, 'email' => $user->email];

@@ -2,11 +2,10 @@
 @section('title', 'Admin - Manage Qualifications')
 
 @section('content')
-<div class="container-fluid">
-  <a class="btn btn-outline-primary mb-3" href="{{ route('admin.catalog') }}">Review program and topic suggestions</a>
+  @include('admin.approval-tabs')
   <div class="card shadow-sm border-0 rounded-4">
     <div class="card-header bg-dark text-white rounded-top-4">
-      <h5 class="card-title mb-0"><i class="bi bi-shield-lock me-2"></i> Qualification Requests</h5>
+      <h2 class="h5 mb-0"><i class="bi bi-shield-lock me-2" aria-hidden="true"></i>Qualification Requests</h2>
     </div>
     
     <div class="card-body p-0 table-responsive">
@@ -115,5 +114,4 @@
     </x-slot:footer>
   </x-modal>
   @endforeach
-</div>
 @endsection

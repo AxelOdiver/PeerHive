@@ -1,11 +1,10 @@
 @extends('layouts.dashboard')
-@section('title', 'Learning paths')
+@section('title', 'Admin - Skill Tree')
 @section('content')
-<a href="{{ route('admin.catalog') }}" class="btn btn-outline-secondary mb-3">Back to catalog approvals</a>
 <h1 class="h4">Skill Tree learning paths</h1>
 <p class="text-muted">Configure approved topics. Prerequisites are suggestions. Completion requires peer-reviewed activities covering every outcome listed below.</p>
 @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
-<form method="GET" class="d-flex flex-wrap align-items-end gap-2 mb-4"><div><label for="pathTopic" class="form-label">Topic</label><select id="pathTopic" name="topic" class="form-select">@foreach($topics as $option)<option value="{{ $option->id }}" @selected($topic?->id === $option->id)>{{ $option->parent?->name }} → {{ $option->name }}</option>@endforeach</select></div><button class="btn btn-outline-primary" type="submit">Edit topic</button></form>
+<form method="GET" class="d-flex flex-wrap align-items-end gap-2 mb-4"><div><label for="pathTopic" class="form-label">Topic</label><select id="pathTopic" name="topic" class="form-select" onchange="this.form.requestSubmit()">@foreach($topics as $option)<option value="{{ $option->id }}" @selected($topic?->id === $option->id)>{{ $option->parent?->name }} → {{ $option->name }}</option>@endforeach</select></div><noscript><button class="btn btn-outline-primary" type="submit">Load topic</button></noscript></form>
 @if($topic)
 <form method="POST" action="{{ route('admin.learning-paths.update', $topic) }}" class="card card-body gap-3">@csrf @method('PUT')<input type="hidden" name="revision" value="{{ $plan?->revision ?? 0 }}">
   <h2 class="h5">{{ $topic->name }}</h2>

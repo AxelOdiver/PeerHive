@@ -68,7 +68,13 @@
           'href' => route('admin.qualifications'), 
           'icon' => 'bi bi-shield-lock',
           'label' => 'Approvals',
-          'active' => request()->routeIs('admin.qualifications', 'admin.catalog*', 'admin.learning-paths*'),
+          'active' => request()->routeIs('admin.qualifications', 'admin.catalog*'),
+      ],
+      [
+          'href' => route('admin.learning-paths'),
+          'icon' => 'bi bi-diagram-3',
+          'label' => 'Skill Tree',
+          'active' => request()->routeIs('admin.learning-paths*'),
       ],
       [
           'href' => route('admin.reports.index'),

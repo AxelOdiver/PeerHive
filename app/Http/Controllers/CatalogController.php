@@ -39,11 +39,13 @@ class CatalogController extends Controller
         return back()->with('catalog_status', 'Suggestion submitted for admin review. It becomes available to everyone after approval.');
     }
 
-    public function index()
+    public function index(Request $request)
     {
         abort_unless(auth()->user()->role === 'admin', 403);
-        $entries = CatalogEntry::with(['parent', 'submitter'])->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")->orderBy('kind')->orderBy('name')->get();
-        return view('admin.catalog', compact('entries'));
+        $kind = $request->query('kind', 'program');
+        abort_unless(in_array($kind, ['program', 'subject', 'topic'], true), 404);
+        $entries = CatalogEntry::with(['parent', 'submitter'])->where('kind', $kind)->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")->orderBy('name')->get();
+        return view('admin.catalog', compact('entries', 'kind'));
     }
 
     public function review(Request $request, CatalogEntry $entry)
