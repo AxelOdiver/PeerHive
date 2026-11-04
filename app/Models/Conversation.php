@@ -16,6 +16,12 @@ class Conversation extends Model
         return ($this->session_context['state'] ?? null) === 'completed';
     }
 
+    public function blockedBy(int $userId): bool
+    {
+        return !$this->is_group && UserBlock::where('blocker_id', $userId)
+            ->whereIn('blocked_id', $this->users()->where('users.id', '!=', $userId)->pluck('users.id'))->exists();
+    }
+
     public function users()
     {
         return $this->belongsToMany(User::class)->withPivot('last_read_at', 'is_muted', 'muted_until', 'last_read_message_id', 'cleared_through_message_id', 'is_hidden')->withTimestamps();
@@ -35,7 +41,7 @@ class Conversation extends Model
     public function visibleTo($userId): bool
     {
         $pivot = $this->users->firstWhere('id', $userId)?->pivot;
-        return $pivot && (!$pivot->is_hidden || ($this->latestMessage?->id ?? 0) > $pivot->cleared_through_message_id);
+        return $pivot && (!$pivot->is_hidden || $this->messages()->visibleTo($userId)->where('id', '>', $pivot->cleared_through_message_id)->exists());
     }
 
     public function messages()

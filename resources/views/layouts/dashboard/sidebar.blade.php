@@ -36,7 +36,7 @@
                   $pivot = $conv->users->firstWhere('id', auth()->id())->pivot;
                   if ($conv->isMutedFor(auth()->id()) || !$conv->visibleTo(auth()->id())) return false;
 
-                  return $conv->messages()
+                  return $conv->messages()->visibleTo(auth()->id())
                       ->where('sender_id', '!=', auth()->id())
                       ->where('id', '>', max($pivot->last_read_message_id, $pivot->cleared_through_message_id))
                       ->exists();

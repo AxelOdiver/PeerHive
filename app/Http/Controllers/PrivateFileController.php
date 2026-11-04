@@ -10,6 +10,7 @@ class PrivateFileController extends Controller
     public function message(Message $message)
     {
         abort_unless($message->conversation->users()->where('users.id', auth()->id())->exists(), 403);
+        abort_unless(Message::visibleTo(auth()->id())->whereKey($message->id)->exists(), 404);
         abort_if($message->is_unsent || !$message->attachment_path, 404);
         if (request()->boolean('preview')) {
             $disk = Storage::disk('local')->exists($message->attachment_path) ? 'local' : 'public';

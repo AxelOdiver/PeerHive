@@ -37,6 +37,7 @@ class ReportController extends Controller
 
         if ($reportable instanceof Message) {
             abort_unless($reportable->conversation->users()->whereKey(auth()->id())->exists(), 403);
+            abort_unless(Message::visibleTo(auth()->id())->whereKey($reportable->id)->exists(), 404);
             abort_if($reportable->is_unsent, 422, 'Unsent messages cannot be reported.');
         }
         if ($reportable instanceof Post || $reportable instanceof Comment) {
@@ -53,7 +54,7 @@ class ReportController extends Controller
 
         if ($exists) {
             if (!empty($validated['block_user'])) {
-                UserBlock::firstOrCreate(['blocker_id' => auth()->id(), 'blocked_id' => $targetUserId]);
+                UserBlock::block(auth()->id(), $targetUserId);
                 return response()->json(['message' => 'You already reported this item; the account is now blocked from direct messages.']);
             }
             return response()->json(['message' => 'You have already reported this item.'], 422);
@@ -74,7 +75,7 @@ class ReportController extends Controller
             $report->save();
 
             if (!empty($validated['block_user'])) {
-                UserBlock::firstOrCreate(['blocker_id' => auth()->id(), 'blocked_id' => $targetUserId]);
+                UserBlock::block(auth()->id(), $targetUserId);
             }
         });
 

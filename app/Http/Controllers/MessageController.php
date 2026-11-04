@@ -41,11 +41,8 @@ class MessageController extends Controller
                     $query->whereRaw('1 = 0');
                 }
             })->whereNotExists(function ($blocked) {
-                $blocked->selectRaw('1')->from('user_blocks')->where(function ($pair) {
-                    $pair->whereColumn('user_blocks.blocker_id', 'users.id')->where('user_blocks.blocked_id', auth()->id());
-                })->orWhere(function ($pair) {
-                    $pair->where('user_blocks.blocker_id', auth()->id())->whereColumn('user_blocks.blocked_id', 'users.id');
-                });
+                $blocked->selectRaw('1')->from('user_blocks')->where('user_blocks.blocker_id', auth()->id())
+                    ->whereColumn('user_blocks.blocked_id', 'users.id');
             })->orderBy('username')->orderBy('id')->limit(10)->get(['id', 'username', 'first_name', 'last_name']);
 
         return response()->json(['users' => $users->map(fn ($user) => [
@@ -91,7 +88,7 @@ class MessageController extends Controller
                     'is_group' => $conv->is_group,
                     'other_user_id' => !$conv->is_group ? $firstOther?->id : null,
                     'blocked_by_me' => !$conv->is_group && UserBlock::where('blocker_id', $userId)->where('blocked_id', $firstOther?->id)->exists(),
-                    'blocked_between_us' => !$conv->is_group && $this->usersHaveBlockedEachOther($userId, $firstOther?->id),
+                    'blocked_between_us' => !$conv->is_group && $this->userHasBlocked($userId, $firstOther?->id),
                     'name' => $name ?: 'Conversation',
                     'initials' => $initials,
                     'profile_picture' => (!$conv->is_group) ? $firstOther?->profile_picture : null,
@@ -155,7 +152,7 @@ class MessageController extends Controller
             return response()->json(['message' => 'You cannot message yourself.'], 422);
         }
 
-        abort_if($this->usersHaveBlockedEachOther($authId, $otherId), 403, 'This account is not available for direct messaging.');
+        abort_if($this->userHasBlocked($authId, $otherId), 403, 'This account is not available for direct messaging.');
 
         $existing = Conversation::where('is_group', false)->whereNull('session_context')
             ->whereHas('users', fn ($q) => $q->where('users.id', $authId))
@@ -218,6 +215,8 @@ class MessageController extends Controller
         return response()->json([
             'is_group' => $conversation->is_group,
             'session_finished' => $conversation->isSessionFinished(),
+            'blocked_by_me' => $conversation->blockedBy($authId),
+            'other_user_id' => !$conversation->is_group ? $conversation->users->firstWhere('id', '!=', $authId)?->id : null,
             'has_more' => $hasMore,
             'has_newer' => $hasNewer,
             'total_results' => $totalResults,
@@ -257,7 +256,7 @@ class MessageController extends Controller
         abort_unless($conversation->users->contains('id', $authId), 403);
         if (!$conversation->is_group) {
             $otherId = $conversation->users->firstWhere('id', '!=', $authId)?->id;
-            abort_if($otherId && $this->usersHaveBlockedEachOther($authId, $otherId), 403, 'Direct messaging is unavailable for this conversation.');
+            abort_if($otherId && $this->userHasBlocked($authId, $otherId), 403, 'Direct messaging is unavailable for this conversation.');
         }
 
         $validated = $request->validate([
@@ -266,6 +265,8 @@ class MessageController extends Controller
             'attachment' => ['nullable', 'file', 'max:10240', 'mimes:jpg,jpeg,png,webp,pdf,txt,docx,pptx,xlsx', 'extensions:jpg,jpeg,png,webp,pdf,txt,docx,pptx,xlsx'],
             'reply_to_id' => ['nullable', 'integer', Rule::exists('messages', 'id')->where('conversation_id', $conversation->id)->where('is_unsent', 0)->where(fn ($q) => $q->where('id', '>', $conversation->clearedThrough($authId)))],
         ]);
+
+        if (!empty($validated['reply_to_id'])) abort_unless(Message::visibleTo($authId)->whereKey($validated['reply_to_id'])->exists(), 422, 'This message is not available to reply to.');
 
         if (trim((string) ($validated['body'] ?? '')) === '' && !$request->hasFile('attachment')) {
             return response()->json(['message' => 'Message cannot be empty.'], 422);
@@ -277,7 +278,12 @@ class MessageController extends Controller
             $file ? hash_file('sha256', $file->getRealPath()) : null, $file?->getClientOriginalName(),
         ]));
         $message = DB::transaction(function () use ($conversation, $authId, $validated, $file, $fingerprint) {
-            User::whereKey($authId)->lockForUpdate()->firstOrFail();
+            if (!$conversation->is_group) {
+                UserBlock::lockPair($authId, $conversation->users->firstWhere('id', '!=', $authId)?->id ?? $authId);
+            } else {
+                User::whereKey($authId)->lockForUpdate()->firstOrFail();
+            }
+            abort_if($conversation->blockedBy($authId), 403, 'Unblock this account before sending messages.');
             $lockedConversation = Conversation::whereKey($conversation->id)->lockForUpdate()->firstOrFail();
             abort_if($lockedConversation->isSessionFinished(), 409, 'This session has finished. Its conversation is read-only.');
             $key = $validated['client_message_id'] ?? null;
@@ -334,6 +340,7 @@ class MessageController extends Controller
         abort_unless($message->sender_id === auth()->id(), 403);
         abort_unless($message->conversation->users()->where('users.id', auth()->id())->exists(), 403);
         abort_if($message->is_unsent, 422, 'Cannot edit an unsent message.');
+        abort_if($message->conversation->blockedBy(auth()->id()), 403, 'Unblock this account before editing messages.');
 
         $validated = $request->validate([
             'body' => ['required', 'string', 'max:2000'],
@@ -510,6 +517,8 @@ class MessageController extends Controller
     {
         abort_if($message->conversation->isSessionFinished(), 409, 'This session has finished. Its conversation is read-only.');
         abort_unless($message->conversation->users()->where('users.id', auth()->id())->exists(), 403);
+        abort_unless(Message::visibleTo(auth()->id())->whereKey($message->id)->exists(), 404);
+        abort_if($message->conversation->blockedBy(auth()->id()), 403, 'Unblock this account before reacting.');
         $validated = $request->validate([
             'emoji' => ['required', Rule::in(['👍', '❤️', '😂', '🎉', '😮', '😢'])],
         ]);
@@ -537,7 +546,7 @@ class MessageController extends Controller
             'other_user_id' => !$conversation->is_group
                 ? $conversation->users->firstWhere('id', '!=', auth()->id())?->id : null,
             'blocked_by_me' => !$conversation->is_group && UserBlock::where('blocker_id', auth()->id())->where('blocked_id', $conversation->users->firstWhere('id', '!=', auth()->id())?->id)->exists(),
-            'blocked_between_us' => !$conversation->is_group && $this->usersHaveBlockedEachOther(auth()->id(), $conversation->users->firstWhere('id', '!=', auth()->id())?->id),
+            'blocked_between_us' => !$conversation->is_group && $this->userHasBlocked(auth()->id(), $conversation->users->firstWhere('id', '!=', auth()->id())?->id),
             'is_muted' => $conversation->isMutedFor(auth()->id()),
             'muted_until' => $pivot->muted_until ? \Illuminate\Support\Carbon::parse($pivot->muted_until)->toIso8601String() : null,
             'members' => $conversation->users->map(fn ($user) => [
@@ -549,12 +558,10 @@ class MessageController extends Controller
         ]);
     }
 
-    private function usersHaveBlockedEachOther(int $userId, ?int $otherUserId): bool
+    private function userHasBlocked(int $userId, ?int $otherUserId): bool
     {
         if (!$otherUserId) return false;
-        return UserBlock::where(fn ($q) => $q->where('blocker_id', $userId)->where('blocked_id', $otherUserId))
-            ->orWhere(fn ($q) => $q->where('blocker_id', $otherUserId)->where('blocked_id', $userId))
-            ->exists();
+        return UserBlock::where('blocker_id', $userId)->where('blocked_id', $otherUserId)->exists();
     }
 
     public function mute(Request $request, Conversation $conversation)

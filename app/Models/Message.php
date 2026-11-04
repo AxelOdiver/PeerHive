@@ -11,6 +11,19 @@ class Message extends Model
     protected $casts = ['session_event' => 'array'];
     protected $fillable = ['client_message_id', 'request_hash', 'conversation_id', 'sender_id', 'reply_to_id', 'body', 'attachment_path', 'attachment_name', 'attachment_type', 'edited_at', 'is_unsent'];
 
+    protected static function booted(): void
+    {
+        static::created(function (self $message) {
+            $conversation = $message->conversation;
+            if ($conversation->is_group) return;
+            $recipients = UserBlock::where('blocked_id', $message->sender_id)
+                ->whereIn('blocker_id', $conversation->users()->pluck('users.id'))->pluck('blocker_id');
+            foreach ($recipients as $recipient) {
+                \Illuminate\Support\Facades\DB::table('message_deletions')->insertOrIgnore(['message_id' => $message->id, 'user_id' => $recipient]);
+            }
+        });
+    }
+
     public function deletedForUsers()
     {
         return $this->belongsToMany(User::class, 'message_deletions');

@@ -46,9 +46,21 @@ $(document).ready(function () {
   function setSessionFinished(finished) {
     sessionFinished = Boolean(finished);
     $('#sessionFinishedNotice').toggleClass('d-none', !sessionFinished);
-    $messageForm.toggleClass('d-none', sessionFinished);
-    $messageForm.find('input, button').prop('disabled', sessionFinished);
+    updateComposerState();
     if (sessionFinished) {
+      stopTyping();
+      $('#replyPreview').hide();
+      $attachmentPreview.hide();
+    }
+  }
+  function updateComposerState() {
+    const blocked = Boolean(activeConversation?.blocked_by_me);
+    const readOnly = sessionFinished || blocked;
+    $('#blockedConversationNotice').toggleClass('d-none', !blocked);
+    $('#unblockConversationBtn').attr('data-user-id', activeConversation?.other_user_id || '');
+    $messageForm.toggleClass('d-none', readOnly);
+    $messageForm.find('input, button').prop('disabled', readOnly);
+    if (readOnly) {
       stopTyping();
       $('#replyPreview').hide();
       $attachmentPreview.hide();
@@ -144,7 +156,7 @@ $(document).ready(function () {
   }
 
   function toolbarButtonsHtml(kebabHtml) {
-    if (sessionFinished) return kebabHtml;
+    if (sessionFinished || activeConversation?.blocked_by_me) return kebabHtml;
     return renderTemplate('message-template-toolbar-buttons-html-1', [['👍', '❤️', '😂', '🎉', '😮', '😢'].map(emoji => renderTemplate('message-template-toolbar-buttons-html-2', [emoji, emoji, emoji])).join(''), kebabHtml]);
   }
 
@@ -159,6 +171,7 @@ $(document).ready(function () {
       data: aroundId ? { around_id: aroundId } : {},
       success: function (response) {
         if (version !== viewVersion || String(conversationId) !== String(currentConversationId)) return;
+        if (activeConversation) { activeConversation.blocked_by_me = Boolean(response.blocked_by_me); activeConversation.other_user_id = response.other_user_id; }
         setSessionFinished(response.session_finished);
         if (!aroundId && $chatMessages.find('.edit-message-input, .dropdown-menu.show').length) return;
         currentIsGroup = response.is_group;
@@ -346,12 +359,11 @@ $(document).ready(function () {
 
   function renderChatHeader(conv) {
     const accountActions = conv.other_user_id
-      ? `<li><button type="button" class="dropdown-item account-report-btn" data-user-id="${conv.other_user_id}"><i class="bi bi-flag me-2"></i>Report account</button></li><li><button type="button" class="dropdown-item ${conv.blocked_by_me ? '' : 'text-danger'} direct-block-btn" data-user-id="${conv.other_user_id}" data-blocked-by-me="${conv.blocked_by_me ? 1 : 0}" ${conv.blocked_between_us && !conv.blocked_by_me ? 'disabled' : ''}><i class="bi bi-slash-circle me-2"></i>${conv.blocked_by_me ? 'Unblock account' : (conv.blocked_between_us ? 'Blocked by this account' : 'Block account')}</button></li>`
+      ? `<li><button type="button" class="dropdown-item account-report-btn" data-user-id="${conv.other_user_id}"><i class="bi bi-flag me-2"></i>Report account</button></li><li><button type="button" class="dropdown-item ${conv.blocked_by_me ? '' : 'text-danger'} direct-block-btn" data-user-id="${conv.other_user_id}" data-blocked-by-me="${conv.blocked_by_me ? 1 : 0}"><i class="bi bi-slash-circle me-2"></i>${conv.blocked_by_me ? 'Unblock account' : 'Block account'}</button></li>`
       : '';
     const buttons = renderTemplate('message-template-buttons-1', [accountActions]);
     $chatHeader.html(renderTemplate('message-template-render-chat-header-1', [escapeHtml(conv.name), buttons]));
-    $messageInput.prop('disabled', Boolean(conv.blocked_between_us));
-    $('#attachmentInput, #messageForm button[type="submit"]').prop('disabled', Boolean(conv.blocked_between_us));
+    updateComposerState();
   }
 
   function openConversation(conv) {
@@ -469,7 +481,7 @@ $(document).ready(function () {
   });
 
   $('[data-attachment-kind]').on('click', function () {
-    if (sessionFinished || activeConversation?.blocked_between_us) return;
+    if (sessionFinished || activeConversation?.blocked_by_me) return;
     $attachmentInput.attr('accept', this.dataset.attachmentKind === 'photo' ? '.jpg,.jpeg,.png,.webp' : '.pdf,.txt,.docx,.pptx,.xlsx');
     window.bootstrap.Dropdown.getInstance(document.getElementById('chooseAttachmentBtn'))?.hide();
     $attachmentInput.trigger('click');
@@ -979,8 +991,8 @@ $(document).ready(function () {
         if (response.other_user_id) {
           const $actions = $('<div class="d-grid gap-2 mt-3"></div>');
           $actions.append($('<button type="button" class="btn btn-outline-warning account-report-btn"></button>').attr('data-user-id', response.other_user_id).text('Report account'));
-          const blockLabel = response.blocked_by_me ? 'Unblock account' : (response.blocked_between_us ? 'This account has blocked you' : 'Block account');
-          $actions.append($('<button type="button" class="btn btn-outline-danger direct-block-btn"></button>').attr('data-user-id', response.other_user_id).attr('data-blocked-by-me', response.blocked_by_me ? '1' : '0').prop('disabled', response.blocked_between_us && !response.blocked_by_me).text(blockLabel));
+          const blockLabel = response.blocked_by_me ? 'Unblock account' : 'Block account';
+          $actions.append($('<button type="button" class="btn btn-outline-danger direct-block-btn"></button>').attr('data-user-id', response.other_user_id).attr('data-blocked-by-me', response.blocked_by_me ? '1' : '0').text(blockLabel));
           $('#chatInfoContent').append($actions);
         }
       }, error: xhr => { if (version === infoVersion) $('#chatInfoContent').text('Could not load conversation information. Please reopen the panel to retry.'); requestError(xhr); }
@@ -1035,10 +1047,10 @@ $(document).ready(function () {
   });
   $(document).on('click', '.direct-block-btn', async function () {
     const $button = $(this);
-    const userId = $button.data('user-id');
+    const userId = Number($button.attr('data-user-id'));
     const blockedByMe = String($button.attr('data-blocked-by-me')) === '1';
     const verb = blockedByMe ? 'unblock' : 'block';
-    const promptText = `${blockedByMe ? 'Allow' : 'Prevent'} this account from direct messaging you? Shared group chats are not affected.`;
+    const promptText = blockedByMe ? 'Unblock this account? New direct messages will be visible. Messages sent while blocked will stay hidden.' : 'Block this account? You cannot send to them, and their new direct messages will stay hidden from you. Shared group chats are not affected.';
     const confirmed = window.confirmAction
       ? await window.confirmAction(promptText, `${blockedByMe ? 'Unblock' : 'Block'} account`)
       : {isConfirmed: window.confirm(promptText)};
@@ -1148,6 +1160,11 @@ $(document).ready(function () {
       url: `/messages/conversations/${id}/state`,
       success: response => {
         if (String(id) !== String(currentConversationId) || document.hidden) return;
+        if (activeConversation && activeConversation.blocked_by_me !== Boolean(response.blocked_by_me)) {
+          activeConversation.blocked_by_me = Boolean(response.blocked_by_me);
+          renderChatHeader(activeConversation);
+          if ($('#chatInfoPanel').is(':visible')) showConversationInfo();
+        }
         activityMembers = response.members; activityReceivedAt = Date.now(); renderActivity();
       },
       error: () => { if (String(id) === String(currentConversationId)) $('#typingIndicator').hide(); },

@@ -38,6 +38,7 @@
       <div id="typingIndicator" class="px-3 py-1 text-muted small" role="status" aria-live="polite" style="display:none;"><span id="typingNames"></span><span class="typing-dots" aria-hidden="true"><span>●</span><span>●</span><span>●</span></span></div>
       <div class="p-2 border-top" id="chatFooter" style="display:none;">
         <div id="sessionFinishedNotice" class="d-none text-center text-muted py-3" role="status">— Session finished —<div class="small mt-1">This conversation is read-only. You can still review messages, rate your teacher, and open Activities.</div></div>
+        <div id="blockedConversationNotice" class="d-none text-center py-3" role="status"><strong>— You blocked this account —</strong><div class="small text-muted mt-1">Unblock to send and receive new messages. Messages sent while blocked will stay hidden.</div><button type="button" id="unblockConversationBtn" class="btn btn-outline-primary btn-sm mt-2 direct-block-btn" data-blocked-by-me="1">Unblock</button></div>
 
         <div id="replyPreview" class="px-3 py-2 small border-start border-3 border-primary mx-2 mb-2 rounded shadow-sm" style="display:none; position:relative;">
           <div class="fw-bold text-primary" id="replyPreviewName" style="font-size: 0.75rem;"></div>

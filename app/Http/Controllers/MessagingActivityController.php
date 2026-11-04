@@ -24,6 +24,7 @@ class MessagingActivityController extends Controller
     public function typing(Request $request, Conversation $conversation)
     {
         abort_unless($conversation->users()->where('users.id', auth()->id())->exists(), 403);
+        abort_if($conversation->blockedBy(auth()->id()), 403, 'Unblock this account before messaging.');
         $data = $request->validate(['is_typing' => ['required', 'boolean']]);
         $key = 'typing:'.$conversation->id.':'.auth()->id();
         if ($data['is_typing']) {
@@ -39,6 +40,7 @@ class MessagingActivityController extends Controller
         abort_unless($conversation->users()->where('users.id', auth()->id())->exists(), 403);
         $data = $request->validate(['message_id' => ['required', 'integer', Rule::exists('messages', 'id')->where('conversation_id', $conversation->id)]]);
         $message = $conversation->messages()->findOrFail($data['message_id']);
+        abort_unless(\App\Models\Message::visibleTo(auth()->id())->whereKey($message->id)->exists(), 404);
         // A delayed request from another tab must never move the marker backwards.
         DB::table('conversation_user')->where('conversation_id', $conversation->id)->where('user_id', auth()->id())
             ->where('last_read_message_id', '<', $message->id)
@@ -63,6 +65,6 @@ class MessagingActivityController extends Controller
                 'is_typing' => (int) ($typing['typing:'.$conversation->id.':'.$user->id] ?? 0) > now()->subSeconds(8)->timestamp,
             ]);
         });
-        return response()->json(['members' => $members]);
+        return response()->json(['members' => $members, 'blocked_by_me' => $conversation->blockedBy(auth()->id())]);
     }
 }
