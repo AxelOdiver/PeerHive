@@ -17,8 +17,20 @@ class MessageController extends Controller
 {
     public function index()
     {
-        $users = User::where('id', '!=', auth()->id())->orderBy('first_name')->get();
-        return view('messages', compact('users'));
+        $id = auth()->id();
+        $recentIds = DB::table('conversation_user as me')
+            ->join('conversations as c', 'c.id', '=', 'me.conversation_id')
+            ->join('conversation_user as peer', 'peer.conversation_id', '=', 'c.id')
+            ->where('me.user_id', $id)->where('peer.user_id', '!=', $id)
+            ->where('c.is_group', false)->whereNull('c.session_context')
+            ->orderByDesc('c.updated_at')->limit(24)->pluck('peer.user_id')->unique()->take(5);
+        $recentContacts = $recentIds->map(fn ($peerId) => User::find($peerId))->filter()->values();
+        $favoriteContacts = User::whereIn('id', DB::table('favorites')->where('user_id', $id)->pluck('item_id'))
+            ->where('id', '!=', $id)->limit(5)->get();
+        $groupInvitations = DB::table('group_invitations as i')->join('conversations as c', 'c.id', '=', 'i.conversation_id')
+            ->where('i.target_user_id', $id)->where('i.status', 'invited')
+            ->orderByDesc('i.updated_at')->get(['i.id', 'c.name', 'c.id as conversation_id']);
+        return view('messages', compact('recentContacts', 'favoriteContacts', 'groupInvitations'));
     }
 
     public function searchMembers(Request $request)
@@ -43,10 +55,10 @@ class MessageController extends Controller
             })->whereNotExists(function ($blocked) {
                 $blocked->selectRaw('1')->from('user_blocks')->where('user_blocks.blocker_id', auth()->id())
                     ->whereColumn('user_blocks.blocked_id', 'users.id');
-            })->orderBy('username')->orderBy('id')->limit(10)->get(['id', 'username', 'first_name', 'last_name']);
+            })->orderBy('username')->orderBy('id')->limit(10)->get(['id', 'username', 'first_name', 'last_name', 'profile_picture']);
 
         return response()->json(['users' => $users->map(fn ($user) => [
-            'id' => $user->id, 'name' => trim($user->first_name.' '.$user->last_name), 'username' => $user->username,
+            'id' => $user->id, 'name' => trim($user->first_name.' '.$user->last_name), 'username' => $user->username, 'photo_url' => $user->profile_picture_url,
         ])]);
     }
 
@@ -86,6 +98,9 @@ class MessageController extends Controller
                 return [
                     'id' => $conv->id,
                     'is_group' => $conv->is_group,
+                     'group_photo_url' => $conv->is_group && $conv->group_photo_path ? route('messages.group.photo', $conv).'?v='.md5($conv->group_photo_path) : null,
+                    'is_session' => $conv->session_context !== null,
+                    'session_state' => $conv->session_context['state'] ?? null,
                     'other_user_id' => !$conv->is_group ? $firstOther?->id : null,
                     'blocked_by_me' => !$conv->is_group && UserBlock::where('blocker_id', $userId)->where('blocked_id', $firstOther?->id)->exists(),
                     'blocked_between_us' => !$conv->is_group && $this->userHasBlocked($userId, $firstOther?->id),
@@ -120,30 +135,27 @@ class MessageController extends Controller
 
         if ($isGroup) {
             $memberIds = collect($validated['member_ids'] ?? [])->push($authId)->unique()->values();
-
             if ($memberIds->count() < 3) {
-                return response()->json(['message' => 'Select at least 2 other members for a group.'], 422);
+                return response()->json(['message' => 'Select at least 2 other students. They will receive invitations.'], 422);
             }
-
-            $groupName = $validated['name'] ?? null;
-
-            if (empty($groupName)) {
-                $memberNames = User::whereIn('id', $memberIds)
-                    ->where('id', '!=', $authId)
-                    ->pluck('first_name');
-
-                $groupName = $memberNames->implode(', ');
+            $groupName = trim((string) ($validated['name'] ?? ''));
+            if ($groupName === '' || mb_strlen($groupName) > 80) {
+                return response()->json(['message' => 'Enter a group name of at most 80 characters.'], 422);
             }
-
-            $conversation = Conversation::create([
-                'is_group' => true,
-                'name' => $groupName,
-                'created_by' => $authId,
-            ]);
-
-            $conversation->users()->attach($memberIds, ['last_read_at' => now()]);
-
-            return response()->json(['conversation_id' => $conversation->id]);
+            $conversation = DB::transaction(function () use ($authId, $memberIds, $groupName) {
+                $chat = Conversation::create(['is_group' => true, 'name' => $groupName, 'created_by' => $authId]);
+                $chat->users()->attach($authId, ['last_read_at' => now(), 'group_role' => 'owner']);
+                foreach ($memberIds->reject(fn ($id) => (int) $id === $authId) as $target) {
+                    DB::table('group_invitations')->insert([
+                        'conversation_id' => $chat->id, 'target_user_id' => $target, 'requested_by' => $authId,
+                        'approved_by' => $authId, 'status' => 'invited', 'created_at' => now(), 'updated_at' => now(),
+                    ]);
+                    \App\Support\BellNotifications::record($target, 'group:'.$chat->id.':invite:'.$target,
+                        'message', 'Group invitation', 'You were invited to join '.$chat->name.'.', route('messages', ['invitation' => $chat->id]));
+                }
+                return $chat;
+            });
+            return response()->json(['conversation_id' => $conversation->id, 'message' => 'Group created. Invitations were sent; members join only after accepting.']);
         }
 
         $otherId = (int) $validated['user_id'];
@@ -387,29 +399,24 @@ class MessageController extends Controller
 
     public function addMember(Request $request, Conversation $conversation)
     {
-        abort_unless($conversation->is_group, 422);
-        abort_unless($conversation->users->contains('id', auth()->id()), 403);
-
-        $validated = $request->validate([
-            'user_id' => ['required', 'integer', 'exists:users,id'],
-        ]);
-
-        if ($conversation->users->contains('id', $validated['user_id'])) {
-            return response()->json(['message' => 'User is already in this group.'], 422);
-        }
-
-        $conversation->users()->attach($validated['user_id'], ['last_read_at' => null]);
-
-        return response()->json(['message' => 'Member added.']);
+        return app(GroupChatController::class)->invite($request, $conversation);
     }
 
     public function removeMember(Conversation $conversation, User $user)
     {
-        abort_unless($conversation->is_group, 422);
-        abort_unless($conversation->users->contains('id', auth()->id()), 403);
-
-        $conversation->users()->detach($user->id);
-
+        abort_unless($conversation->is_group && !$conversation->session_context, 404);
+        DB::transaction(function () use ($conversation, $user) {
+            DB::table('conversations')->where('id', $conversation->id)->lockForUpdate()->first();
+            $actorRole = DB::table('conversation_user')->where('conversation_id', $conversation->id)
+                ->where('user_id', auth()->id())->value('group_role');
+            $targetRole = DB::table('conversation_user')->where('conversation_id', $conversation->id)
+                ->where('user_id', $user->id)->value('group_role');
+            abort_unless(in_array($actorRole, ['owner', 'admin'], true), 403);
+            abort_unless($targetRole, 404);
+            abort_if($targetRole === 'owner' || ($actorRole !== 'owner' && $targetRole !== 'member'), 403,
+                'Only the owner can manage admins. Transfer ownership before removing the owner.');
+            $conversation->users()->detach($user->id);
+        });
         return response()->json(['message' => 'Member removed.']);
     }
 
@@ -543,10 +550,18 @@ class MessageController extends Controller
         $pivot = $conversation->users->firstWhere('id', auth()->id())->pivot;
         return response()->json([
             'is_group' => $conversation->is_group,
+            'is_session' => (bool) $conversation->session_context,
+            'group_role' => $conversation->is_group ? DB::table('conversation_user')->where('conversation_id', $conversation->id)->where('user_id', auth()->id())->value('group_role') : null,
+            'group_photo_url' => $conversation->is_group && $conversation->group_photo_path ? route('messages.group.photo', $conversation).'?v='.md5($conversation->group_photo_path) : null,
+            'group_name' => $conversation->name,
             'other_user_id' => !$conversation->is_group
                 ? $conversation->users->firstWhere('id', '!=', auth()->id())?->id : null,
             'blocked_by_me' => !$conversation->is_group && UserBlock::where('blocker_id', auth()->id())->where('blocked_id', $conversation->users->firstWhere('id', '!=', auth()->id())?->id)->exists(),
             'blocked_between_us' => !$conversation->is_group && $this->userHasBlocked(auth()->id(), $conversation->users->firstWhere('id', '!=', auth()->id())?->id),
+            'other_profile_url' => !$conversation->is_group ? ($conversation->users->firstWhere('id', '!=', auth()->id()) ? route('users.profile', $conversation->users->firstWhere('id', '!=', auth()->id())) : null) : null,
+            'other_profile_photo' => !$conversation->is_group ? $conversation->users->firstWhere('id', '!=', auth()->id())?->profile_picture_url : null,
+            'other_username' => !$conversation->is_group ? $conversation->users->firstWhere('id', '!=', auth()->id())?->username : null,
+            'is_favorite' => !$conversation->is_group && DB::table('favorites')->where('user_id', auth()->id())->where('item_id', $conversation->users->firstWhere('id', '!=', auth()->id())?->id)->exists(),
             'is_muted' => $conversation->isMutedFor(auth()->id()),
             'muted_until' => $pivot->muted_until ? \Illuminate\Support\Carbon::parse($pivot->muted_until)->toIso8601String() : null,
             'members' => $conversation->users->map(fn ($user) => [
@@ -554,7 +569,13 @@ class MessageController extends Controller
                 'name' => trim($user->first_name.' '.$user->last_name),
                 'profile_picture' => $user->profile_picture ? Storage::url($user->profile_picture) : null,
                 'profile_url' => route('users.profile', $user),
+                'role' => $conversation->is_group ? DB::table('conversation_user')->where('conversation_id', $conversation->id)->where('user_id', $user->id)->value('group_role') : null,
             ]),
+            'pending_invitations' => $conversation->is_group ? DB::table('group_invitations as gi')->join('users as u', 'u.id', '=', 'gi.target_user_id')
+                ->where('gi.conversation_id', $conversation->id)->whereIn('gi.status', ['invited', 'approval_requested'])
+                ->when(!in_array(DB::table('conversation_user')->where('conversation_id', $conversation->id)->where('user_id', auth()->id())->value('group_role'), ['owner', 'admin'], true),
+                    fn ($q) => $q->where('gi.requested_by', auth()->id()))
+                ->get(['gi.id', 'gi.status', 'gi.requested_by', 'u.id as user_id', 'u.first_name', 'u.last_name']) : [],
         ]);
     }
 
@@ -582,7 +603,8 @@ class MessageController extends Controller
     public function leave(Conversation $conversation)
     {
         abort_unless($conversation->users()->where('users.id', auth()->id())->exists(), 403);
-        abort_unless($conversation->is_group, 422);
+        abort_unless($conversation->is_group && !$conversation->session_context, 422);
+        abort_if(DB::table('conversation_user')->where('conversation_id', $conversation->id)->where('user_id', auth()->id())->value('group_role') === 'owner', 409, 'Transfer ownership before leaving the group.');
         $conversation->users()->detach(auth()->id());
         return response()->json(['message' => 'You left the group.']);
     }

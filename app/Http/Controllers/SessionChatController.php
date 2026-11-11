@@ -38,7 +38,7 @@ class SessionChatController extends Controller
     }
 
     public function update(Request $request, Conversation $conversation) {
-        $request->validate(['action' => 'required|in:propose,accept,changes,finish,cancel,problem', 'revision' => 'required|integer|min:0']);
+        $request->validate(['action' => 'required|in:propose,counter,withdraw,decline,accept,changes,finish,cancel,problem', 'revision' => 'required|integer|min:0']);
         DB::transaction(function () use ($request, $conversation) {
             $chat = Conversation::whereKey($conversation->id)->lockForUpdate()->firstOrFail();
             abort_unless($chat->session_context && $chat->users()->where('users.id', auth()->id())->exists(), 403);
@@ -46,16 +46,28 @@ class SessionChatController extends Controller
             abort_unless((int)$request->revision === $c['revision'], 409, 'This session changed. Refresh its details and try again.');
             $action = $request->action;
             $session = $chat->studySession;
-            if ($action === 'propose') {
+            if (in_array($action, ['propose', 'counter'], true)) {
                 abort_unless(!$session && in_array($c['state'], ['scheduling', 'proposed']), 409);
-                $data = $request->validate(['starts_at' => 'required|date_format:Y-m-d\TH:i', 'timezone' => 'required|timezone', 'duration' => 'required|integer|between:15,240', 'teaching_minutes' => 'nullable|integer|min:1', 'meeting_method' => 'required|in:online,in_person', 'meeting_details' => ['required', 'string', 'max:1000', new \App\Rules\OnlineMeetingLink($request->input('meeting_method') === 'online')]]);
+                if ($action === 'counter') abort_unless($c['state'] === 'proposed' && ($c['proposer'] ?? null) !== auth()->id(), 409, 'Only the recipient can suggest a replacement schedule.');
+                if ($action === 'propose' && $c['state'] === 'proposed') abort_unless(($c['proposer'] ?? null) === auth()->id(), 403, 'Only the proposer can edit their proposal.');
+                $data = $request->validate(['starts_at' => 'required|date_format:Y-m-d\TH:i', 'timezone' => 'required|timezone', 'duration' => 'required|integer|between:15,240', 'teaching_minutes' => 'nullable|integer|min:1', 'meeting_method' => 'required|in:online,in_person', 'meeting_details' => ['required', 'string', 'max:1000', new \App\Rules\OnlineMeetingLink($request->input('meeting_method') === 'online')], 'change_note' => ['nullable', 'string', 'max:300']]);
                 $start = Carbon::createFromFormat('Y-m-d\TH:i', $data['starts_at'], $data['timezone'])->seconds(0)->utc();
                 abort_unless($start->isFuture(), 422, 'Choose a future time.');
                 if ($c['type'] === 'skill_swap') abort_unless(($data['teaching_minutes'] ?? 0) > 0 && $data['teaching_minutes'] < $data['duration'], 422, 'Divide the duration between both teaching portions.');
                 $data['duration'] = (int) $data['duration'];
                 if (isset($data['teaching_minutes'])) $data['teaching_minutes'] = (int) $data['teaching_minutes'];
                 $data['starts_at'] = $start->toIso8601String();
-                $c['proposal'] = $data; $c['proposer'] = auth()->id(); $c['state'] = 'proposed';
+                $c['proposal'] = collect($data)->except(['change_note'])->all();
+                $c['proposer'] = auth()->id(); $c['state'] = 'proposed';
+                $c['change_note'] = trim((string) ($data['change_note'] ?? '')) ?: null;
+            } elseif ($action === 'withdraw') {
+                abort_unless(!$session && $c['state'] === 'proposed' && ($c['proposer'] ?? null) === auth()->id(), 409, 'Only the proposer can withdraw their schedule.');
+                $c['state'] = 'scheduling';
+                unset($c['proposal'], $c['proposer'], $c['change_note']);
+            } elseif ($action === 'decline') {
+                abort_unless(!$session && $c['state'] === 'proposed' && ($c['proposer'] ?? null) !== auth()->id(), 409, 'Only the recipient can decline this schedule.');
+                $c['state'] = 'scheduling';
+                unset($c['proposal'], $c['proposer'], $c['change_note']);
             } elseif ($action === 'changes') {
                 abort_unless(!$session && $c['state'] === 'proposed', 409);
                 $c['state'] = 'scheduling';
@@ -111,7 +123,7 @@ class SessionChatController extends Controller
             }
             $c['revision']++; $chat->session_context = $c; $chat->save();
             \App\Support\SessionChatEvents::record($chat, auth()->id(), $action);
-            foreach ($chat->users as $user) if ($user->id !== auth()->id()) BellNotifications::record($user->id, 'chat:'.$chat->id.':'.$c['revision'], 'session', $chat->name, match($action) { 'propose' => 'A session schedule was proposed.', 'accept' => 'Your session schedule was accepted.', 'finish' => $c['state'] === 'completed' ? 'Both participants confirmed. Progress updated.' : 'Your partner confirmed completion. Please confirm your attendance.', 'problem' => 'Your partner reported an attendance problem. No progress will be awarded.', 'changes' => 'Your partner requested schedule changes.', default => 'The session was cancelled.' }, route('messages', ['conversation' => $chat->id]));
+            foreach ($chat->users as $user) if ($user->id !== auth()->id()) BellNotifications::record($user->id, 'chat:'.$chat->id.':'.$c['revision'], 'session', $chat->name, match($action) { 'propose' => 'A session schedule was proposed.', 'counter' => 'A new schedule was suggested. Review it to accept or suggest another.', 'withdraw' => 'The previous schedule proposal was withdrawn.', 'decline' => 'Your proposed schedule was declined. You can propose another.', 'accept' => 'Your session schedule was accepted.', 'finish' => $c['state'] === 'completed' ? 'Both participants confirmed. Progress updated.' : 'Your partner confirmed completion. Please confirm your attendance.', 'problem' => 'Your partner reported an attendance problem. No progress will be awarded.', 'changes' => 'Your partner requested schedule changes.', default => 'The session was cancelled.' }, route('messages', ['conversation' => $chat->id]));
         });
         return $this->show($conversation->fresh());
     }

@@ -150,6 +150,13 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::post('/messages/conversations/{conversation}/session', [\App\Http\Controllers\SessionChatController::class, 'update']);
     Route::get('/messages', [MessageController::class, 'index'])->name('messages');
     Route::get('/messages/member-search', [MessageController::class, 'searchMembers'])->middleware('throttle:60,1,messages-member-search:')->name('messages.member-search');
+    Route::post('/messages/group-invitations/{invitation}/decision', [\App\Http\Controllers\GroupChatController::class, 'decide'])->middleware('throttle:20,1,group-invite-decision:')->name('messages.groups.invitation.decision');
+    Route::get('/messages/groups/{conversation}/photo', [\App\Http\Controllers\GroupChatController::class, 'photo'])->name('messages.group.photo');
+    Route::patch('/messages/groups/{conversation}/name', [\App\Http\Controllers\GroupChatController::class, 'rename'])->middleware('throttle:10,1,group-rename:')->name('messages.groups.rename');
+    Route::post('/messages/groups/{conversation}/photo', [\App\Http\Controllers\GroupChatController::class, 'uploadPhoto'])->middleware('throttle:5,10,group-photo:')->name('messages.groups.photo.update');
+    Route::delete('/messages/groups/{conversation}/photo', [\App\Http\Controllers\GroupChatController::class, 'removePhoto'])->name('messages.groups.photo.remove');
+    Route::patch('/messages/groups/{conversation}/members/{user}/role', [\App\Http\Controllers\GroupChatController::class, 'changeRole'])->name('messages.groups.role');
+
     Route::get('/messages/unread-count', [MessageController::class, 'unreadCount'])->name('messages.unread-count');
     Route::post('/notifications/read-all', [\App\Http\Controllers\BellNotificationController::class, 'readAll']);
     Route::post('/notifications/clear-read', [\App\Http\Controllers\BellNotificationController::class, 'clearRead']);

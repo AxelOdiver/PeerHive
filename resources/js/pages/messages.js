@@ -1,4 +1,5 @@
 import { initGroupMemberSearch } from './group-member-search.js';
+import { mergeConversationMetadata } from '../support/conversation-metadata.js';
 
 import { initSessionActivities, openSessionActivities } from './session-activities.js';
 
@@ -31,6 +32,22 @@ $(document).ready(function () {
 
   // Phones show one pane at a time; desktop keeps the conversation list beside the chat.
   const messagingColumns = document.querySelector('.messaging-columns');
+  function resetConversationHeader() {
+    $chatHeader.html('<span class="text-body-secondary">Select a conversation to start chatting</span>');
+  }
+  const collapsedChatSections = new Set();
+  let selectedConversationFilter = 'all';
+  $(document).on('click', '.ph-chat-filter-chip', function () {
+    selectedConversationFilter = this.dataset.chatFilter || 'all';
+    $('.ph-chat-filter-chip').removeClass('is-active').attr('aria-pressed', 'false');
+    $(this).addClass('is-active').attr('aria-pressed', 'true');
+    renderConversations(conversationSnapshot);
+  });
+  $(document).on('click', '.ph-chat-section-toggle', function () {
+    const key = this.dataset.section;
+    if (collapsedChatSections.has(key)) collapsedChatSections.delete(key); else collapsedChatSections.add(key);
+    renderConversations(conversationSnapshot);
+  });
   $chatHeader.on('click', '#mobileChatBack', function () {
     stopTyping();
     closeDetails();
@@ -93,6 +110,8 @@ $(document).ready(function () {
   let readPending = false;
   const acknowledgedReads = new Map();
   let messageRequestPending = false;
+  let conversationSnapshot = [];
+  const conversationIndex = new Map();
 
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
   const requestError = xhr => window.toast?.('error', xhr.responseJSON?.message || 'Something went wrong. Please try again.');
@@ -115,6 +134,7 @@ $(document).ready(function () {
   }
 
   const hiddenSessionCards = new Set();
+  const expandedPastSessionCards = new Set();
   let sessionBeforeStart = false;
   function messageHtml(m, isGroup) {
     if (m.session_event) {
@@ -123,8 +143,21 @@ $(document).ready(function () {
       const hidden = hiddenSessionCards.has(String(m.id));
       const meetingDetails = m.session_event.meeting_url ? `<a href="${escapeHtml(m.session_event.meeting_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(m.session_event.meeting_url)} (opens in a new tab)</a>` : escapeHtml(p?.meeting_details || '');
       const schedule = p ? `<p class="small mb-1">${escapeHtml(new Date(p.starts_at).toLocaleString([], {timeZone:p.timezone}))} · ${escapeHtml(p.timezone)} · ${escapeHtml(p.duration)} minutes</p><p class="small text-break">${meetingDetails}</p>` : '';
-      const actions = m.session_event.current && c.state === 'proposed' && !m.is_mine ? `<button class="btn btn-primary btn-sm" data-session-action="accept" data-action-revision="${c.revision}">Accept schedule</button> <button class="btn btn-outline-secondary btn-sm" data-session-action="changes" data-action-revision="${c.revision}">Suggest changes</button>` : '';
-      return `<div class="d-flex ${m.is_mine ? 'justify-content-end' : 'justify-content-start'} mb-3" data-message-id="${m.id}"><article class="card border shadow-sm p-3" style="max-width:90%;"><div class="d-flex justify-content-between gap-3"><strong class="small">${escapeHtml(m.sender_name)} · ${escapeHtml(m.body)}</strong><button type="button" class="btn btn-link btn-sm p-0" data-hide-session-card="${m.id}">${hidden ? 'Show' : 'Hide'}</button></div><div class="session-card-details ${hidden ? 'd-none' : ''}"><p class="small mt-2">${escapeHtml(c.subject)}${c.offered_subject ? ' ↔ '+escapeHtml(c.offered_subject) : ''}</p>${schedule}${c.message ? `<p class="small text-break">${escapeHtml(c.message)}</p>` : ''}${c.finished_at ? `<p class="small">Finished: ${escapeHtml(new Date(c.finished_at).toLocaleString())} · ${escapeHtml(c.finished_minutes ?? '')} minutes</p>` : ''}${actions}</div><small class="text-muted mt-2">${escapeHtml(m.created_at)} · Session record</small></article></div>`;
+      const latest = Boolean(m.session_event.current);
+      const pending = latest && c.state === 'proposed';
+      const ownProposal = pending && m.is_mine;
+      const proposalActions = !pending ? '' : ownProposal
+        ? `<div class="ph-session-card-actions"><button type="button" class="btn btn-outline-primary btn-sm" data-session-open-proposal="edit" data-action-revision="${c.revision}"><i class="bi bi-pencil me-1" aria-hidden="true"></i>Edit proposal</button><button type="button" class="btn btn-outline-danger btn-sm" data-session-action="withdraw" data-action-revision="${c.revision}">Cancel proposal</button></div>`
+        : `<div class="ph-session-card-actions"><button type="button" class="btn btn-primary btn-sm" data-session-action="accept" data-action-revision="${c.revision}">Accept schedule</button><button type="button" class="btn btn-outline-danger btn-sm" data-session-action="decline" data-action-revision="${c.revision}">Decline</button><button type="button" class="btn btn-link btn-sm" data-session-open-proposal="counter" data-action-revision="${c.revision}">Suggest changes</button></div>`;
+      const note = c.change_note && m.session_event.action === 'counter' ? `<p class="ph-session-change-note"><i class="bi bi-chat-left-text" aria-hidden="true"></i> ${escapeHtml(c.change_note)}</p>` : '';
+      const swapTime = p && c.type === 'skill_swap' && p.teaching_minutes ? `<p class="small text-body-secondary">${escapeHtml(p.teaching_minutes)} minutes: ${escapeHtml(c.subject)}, ${escapeHtml(Number(p.duration) - Number(p.teaching_minutes))} minutes: ${escapeHtml(c.offered_subject)}</p>` : '';
+      const heading = m.session_event.action === 'counter' ? 'Suggested a new schedule' : escapeHtml(m.body);
+      const compact = hidden || (!pending && !expandedPastSessionCards.has(String(m.id)));
+      const label = latest && pending ? 'Pending proposal' : c.state === 'completed' ? 'Completed' : c.state === 'cancelled' ? 'Cancelled' : latest && c.state === 'scheduled' ? 'Scheduled' : 'Earlier update';
+      const time = p ? escapeHtml(new Date(p.starts_at).toLocaleString([], {timeZone:p.timezone, dateStyle:'medium',timeStyle:'short'})) : '';
+      const meetingLabel = p?.meeting_method === 'online' ? 'Online meeting' : 'In-person venue';
+      const details = p ? `<div class="ph-session-card-detail-grid"><span><i class="bi bi-calendar3" aria-hidden="true"></i>${time}</span><span><i class="bi bi-clock" aria-hidden="true"></i>${escapeHtml(p.duration)} minutes</span><span><i class="bi bi-globe2" aria-hidden="true"></i>${escapeHtml(p.timezone)}</span><span><i class="bi bi-${p.meeting_method === 'online' ? 'camera-video' : 'geo-alt'}" aria-hidden="true"></i>${meetingLabel}</span></div><div class="ph-session-card-meeting">${meetingDetails}</div>` : '';
+      return `<div class="ph-session-event-row mb-3" data-message-id="${m.id}"><article class="card ph-session-event-card p-3" role="group" aria-label="Session event"><div class="d-flex justify-content-between align-items-start gap-2"><div class="d-flex align-items-center gap-2"><span class="ph-session-event-icon"><i class="bi bi-calendar-event" aria-hidden="true"></i></span><div><strong class="d-block">${heading}</strong><small class="text-body-secondary">By ${escapeHtml(m.sender_name)}</small></div></div><span class="ph-session-state-badge">${label}</span></div><div class="session-card-details ${compact ? 'd-none' : ''}"><h3 class="h6 fw-bold mt-3 mb-2 ph-session-subject">${escapeHtml(c.subject)}${c.offered_subject ? ' ↔ '+escapeHtml(c.offered_subject) : ''}</h3>${details}${swapTime}${note}${c.message ? `<p class="small ph-session-card-note">${escapeHtml(c.message)}</p>` : ''}${c.finished_at ? `<p class="small">Finished: ${escapeHtml(new Date(c.finished_at).toLocaleString())}</p>` : ''}${proposalActions}</div><div class="ph-session-card-footer mt-2"><small class="text-body-secondary">${escapeHtml(m.created_at)} · Session record</small><button type="button" class="btn btn-link btn-sm p-0" data-hide-session-card="${m.id}" data-older="${pending ? '0' : '1'}">${compact ? 'Show details' : 'Hide details'}</button></div></article></div>`;
     }
 
     if (hiddenMessageIds.has(Number(m.id))) return '';
@@ -273,9 +306,10 @@ $(document).ready(function () {
   });
   function applySessionPanel(response) {
     setSessionFinished(response.session_finished);
+    $('#sessionDetailsBtn').toggleClass('d-none', !response.html);
     $('#sessionActivitiesBtn').remove();
     if (response.activities_url) {
-      $('<a>', {id: 'sessionActivitiesBtn', href: response.activities_url, class: 'btn btn-outline-primary btn-sm', text: 'Activities', 'data-session-activities': ''}).insertBefore('#chatInfoBtn');
+      $('<a>', {id: 'sessionActivitiesBtn', href: response.activities_url, class: 'btn btn-outline-primary btn-sm ph-session-header-btn', title: 'View session activities', 'aria-label': 'View session activities', 'data-session-activities': ''}).html('<i class="bi bi-clipboard-check" aria-hidden="true"></i><span class="d-none d-xl-inline ms-1">Activities</span>').insertBefore('#chatInfoBtn');
       if (!activityAutoOpened && new URLSearchParams(window.location.search).get('activities') === '1') {
         activityAutoOpened = true;
         openSessionActivities(response.activities_url);
@@ -284,7 +318,7 @@ $(document).ready(function () {
     pendingRating = response.rating || null;
     $('#rateTeacherBtn').remove();
     if (pendingRating) {
-      $('<button>', {id:'rateTeacherBtn', type:'button', class:'btn btn-outline-warning btn-sm', text:'Rate teacher'}).insertBefore('#chatInfoBtn');
+      $('<button>', {id:'rateTeacherBtn', type:'button', class:'btn btn-outline-warning btn-sm ph-session-header-btn', title:'Rate your teacher', 'aria-label':'Rate your teacher'}).html('<i class="bi bi-star" aria-hidden="true"></i><span class="d-none d-xl-inline ms-1">Rate teacher</span>').insertBefore('#chatInfoBtn');
       if (!sessionStorage.getItem(`rating-prompt:${pendingRating.learner_id}:${pendingRating.conversation_id}`) && !document.querySelector('.modal.show') && !window.Swal?.isVisible()) showTeacherRating(pendingRating);
     }
     const panel = $('#sessionChatPanel');
@@ -294,9 +328,11 @@ $(document).ready(function () {
     if (detailsOpen !== undefined) panel.find('details').prop('open', detailsOpen);
     const proposal = panel.find('#sessionProposalForm').detach();
     $('#sessionProposalModalBody').empty().append(proposal);
-    $('#createSessionBtn').toggleClass('d-none', !response.html).prop('disabled', !proposal.length);
+    $('#createSessionBtn').toggleClass('d-none', !response.html || !proposal.length).prop('disabled', !proposal.length);
+    const label = proposal.attr('data-proposal-action') === 'counter' ? 'Suggest changes' : proposal.attr('data-proposal-state') === 'proposed' ? 'Edit proposal' : 'Propose schedule';
+    $('#createSessionBtn span').text(label);
     $('#finishSessionBtn').remove();
-    if (response.html) $('<button>', {id: 'finishSessionBtn', type: 'button', class: 'btn btn-success btn-sm', text: 'Finish session', disabled: !response.finish, title: response.finish ? 'Finish now and request your partner’s confirmation' : 'Accept a schedule first; unavailable after confirmation or cancellation', 'data-session-action': 'finish'}).insertBefore('#chatInfoBtn');
+    if (response.html && response.finish) $('<button>', {id: 'finishSessionBtn', type: 'button', class: 'btn btn-success btn-sm ph-session-header-btn', title: 'Finish now and request your partner’s confirmation', 'aria-label': 'Finish session', 'data-session-action': 'finish'}).html('<i class="bi bi-check2-circle" aria-hidden="true"></i><span class="d-none d-xl-inline ms-1">Finish session</span>').insertBefore('#chatInfoBtn');
   }
   function refreshSessionPanel() {
     if (!currentConversationId || sessionPanelBusy || $('#createSessionModal').hasClass('show') || $('#sessionDetailsModal').hasClass('show') || $('#sessionChatPanel').find('input:focus, select:focus, textarea:focus').length || $('#sessionProposalForm').data('dirty') || $('#sessionProblemForm').data('dirty')) return;
@@ -326,13 +362,41 @@ $(document).ready(function () {
     finally { sessionPanelBusy = false; }
   }
   $(document).on('input change', '#sessionProposalForm, #sessionProblemForm', function () { $(this).data('dirty', true); });
-  $(document).on('click', '#createSessionBtn', function () { window.bootstrap.Modal.getOrCreateInstance(document.getElementById('createSessionModal')).show(); });
-  $(document).on('submit', '#sessionProposalForm', function (e) { e.preventDefault(); sessionAction('propose', this); });
+  function openProposalEditor() {
+    const form = document.getElementById('sessionProposalForm');
+    if (!form) return;
+    const title = form.dataset.proposalAction === 'counter' ? 'Suggest changes' : form.dataset.proposalState === 'proposed' ? 'Edit proposed session' : 'Create a session';
+    $('#createSessionModalLabel').text(title);
+    updateMeetingMethodFields(form);
+    window.bootstrap.Modal.getOrCreateInstance(document.getElementById('createSessionModal')).show();
+  }
+  function updateMeetingMethodFields(form) {
+    if (!form) return;
+    const selected = form.querySelector('input[name="meeting_method"]:checked')?.value || 'online';
+    const isOnline = selected === 'online';
+    const label = form.querySelector('[data-ph-meeting-label]');
+    const helper = form.querySelector('[data-ph-meeting-help]');
+    const input = form.querySelector('[name="meeting_details"]');
+    if (label) label.textContent = isOnline ? 'Meeting link' : 'Meeting venue';
+    if (helper) helper.textContent = isOnline ? 'Use an HTTPS Google Meet, Zoom, or Microsoft Teams link.' : 'Enter a clear, safe meeting place so both participants know where to meet.';
+    if (input) { input.placeholder = isOnline ? 'https://meet.google.com/...' : 'Campus building, room, or public venue'; input.setAttribute('autocomplete', 'off'); }
+  }
+  $(document).on('change', '#sessionProposalForm input[name="meeting_method"]', function () { updateMeetingMethodFields(this.form); });
+  $(document).on('click', '#createSessionBtn, [data-session-open-proposal]', openProposalEditor);
+  $('#createSessionModal').on('shown.bs.modal', function () { $(this).find('input[name="starts_at"]').trigger('focus'); });
+  $(document).on('click', '#sessionDetailsBtn', function () { window.bootstrap.Modal.getOrCreateInstance(document.getElementById('sessionDetailsModal')).show(); });
+  $(document).on('submit', '#sessionProposalForm', function (e) { e.preventDefault(); sessionAction(this.dataset.proposalAction || 'propose', this); });
   $(document).on('submit', '#sessionProblemForm', function (e) { e.preventDefault(); sessionAction('problem', this); });
   $(document).on('click', '[data-hide-session-card]', function () {
     const id = String(this.dataset.hideSessionCard);
-    if (hiddenSessionCards.has(id)) hiddenSessionCards.delete(id); else hiddenSessionCards.add(id);
-    $(this).text(hiddenSessionCards.has(id) ? 'Show' : 'Hide').closest('article').find('.session-card-details').toggleClass('d-none', hiddenSessionCards.has(id));
+    const older = this.dataset.older === '1';
+    const $details = $(this).closest('article').find('.session-card-details');
+    const nowHidden = !$details.hasClass('d-none');
+    $details.toggleClass('d-none', nowHidden);
+    // Preserve expanded/collapsed state during the four-second chat refresh.
+    if (older) { if (nowHidden) expandedPastSessionCards.delete(id); else expandedPastSessionCards.add(id); }
+    else { if (nowHidden) hiddenSessionCards.add(id); else hiddenSessionCards.delete(id); }
+    $(this).text(nowHidden ? 'Show details' : 'Hide details');
   });
   $(document).on('click', '[data-session-action]', async function () {
     const action = this.dataset.sessionAction;
@@ -349,8 +413,14 @@ $(document).ready(function () {
       });
       if (!answer.isConfirmed) return;
       minutes = answer.value;
-    } else if (['finish', 'cancel'].includes(action)) {
-      const answer = await window.confirmAction(action === 'finish' ? 'Confirm the recorded session time and your attendance? Your partner must also confirm.' : 'Cancel this session? No points will be awarded.', action === 'finish' ? 'Finish session' : 'Cancel session');
+    } else if (['finish', 'cancel', 'withdraw', 'decline'].includes(action)) {
+      const choices = {
+        finish: ['Confirm the recorded session time and your attendance? Your partner must also confirm.', 'Finish session'],
+        cancel: ['Cancel the entire learning session? No points will be awarded.', 'Cancel session'],
+        withdraw: ['Withdraw this proposed time? Your learning request and conversation will remain open.', 'Cancel proposal'],
+        decline: ['Decline this proposed time? You can continue discussing another schedule.', 'Decline proposal'],
+      };
+      const answer = await window.confirmAction(...choices[action]);
       if (!answer.isConfirmed) return;
     }
     sessionAction(action, null, minutes, this.dataset.actionRevision ?? null);
@@ -362,7 +432,14 @@ $(document).ready(function () {
       ? `<li><button type="button" class="dropdown-item account-report-btn" data-user-id="${conv.other_user_id}"><i class="bi bi-flag me-2"></i>Report account</button></li><li><button type="button" class="dropdown-item ${conv.blocked_by_me ? '' : 'text-danger'} direct-block-btn" data-user-id="${conv.other_user_id}" data-blocked-by-me="${conv.blocked_by_me ? 1 : 0}"><i class="bi bi-slash-circle me-2"></i>${conv.blocked_by_me ? 'Unblock account' : 'Block account'}</button></li>`
       : '';
     const buttons = renderTemplate('message-template-buttons-1', [accountActions]);
-    $chatHeader.html(renderTemplate('message-template-render-chat-header-1', [escapeHtml(conv.name), buttons]));
+    const initialText = escapeHtml((conv.name || '?').split(/\s+/).slice(0, 2).map(word => word[0] || '').join('').toUpperCase());
+    const avatar = conv.group_photo_url && conv.is_group
+      ? `<img src="${escapeHtml(conv.group_photo_url)}" alt="" class="ph-chat-header-photo">`
+      : conv.profile_picture
+        ? `<img src="/storage/${escapeHtml(conv.profile_picture)}" alt="" class="ph-chat-header-photo">`
+        : `<span class="ph-chat-header-initials">${initialText}</span>`;
+    const typeLabel = conv.is_session ? 'Private Learn/Swap conversation' : conv.is_group ? 'Group conversation' : 'Direct message';
+    $chatHeader.html(renderTemplate('message-template-render-chat-header-1', [escapeHtml(conv.name), buttons, avatar, typeLabel]));
     updateComposerState();
   }
 
@@ -396,7 +473,8 @@ $(document).ready(function () {
     renderChatHeader(conv);
     $('#sessionChatPanel').empty();
     $('#sessionProposalModalBody').empty();
-    $('#createSessionBtn').addClass('d-none');
+    $('#createSessionBtn, #sessionDetailsBtn').addClass('d-none');
+    $('#sessionActivitiesBtn, #finishSessionBtn, #rateTeacherBtn').remove();
     refreshSessionPanel();
     $chatFooter.show();
     renderOutgoing();
@@ -422,32 +500,61 @@ $(document).ready(function () {
     }, 4000);
   }
 
+  function chatListTime(timestamp) {
+    const date = new Date(Number(timestamp) * 1000);
+    if (!Number.isFinite(date.getTime())) return '';
+    const today = new Date();
+    return date.toDateString() === today.toDateString()
+      ? new Intl.DateTimeFormat(undefined, {hour: 'numeric', minute: '2-digit'}).format(date)
+      : new Intl.DateTimeFormat(undefined, {month: 'short', day: 'numeric'}).format(date);
+  }
+
   function renderConversations(conversations) {
     if ($conversationsList.find('.dropdown-menu.show').length) return;
+    conversationSnapshot = conversations;
+    conversationIndex.clear();
+    conversations.forEach(c => conversationIndex.set(String(c.id), c));
+    const term = String($('#conversationSearchInput').val() || '').trim().toLocaleLowerCase();
+    const unreadOnly = selectedConversationFilter === 'unread';
+    const visible = conversations.filter(c => (!term || String(c.name || '').toLocaleLowerCase().includes(term) || String(c.last_message || '').toLocaleLowerCase().includes(term)) && (!unreadOnly || c.unread_count > 0) && (selectedConversationFilter === 'all' || selectedConversationFilter === 'unread' || (selectedConversationFilter === 'direct' && !c.is_group && !c.is_session) || (selectedConversationFilter === 'session' && c.is_session) || (selectedConversationFilter === 'group' && c.is_group && !c.is_session)));
     $conversationsList.empty();
-
-    if (!conversations.length) {
-      $conversationsList.append(renderTemplate('message-template-render-conversations-1'));
+    if (!visible.length) {
+      $conversationsList.append(term || unreadOnly ? '<div class="ph-chat-list-empty"><i class="bi bi-search" aria-hidden="true"></i><p class="mb-0">No matching conversations.</p><small>Try a different search or filter.</small></div>' : renderTemplate('message-template-render-conversations-1'));
       return;
     }
-
-    conversations.forEach(function (c) {
-      const isSelected = currentConversationId && String(currentConversationId) === String(c.id);
-      const nameClass = c.unread_count > 0 ? 'fw-bold' : 'fw-semibold';
-      const badge = c.unread_count > 0 ? renderTemplate('message-template-badge-1', [c.unread_count]) : '';
-      const lastMsg = c.last_message ? c.last_message.slice(0, 30) : 'No messages yet';
-      const groupIcon = c.is_group ? renderTemplate('message-template-group-icon-1') : '';
-
-      let avatarHtml = '';
-      if (c.profile_picture) {
-        avatarHtml = renderTemplate('message-template-render-conversations-2', [c.profile_picture, escapeHtml(c.name)]);
-      } else {
-        avatarHtml = renderTemplate('message-template-render-conversations-3', [escapeHtml(c.initials || '?')]);
-      }
-
-      $conversationsList.append(renderTemplate('message-template-render-conversations-4', [isSelected ? 'bg-body-tertiary' : '', c.id, c.is_group, escapeHtml(c.name), avatarHtml, c.presence?.is_online ? renderTemplate('message-template-render-conversations-5') : '', nameClass, groupIcon, escapeHtml(c.name), c.is_muted ? renderTemplate('message-template-render-conversations-6') : '', badge, escapeHtml(lastMsg), escapeHtml(c.name), c.id, c.is_muted, c.is_muted ? 'Unmute notifications' : 'Mute notifications', c.is_group ? renderTemplate('message-template-render-conversations-7', [c.id]) : '', c.id, escapeHtml(c.name)]));
+    const sections = [
+      {key: 'direct', name: 'Direct Messages', icon: 'bi-chat-dots', items: visible.filter(c => !c.is_group && !c.is_session)},
+      {key: 'session', name: 'Learn/Swap Sessions', icon: 'bi-mortarboard', items: visible.filter(c => c.is_session)},
+      {key: 'group', name: 'Group Chats', icon: 'bi-people', items: visible.filter(c => c.is_group && !c.is_session)},
+    ];
+    sections.forEach(section => {
+      if (!section.items.length) return;
+      const collapsed = collapsedChatSections.has(section.key);
+      const $heading = $(`<button type="button" class="ph-chat-section-heading ph-chat-section-toggle" data-section="${section.key}" aria-expanded="${!collapsed}"><i class="bi ${section.icon}" aria-hidden="true"></i><span>${section.name}</span><span class="ph-chat-section-count">${section.items.length}</span><i class="bi ${collapsed ? 'bi-chevron-right' : 'bi-chevron-down'} ph-chat-section-chevron" aria-hidden="true"></i></button>`);
+      $conversationsList.append($heading);
+      const $body = $('<div class="ph-chat-section-body"></div>').toggleClass('d-none', collapsed).appendTo($conversationsList);
+      section.items.forEach(function (c) {
+        const isSelected = currentConversationId && String(currentConversationId) === String(c.id);
+        const nameClass = c.unread_count > 0 ? 'fw-bold' : 'fw-semibold';
+        const badge = c.unread_count > 0 ? renderTemplate('message-template-badge-1', [c.unread_count]) : '';
+        const lastMsg = c.last_message ? c.last_message.slice(0, 55) : 'No messages yet';
+        let avatarHtml = '';
+        if (c.group_photo_url && c.is_group && !c.is_session) {
+          avatarHtml = `<img src="${escapeHtml(c.group_photo_url)}" alt="" class="ph-chat-header-photo ph-group-list-photo">`;
+        } else if (c.profile_picture && !c.is_session && !c.is_group) {
+          avatarHtml = renderTemplate('message-template-render-conversations-2', [escapeHtml(c.profile_picture), escapeHtml(c.name)]);
+        } else if (c.is_session || c.is_group) {
+          avatarHtml = `<span class="ph-chat-conversation-type-avatar"><i class="bi ${c.is_session ? 'bi-mortarboard-fill' : 'bi-people-fill'}" aria-hidden="true"></i></span>`;
+        } else {
+          avatarHtml = renderTemplate('message-template-render-conversations-3', [escapeHtml(c.initials || '?')]);
+        }
+        const label = c.is_session ? 'Learn/Swap session' : c.is_group ? 'Group chat' : 'Direct message';
+        const chip = `<span class="${c.is_session ? 'ph-kind-session' : ''}">${label}</span>`;
+        $body.append(renderTemplate('message-template-render-conversations-4', [isSelected ? 'bg-body-tertiary' : '', c.id, c.is_group, escapeHtml(c.name), avatarHtml, c.presence?.is_online ? renderTemplate('message-template-render-conversations-5') : '', nameClass, '', escapeHtml(c.name), c.is_muted ? renderTemplate('message-template-render-conversations-6') : '', badge, escapeHtml(lastMsg), escapeHtml(c.name), c.id, c.is_muted, c.is_muted ? 'Unmute notifications' : 'Mute notifications', c.is_group ? renderTemplate('message-template-render-conversations-7', [c.id]) : '', c.id, escapeHtml(c.name), chip, escapeHtml(chatListTime(c.last_message_at))]));
+      });
     });
   }
+  $('#conversationSearchInput').on('input', () => renderConversations(conversationSnapshot));
 
   let requestedConversation = new URLSearchParams(window.location.search).get('conversation');
   function refreshConversationsList() {
@@ -462,6 +569,15 @@ $(document).ready(function () {
           if (target) openConversation(target);
         }
         const active = response.conversations.find(c => String(c.id) === String(currentConversationId));
+        if (active && activeConversation) {
+          const merged = mergeConversationMetadata(activeConversation, active);
+          activeConversation = merged.value;
+          if (merged.headerChanged) {
+            renderChatHeader(activeConversation);
+            // Refresh only details when visible; do not reopen chat or discard a draft.
+            if ($('#chatInfoPanel').is(':visible')) showConversationInfo();
+          }
+        }
         if (active && !active.is_group) $('#chatPresenceStatus').text(presenceLabel(active.presence));
       }
     });
@@ -473,10 +589,9 @@ $(document).ready(function () {
 
   $conversationsList.on('click', '.conversation-item', function (e) {
     e.preventDefault();
-    openConversation({
-      id: $(this).data('conversation-id'),
-      is_group: $(this).data('is-group') === true || $(this).data('is-group') === 'true',
-      name: $(this).data('name'),
+    const id = String($(this).data('conversation-id'));
+    openConversation(conversationIndex.get(id) || {
+      id, is_group: $(this).data('is-group') === true || $(this).data('is-group') === 'true', name: $(this).data('name'),
     });
   });
 
@@ -633,7 +748,7 @@ $(document).ready(function () {
         $('#groupNameInput').val('');
         groupMembers.clear();
         refreshConversationsList();
-        if (window.toast) window.toast('success', 'Group created!');
+        if (window.toast) window.toast('success', response.message || 'Group created. Invitations sent.');
         setTimeout(function () {
           openConversation({ id: response.conversation_id, is_group: true, name: name || 'Group' });
         }, 300);
@@ -652,66 +767,84 @@ $(document).ready(function () {
     $('#createGroupBtn').trigger('click');
   });
 
-  $(document).on('click', '#viewMembersBtn', function () {
-    const conversationId = $(this).data('conversation-id');
-    $('#addMemberBtn').data('conversation-id', conversationId);
-
-    $.ajax({
-      url: `/messages/conversations/${conversationId}`,
-      method: 'GET',
-      success: function (response) {
-        let html = '';
-        response.members.forEach(function (m) {
-          html += renderTemplate('message-template-fragment-2', [escapeHtml(m.name), m.id, conversationId]);
+  // Group management keeps role checks on the server. The client only presents permitted actions.
+  let memberSearchTimer = null;
+  let managingGroupId = null;
+  function groupRequest(path, method, data = {}, after = null) {
+    return $.ajax({url:path, method, data, headers:{'X-CSRF-TOKEN':$('meta[name="csrf-token"]').attr('content')},
+      success: result => { window.toast?.('success', result.message || 'Saved.'); after?.(result); refreshConversationsList(); }, error: requestError});
+  }
+  function renderGroupMembersModal(info, groupId) {
+    managingGroupId = groupId;
+    const selfRole = info.group_role;
+    const isManager = selfRole === 'owner' || selfRole === 'admin';
+    const list = $('#groupMembersModalList').empty();
+    list.append(`<p class="small text-body-secondary">${info.members.length} current members. Only accepted invitations grant access.</p>`);
+    info.members.forEach(member => {
+      const role = member.role || 'member';
+      const canRemove = isManager && role !== 'owner' && (selfRole === 'owner' || role === 'member');
+      const avatar = member.profile_picture ? `<img src="${escapeHtml(member.profile_picture)}" class="ph-contact-avatar" alt="">` : '<span class="ph-contact-avatar ph-contact-initials"><i class="bi bi-person"></i></span>';
+      const row = $(`<div class="ph-group-member-row">${avatar}<div class="flex-grow-1 min-w-0"><a href="${escapeHtml(member.profile_url)}" class="fw-semibold text-body text-decoration-none text-break">${escapeHtml(member.name)}</a><small class="text-body-secondary d-block">${escapeHtml(role.charAt(0).toUpperCase()+role.slice(1))}</small></div></div>`);
+      if (selfRole === 'owner' && role !== 'owner') {
+        const $role = $('<select class="form-select form-select-sm ph-member-role-picker" aria-label="Change group role"><option value="member">Member</option><option value="admin">Admin</option><option value="owner">Transfer ownership</option></select>').val(role);
+        $role.on('change', () => {
+          if ($role.val() === 'owner' && !confirm('Transfer group ownership to ' + member.name + '?')) { $role.val(role); return; }
+          groupRequest(`/messages/groups/${groupId}/members/${member.id}/role`, 'PATCH', {role:$role.val()}, () => {loadGroupManager(groupId); showConversationInfo();});
         });
-        $('#groupMembersModalList').html(html);
-        window.showModal('groupMembersModal');
+        row.append($role);
       }
-    });
-  });
-
-  $(document).on('click', '.remove-member-btn', function () {
-    const userId = $(this).data('user-id');
-    const conversationId = $(this).data('conversation-id');
-
-    $.ajax({
-      url: `/messages/conversations/${conversationId}/members/${userId}`,
-      method: 'DELETE',
-      headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-      success: function () {
-        $(`.remove-member-btn[data-user-id="${userId}"]`).closest('div').remove();
-        if (window.toast) window.toast('success', 'Member removed.');
-      },
-      error: function (xhr) {
-        if (window.toast) window.toast('error', xhr.responseJSON?.message || 'Failed to remove member.');
+      if (canRemove) {
+        const $remove = $('<button class="btn btn-sm btn-outline-danger" aria-label="Remove group member"><i class="bi bi-person-dash"></i></button>');
+        $remove.on('click', async () => { const ok = window.confirmAction ? (await window.confirmAction('Remove '+member.name+' from this group?','Remove member')).isConfirmed : confirm('Remove '+member.name+'?'); if (ok) groupRequest(`/messages/conversations/${groupId}/members/${member.id}`, 'DELETE', {}, () => {loadGroupManager(groupId); showConversationInfo();}); });
+        row.append($remove);
       }
+      list.append(row);
     });
+    if (info.pending_invitations?.length) {
+      list.append('<h3 class="h6 mt-3">Pending invitations and approvals</h3>');
+      info.pending_invitations.forEach(item => {
+        if (!isManager && item.requested_by !== Number($('#chatOwnerId').val())) return;
+        const row = $(`<div class="ph-group-member-row"><div class="flex-grow-1"><strong>${escapeHtml(item.first_name+' '+item.last_name)}</strong><small class="d-block text-body-secondary">${item.status === 'approval_requested' ? 'Awaiting admin approval' : 'Awaiting acceptance'}</small></div></div>`);
+        if (isManager && item.status === 'approval_requested') {
+          for (const [decision,label] of [['approve','Approve'],['reject','Reject']]) {
+            const $btn = $(`<button type="button" class="btn btn-sm ${decision === 'approve' ? 'btn-primary':'btn-outline-secondary'}">${label}</button>`);
+            $btn.on('click',()=>groupRequest(`/messages/group-invitations/${item.id}/decision`, 'POST', {decision},()=>loadGroupManager(groupId)));
+            row.append($btn);
+          }
+        } else if (isManager || item.requested_by === Number($('#chatOwnerId').val())) {
+          const $withdraw = $('<button type="button" class="btn btn-sm btn-outline-secondary">Withdraw</button>');
+          $withdraw.on('click',()=>groupRequest(`/messages/group-invitations/${item.id}/decision`, 'POST', {decision:'withdraw'},()=>loadGroupManager(groupId)));
+          row.append($withdraw);
+        }
+        list.append(row);
+      });
+    }
+    $('#addMemberSearchInput').val(''); $('#addMemberSearchResults').empty();
+  }
+  function loadGroupManager(id) {
+    $.getJSON(`/messages/conversations/${id}/info`).done(info => { renderGroupMembersModal(info, id); window.showModal('groupMembersModal'); }).fail(requestError);
+  }
+  $(document).on('click','#viewMembersBtn', function () { loadGroupManager($(this).data('conversation-id')); });
+  $('#addMemberSearchInput').on('input',function () {
+    clearTimeout(memberSearchTimer); const q=this.value.trim(), groupId=managingGroupId;
+    $('#addMemberSearchResults').empty();
+    if (!groupId || q.length < 3) return;
+    memberSearchTimer=setTimeout(()=>{$.getJSON('/messages/member-search',{q}).done(result=>{
+      if (groupId!==managingGroupId || $('#addMemberSearchInput').val().trim()!==q) return;
+      (result.users||[]).forEach(u=>{
+        const $row=$(`<button type="button" class="ph-contact-row"><span class="ph-contact-avatar ph-contact-initials"><i class="bi bi-person"></i></span><span class="flex-grow-1 text-start"><strong>${escapeHtml(u.name)}</strong><small class="d-block text-body-secondary">@${escapeHtml(u.username || '')}</small></span><span class="small">Invite</span></button>`);
+        $row.on('click',()=>groupRequest(`/messages/conversations/${groupId}/members`,'POST',{user_id:u.id},()=>{loadGroupManager(groupId);$('#addMemberSearchInput').val('');}));
+        $('#addMemberSearchResults').append($row);
+      });
+    }).fail(requestError);},300);
   });
-
-  $('#addMemberBtn').on('click', function () {
-    const conversationId = $(this).data('conversation-id');
-    const userId = $('#addMemberSelect').val();
-
-    if (!userId) return;
-
-    $.ajax({
-      url: `/messages/conversations/${conversationId}/members`,
-      method: 'POST',
-      data: {
-        _token: $('meta[name="csrf-token"]').attr('content'),
-        user_id: userId,
-      },
-      success: function () {
-        $('#addMemberSelect').val('');
-        if (window.toast) window.toast('success', 'Member added.');
-        $(`#viewMembersBtn[data-conversation-id="${conversationId}"]`).trigger('click');
-      },
-      error: function (xhr) {
-        if (window.toast) window.toast('error', xhr.responseJSON?.message || 'Failed to add member.');
-      }
-    });
+  $(document).on('click','.group-invite-response',function () {
+    const $btn=$(this),id=$btn.data('invitation-id');
+    $btn.prop('disabled',true);
+    groupRequest(`/messages/group-invitations/${id}/decision`,'POST',{decision:$btn.data('decision')},()=>{
+      $(`[data-invitation-id="${id}"]`).remove(); window.location.reload();
+    }).always(()=>$btn.prop('disabled',false));
   });
-
   $chatMessages.on('click', '.reply-message-btn', function () {
     const $row = $(this).closest('.message-row');
     const messageId = $row.data('message-id');
@@ -884,31 +1017,36 @@ $(document).ready(function () {
     });
   });
 
-  // --- Search Filter for Single Chat Modal ---
+  // Search first: never fetch or render the complete user directory.
+  let directSearchTimer = null, directSearchSeq = 0;
   $('#newChatSearchInput').on('input', function () {
-    const searchTerm = $(this).val().trim().toLowerCase();
-
-    $('#newChatUserList .start-chat-btn').each(function () {
-      const userName = String($(this).data('name')).toLowerCase();
-      
-      if (userName.includes(searchTerm)) {
-        $(this).removeClass('d-none').addClass('d-flex');
-      } else {
-        $(this).removeClass('d-flex').addClass('d-none');
-      }
-    });
+    clearTimeout(directSearchTimer);
+    const q = this.value.trim();
+    const sequence = ++directSearchSeq;
+    $('#newChatSuggestions').toggleClass('d-none', q.length > 0);
+    $('#newChatSearchResults').toggleClass('d-none', q.length < 3).empty();
+    $('#newChatNoResults').addClass('d-none').text('');
+    if (q.length < 3) { $('#newChatSearchHelp').text('Type at least 3 username characters or a full email address.'); return; }
+    $('#newChatSearchHelp').text('Searching for students…');
+    directSearchTimer = setTimeout(() => {
+      $.getJSON('/messages/member-search', {q}).done(response => {
+        if (sequence !== directSearchSeq) return;
+        const people = response.users || [];
+        $('#newChatSearchHelp').text(people.length ? 'Select a student to start a direct message.' : 'No matching students. Try their username or full email.');
+        $('#newChatSearchResults').removeClass('d-none').empty();
+        people.forEach(person => {
+          const photo = person.photo_url ? `<img class="ph-contact-avatar" src="${escapeHtml(person.photo_url)}" alt="">` : '<span class="ph-contact-avatar ph-contact-initials"><i class="bi bi-person"></i></span>';
+          $('#newChatSearchResults').append(`<button type="button" class="ph-contact-row start-chat-btn" data-user-id="${person.id}" data-name="${escapeHtml(person.name)}">${photo}<span class="min-w-0 flex-grow-1 text-start"><strong class="d-block text-truncate">${escapeHtml(person.name)}</strong><small class="text-body-secondary">@${escapeHtml(person.username || '')}</small></span><i class="bi bi-chat-dots" aria-hidden="true"></i></button>`);
+        });
+      }).fail(xhr => { if (sequence === directSearchSeq) $('#newChatSearchHelp').text('Unable to search students. Please retry.'); });
+    }, 280);
   });
-
-  $('#newChatSearchInput').on('input', function () {
-    $('#newChatNoResults').toggleClass('d-none', $('#newChatUserList .start-chat-btn').not('.d-none').length > 0);
-  });
-  $('#newChatModal').on('shown.bs.modal', () => $('#newChatSearchInput').trigger('input').trigger('focus'));
-
-  // Clear the search bars when the modals are closed
+  $('#newChatModal').on('shown.bs.modal', () => $('#newChatSearchInput').trigger('focus'));
   $('#newChatModal, #newGroupModal').on('hidden.bs.modal', function () {
-    $('#newChatSearchInput, #newGroupSearchInput').val('').trigger('input');
+    clearTimeout(directSearchTimer); directSearchSeq++;
+    $('#newChatSearchInput').val('').trigger('input');
+    $('#newGroupSearchInput').val('');
   });
-
 
   function closeSearch() {
     clearTimeout(searchTimer); searchVersion++; searchTerm = ''; searchCursor = null;
@@ -986,18 +1124,89 @@ $(document).ready(function () {
       url: `/messages/conversations/${id}/info`,
       success: response => {
         if (version !== infoVersion || String(id) !== String(currentConversationId)) return;
-        const members = response.members.map(m => renderTemplate('message-template-members-1', [escapeHtml(m.profile_url), m.profile_picture ? renderTemplate('message-template-members-2', [escapeHtml(m.profile_picture)]) : renderTemplate('message-template-members-3'), escapeHtml(m.name)])).join('');
-        $('#chatInfoContent').html(renderTemplate('message-template-show-conversation-info-2', [response.is_group ? 'bi-people-fill' : 'bi-person-fill', escapeHtml(conv.name), response.is_group ? response.members.length + ' members' : 'Direct conversation', id, response.is_muted, response.is_muted ? 'bi-bell-slash-fill' : 'bi-bell', response.is_muted ? 'Unmute' : 'Mute', response.is_muted ? (response.muted_until ? 'Notifications muted until ' + escapeHtml(new Date(response.muted_until).toLocaleString()) + '.' : 'Notifications muted until you turn them back on.') : 'Notifications are on.', response.is_group ? 'Chat members' : 'People', members, response.is_group ? renderTemplate('message-template-show-conversation-info-3', [id]) : '', response.is_group ? renderTemplate('message-template-show-conversation-info-4', [id]) : '']));
-        if (response.other_user_id) {
-          const $actions = $('<div class="d-grid gap-2 mt-3"></div>');
-          $actions.append($('<button type="button" class="btn btn-outline-warning account-report-btn"></button>').attr('data-user-id', response.other_user_id).text('Report account'));
-          const blockLabel = response.blocked_by_me ? 'Unblock account' : 'Block account';
-          $actions.append($('<button type="button" class="btn btn-outline-danger direct-block-btn"></button>').attr('data-user-id', response.other_user_id).attr('data-blocked-by-me', response.blocked_by_me ? '1' : '0').text(blockLabel));
-          $('#chatInfoContent').append($actions);
+        const container = $('#chatInfoContent').empty();
+        const idSafe = Number(id);
+        const makeAvatar = (src, label, isGroup) => src
+          ? `<img src="${escapeHtml(src)}" alt="" class="ph-info-profile-photo">`
+          : `<span class="ph-info-profile-photo ph-info-profile-fallback"><i class="bi ${isGroup ? 'bi-people-fill':'bi-person-fill'}" aria-hidden="true"></i></span>`;
+        const profileName = response.group_name || conv.name;
+        const src = response.is_group ? response.group_photo_url : response.other_profile_photo;
+        const header = `<div class="ph-info-profile">${makeAvatar(src, profileName, response.is_group)}<h2 class="h5 mt-2 mb-1">${escapeHtml(profileName)}</h2><small class="text-body-secondary">${response.is_group ? response.members.length+' members · '+escapeHtml(response.group_role||'Member') : response.is_session ? 'Private Learn/Swap session' : (response.other_username ? '@'+escapeHtml(response.other_username) : 'Direct conversation')}</small></div>`;
+        container.append(header);
+        const $actions=$('<div class="ph-info-quick-actions"></div>');
+        const mute= $(`<button type="button" class="ph-info-quick-action mute-group-btn" data-conversation-id="${idSafe}" data-muted="${response.is_muted}"><i class="bi ${response.is_muted ? 'bi-bell-slash':'bi-bell'}"></i><span>${response.is_muted?'Unmute':'Mute'}</span></button>`);
+        $actions.append(mute, '<button type="button" class="ph-info-quick-action" id="searchChatBtn"><i class="bi bi-search"></i><span>Search</span></button>');
+        if (!response.is_group && !response.is_session && response.other_user_id) {
+          $actions.append(`<button type="button" class="ph-info-quick-action" id="favoriteConversationPeerBtn" data-user-id="${response.other_user_id}" aria-pressed="${response.is_favorite}"><i class="bi ${response.is_favorite ? 'bi-star-fill':'bi-star'}"></i><span>${response.is_favorite ? 'Favorited' : 'Favorite'}</span></button>`);
+        }
+        container.append($actions);
+        if (response.is_group && !response.is_session) {
+          const isManager = ['owner','admin'].includes(response.group_role);
+          const members = response.members.map(user => `<div class="ph-info-person"><span class="ph-info-person-avatar">${user.profile_picture ? `<img src="${escapeHtml(user.profile_picture)}" alt="">` : '<i class="bi bi-person"></i>'}</span><span class="flex-grow-1 min-w-0"><a href="${escapeHtml(user.profile_url)}" class="text-body text-decoration-none text-break">${escapeHtml(user.name)}</a><small class="d-block text-body-secondary">${escapeHtml(user.role||'Member')}</small></span></div>`).join('');
+          container.append(`<div class="ph-info-section"><div class="d-flex justify-content-between align-items-center"><h3 class="h6">Group settings</h3>${response.group_role === 'owner' ? '<span class="ph-info-role-tag">Owner</span>' : ''}</div>${isManager ? `<button type="button" class="ph-info-line-action" id="editGroupNameBtn" data-conversation-id="${idSafe}"><i class="bi bi-pencil"></i><span>Edit group name</span><i class="bi bi-chevron-right ms-auto"></i></button><button type="button" class="ph-info-line-action" id="changeGroupPhotoBtn" data-conversation-id="${idSafe}"><i class="bi bi-image"></i><span>Change group photo</span><i class="bi bi-chevron-right ms-auto"></i></button>${response.group_photo_url ? `<button type="button" class="ph-info-line-action" id="removeGroupPhotoBtn" data-conversation-id="${idSafe}"><i class="bi bi-image-alt"></i><span>Remove group photo</span></button>` : ''}` : '<p class="small text-body-secondary">Owner and admins manage group identity and memberships.</p>'}</div>`);
+          container.append(`<div class="ph-info-section"><h3 class="h6">Group members <span class="text-body-secondary">(${response.members.length})</span></h3>${members}<button type="button" class="btn btn-outline-primary btn-sm mt-2 w-100" id="viewMembersBtn" data-conversation-id="${idSafe}"><i class="bi bi-person-plus me-1"></i>${isManager?'Manage members and invitations':'Request to invite a member'}</button></div>`);
+          container.append(`<div class="ph-info-section"><h3 class="h6">Conversation settings</h3>${response.group_role === 'owner' ? '<p class="small text-body-secondary">Transfer ownership before leaving this group.</p>' : `<button type="button" class="ph-info-line-action text-danger leave-group-btn" data-conversation-id="${idSafe}"><i class="bi bi-box-arrow-right"></i>Leave group</button>`}</div>`);
+        } else if (response.is_session) {
+          container.append('<div class="ph-info-section"><h3 class="h6">Private Learn/Swap session</h3><p class="small text-body-secondary">Propose or review schedules, confirm completion, and open Activities through your session controls.</p><button type="button" class="btn btn-outline-primary btn-sm w-100" id="openInfoSessionDetails"><i class="bi bi-calendar-event me-2"></i>Open session details</button></div>');
+        } else {
+          if (response.other_profile_url) container.append(`<a href="${escapeHtml(response.other_profile_url)}" class="btn btn-outline-primary w-100 mb-3"><i class="bi bi-person me-2"></i>View student profile</a>`);
+          container.append('<div class="ph-info-section"><h3 class="h6">Conversation settings</h3><p class="small text-body-secondary mb-0">Find older messages, manage notifications, or save this student to Favorites.</p></div>');
+          const $safety=$('<div class="ph-info-section"><h3 class="h6">Safety and privacy</h3></div>');
+          $safety.append(`<button type="button" class="ph-info-line-action delete-chat-btn" data-conversation-id="${idSafe}" data-name="${escapeHtml(conv.name)}"><i class="bi bi-trash"></i>Delete conversation for me</button>`);
+          $safety.append(`<button type="button" class="ph-info-line-action account-report-btn" data-user-id="${response.other_user_id}"><i class="bi bi-flag"></i>Report account</button>`);
+          $safety.append(`<button type="button" class="ph-info-line-action text-danger direct-block-btn" data-user-id="${response.other_user_id}" data-blocked-by-me="${response.blocked_by_me ? 1:0}"><i class="bi bi-shield-slash"></i>${response.blocked_by_me?'Unblock account':'Block account'}</button>`);
+          container.append($safety);
         }
       }, error: xhr => { if (version === infoVersion) $('#chatInfoContent').text('Could not load conversation information. Please reopen the panel to retry.'); requestError(xhr); }
     });
   }
+  $(document).on('click','#openInfoSessionDetails',function () { window.showModal('sessionDetailsModal'); });
+  $(document).on('click','#favoriteConversationPeerBtn',function () {
+    const $button=$(this);
+    groupRequest('/favorite/toggle','POST',{item_id:$button.data('user-id')},()=>showConversationInfo());
+  });
+  $(document).on('click','#editGroupNameBtn',function () {
+    $('#editGroupNameInput').val(activeConversation?.name||'');
+    $('#editGroupNameForm').data('conversation-id',$(this).data('conversation-id'));
+    window.showModal('editGroupNameModal');
+  });
+  $('#editGroupNameForm').on('submit',function (event) {
+    event.preventDefault();
+    const id=$(this).data('conversation-id');
+    groupRequest(`/messages/groups/${id}/name`,'PATCH',{name:$('#editGroupNameInput').val()},result=>{
+      window.hideModal('editGroupNameModal');
+      if (activeConversation && String(activeConversation.id)===String(id)) {activeConversation.name=result.name;renderChatHeader(activeConversation);}
+      showConversationInfo();
+    });
+  });
+  $(document).on('click','#changeGroupPhotoBtn',function () { $('#groupPhotoUpload').data('conversation-id',$(this).data('conversation-id')).trigger('click'); });
+  $('#groupPhotoUpload').on('change',function () {
+    if (!this.files?.length) return;
+    const id=$(this).data('conversation-id'),data=new FormData();
+    data.append('photo',this.files[0]);
+    $.ajax({url:`/messages/groups/${id}/photo`,type:'POST',data,contentType:false,processData:false,
+      headers:{'X-CSRF-TOKEN':$('meta[name="csrf-token"]').attr('content')},
+      success:result=>{
+        window.toast?.('success',result.message);
+        if (activeConversation && String(activeConversation.id) === String(id)) {
+          activeConversation.group_photo_url = result.photo_url + '?v=' + Date.now();
+          renderChatHeader(activeConversation);
+        }
+        refreshConversationsList();showConversationInfo();
+      },error:requestError,
+      complete:()=>{$('#groupPhotoUpload').val('');}});
+  });
+  $(document).on('click','#removeGroupPhotoBtn',async function () {
+    const id=$(this).data('conversation-id');
+    const confirmed=window.confirmAction ? (await window.confirmAction('Remove the group photo?','Remove photo')).isConfirmed : confirm('Remove group photo?');
+    if (confirmed) groupRequest(`/messages/groups/${id}/photo`,'DELETE',{},()=>{
+      if (activeConversation && String(activeConversation.id) === String(id)) {
+        activeConversation.group_photo_url = null;
+        renderChatHeader(activeConversation);
+      }
+      showConversationInfo();
+    });
+  });
   $(document).on('click', '#chatInfoBtn', function () {
     if ($('#chatInfoPanel').is(':visible')) closeDetails(); else showConversationInfo();
   });

@@ -1,6 +1,6 @@
 <p class="small text-muted">Activities are optional. Session hours and points are separate. Submit after both participants confirm completion; ordinary chat stays read-only.</p>
 @forelse($activities as $activity)
-<article class="card mb-3" id="activity-{{ $activity->id }}"><div class="card-body">
+<article class="card mb-3 ph-session-activity-card" id="activity-{{ $activity->id }}"><div class="card-body">
   <div class="d-flex justify-content-between gap-2 flex-wrap"><h2 class="h5">{{ $activity->title }}</h2><span class="badge text-bg-secondary align-self-start">{{ ['assigned'=>'Awaiting submission','submitted'=>'Awaiting review','revision'=>'Needs revision','passed'=>'Activity passed'][$activity->status] }}</span></div>
   <p class="small text-muted">{{ $activity->topic_name }} · {{ $activity->teacher->first_name }} teaches {{ $activity->learner->first_name }}</p>
   <p class="text-break" style="white-space:pre-wrap">{{ $activity->instructions }}</p>
@@ -32,7 +32,7 @@
 </div></article>
 @empty<p class="text-muted">No activities assigned for this session.</p>@endforelse
 @if($canAssign)
-<details class="card" @if($activities->isEmpty()) open @endif><summary class="card-header">Assign an activity · {{ $direction['name'] }}</summary><div class="card-body">
+<details class="card ph-session-activity-form" @if($activities->isEmpty()) open @endif><summary class="card-header">Assign an activity · {{ $direction['name'] }}</summary><div class="card-body">
 <form method="POST" action="{{ route('session-activities.store', $conversation) }}" data-activity-form>@csrf
   <label class="form-label" for="activityTitle">Title</label><input id="activityTitle" name="title" class="form-control mb-3" maxlength="150" value="{{ old('title') }}" required>
   <label class="form-label" for="activityInstructions">Instructions</label><textarea id="activityInstructions" name="instructions" class="form-control mb-3" maxlength="4000" rows="3" required>{{ old('instructions') }}</textarea>

@@ -4,39 +4,66 @@
 @section('page-title', 'Messages')
 
 @section('content')
+<input type="hidden" id="chatOwnerId" value="{{ auth()->id() }}">
 <x-modal id="sessionActivitiesModal" title="Session activities" size="lg" dialog-class="modal-dialog-centered modal-dialog-scrollable">
   <div id="sessionActivitiesError" class="text-danger mb-2" role="alert"></div>
   <div id="sessionActivitiesBody"></div>
 </x-modal>
-<div class="card shadow-sm chat-wrapper">
+<div class="card shadow-sm chat-wrapper ph-messages-ui">
   <div class="messaging-columns h-100">
     
     <!-- Left Side: Conversation List -->
-    <div class="border-end chat-sidebar d-flex flex-column bg-body rounded-start">
-      <div class="chat-column-header p-3 border-bottom d-flex justify-content-between align-items-center">
-        <h5 class="fw-bold mb-0">Messages</h5>
+    <div class="border-end chat-sidebar ph-messaging-sidebar d-flex flex-column bg-body rounded-start">
+      <div class="chat-column-header ph-chat-list-header p-3 border-bottom d-flex justify-content-between align-items-center">
+        <h1 class="h5 fw-bold mb-0">Messages</h1>
         <div class="d-flex gap-2">
-          <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#newChatModal">
-            <i class="bi bi-chat-left-text"></i>
+          <button type="button" class="btn btn-sm ph-messaging-icon-btn" data-bs-toggle="modal" data-bs-target="#newChatModal" aria-label="New direct message" title="New direct message">
+            <i class="bi bi-pencil-square" aria-hidden="true"></i>
           </button>
-          <button type="button" class="btn btn-sm btn-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#newGroupModal">
-            <i class="bi bi-people-fill"></i>
+          <button type="button" class="btn btn-sm ph-messaging-icon-btn" data-bs-toggle="modal" data-bs-target="#newGroupModal" aria-label="New group chat" title="New group chat">
+            <i class="bi bi-people" aria-hidden="true"></i>
           </button>
         </div>
       </div>
-      <div class="flex-grow-1 overflow-auto" id="conversationsList"></div>
+      <div class="ph-chat-list-tools p-3 border-bottom">
+        <label class="visually-hidden" for="conversationSearchInput">Search conversations</label>
+        <div class="ph-chat-searchbox"><i class="bi bi-search" aria-hidden="true"></i><input type="search" id="conversationSearchInput" class="form-control form-control-sm" maxlength="120" placeholder="Search conversations..."></div>
+        <div class="ph-chat-category-filters mt-3" role="group" aria-label="Conversation filters">
+          <button type="button" class="ph-chat-filter-chip is-active" data-chat-filter="all" aria-pressed="true">All</button>
+          <button type="button" class="ph-chat-filter-chip" data-chat-filter="direct" aria-pressed="false">Direct</button>
+          <button type="button" class="ph-chat-filter-chip" data-chat-filter="session" aria-pressed="false">Learn/Swap</button>
+          <button type="button" class="ph-chat-filter-chip" data-chat-filter="group" aria-pressed="false">Groups</button>
+          <button type="button" class="ph-chat-filter-chip" data-chat-filter="unread" aria-pressed="false">Unread</button>
+        </div>
+      </div>
+      @if($groupInvitations->isNotEmpty())
+        <div id="pendingGroupInvitations" class="ph-group-invite-tray p-2 border-bottom">
+          <h2 class="small fw-semibold mb-2"><i class="bi bi-envelope-open me-1" aria-hidden="true"></i>Group invitations</h2>
+          @foreach($groupInvitations as $invitation)
+            <div class="ph-group-invite-item p-2 mb-2" data-invitation-id="{{ $invitation->id }}">
+              <div class="small fw-semibold text-break">{{ $invitation->name }}</div>
+              <p class="text-body-secondary small mb-2">Accept to join this group and see its messages.</p>
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-primary group-invite-response" data-invitation-id="{{ $invitation->id }}" data-decision="accept">Accept</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary group-invite-response" data-invitation-id="{{ $invitation->id }}" data-decision="decline">Decline</button>
+              </div>
+            </div>
+          @endforeach
+        </div>
+      @endif
+      <div class="flex-grow-1 overflow-auto ph-chat-list" id="conversationsList" aria-live="polite"></div>
     </div>
 
     <!-- Right Side: Active Chat -->
-    <div class="chat-main d-flex flex-column bg-body rounded-end">
+    <div class="chat-main ph-messaging-main d-flex flex-column bg-body rounded-end">
       <div class="chat-column-header p-3 border-bottom d-flex justify-content-between align-items-center" id="chatHeader">
-        <span class="text-muted">Select a conversation to start chatting</span>
+        <span class="text-body-secondary"><i class="bi bi-chat-dots me-2" aria-hidden="true"></i>Select a conversation to start chatting</span>
       </div>
       <button type="button" id="backToLatestBtn" class="btn btn-sm btn-outline-primary m-2" style="display:none;">Back to latest messages</button>
 
-        <div class="flex-grow-1 overflow-auto p-3" id="chatMessages"></div>
+        <div class="flex-grow-1 overflow-auto p-3 ph-messages-scroller" id="chatMessages" aria-label="Conversation messages"><div class="ph-chat-empty"><i class="bi bi-chat-square-text" aria-hidden="true"></i><p class="mb-0">Choose a conversation to start chatting.</p></div></div>
       <div id="typingIndicator" class="px-3 py-1 text-muted small" role="status" aria-live="polite" style="display:none;"><span id="typingNames"></span><span class="typing-dots" aria-hidden="true"><span>●</span><span>●</span><span>●</span></span></div>
-      <div class="p-2 border-top" id="chatFooter" style="display:none;">
+      <div class="p-3 border-top ph-message-composer" id="chatFooter" style="display:none;">
         <div id="sessionFinishedNotice" class="d-none text-center text-muted py-3" role="status">— Session finished —<div class="small mt-1">This conversation is read-only. You can still review messages, rate your teacher, and open Activities.</div></div>
         <div id="blockedConversationNotice" class="d-none text-center py-3" role="status"><strong>— You blocked this account —</strong><div class="small text-muted mt-1">Unblock to send and receive new messages. Messages sent while blocked will stay hidden.</div><button type="button" id="unblockConversationBtn" class="btn btn-outline-primary btn-sm mt-2 direct-block-btn" data-blocked-by-me="1">Unblock</button></div>
 
@@ -60,9 +87,8 @@
           </ul>
           </div>
           <input type="file" id="attachmentInput" class="d-none">
-          <button type="button" id="createSessionBtn" class="btn btn-outline-primary rounded-circle flex-shrink-0 d-none" style="width:40px;height:40px;padding:0;" title="Create a session" aria-label="Create a session"><i class="bi bi-calendar-plus"></i></button>
           <input type="text" id="messageInput" maxlength="2000" class="form-control rounded-pill" placeholder="Type a message...">
-          <button type="submit" class="btn btn-primary rounded-pill px-4">Send</button>
+          <button type="submit" class="btn btn-primary rounded-pill ph-send-button" aria-label="Send message"><i class="bi bi-send" aria-hidden="true"></i><span class="d-none d-sm-inline ms-2">Send</span></button>
         </form>
       </div>
     </div>
@@ -104,7 +130,7 @@
   </x-slot:footer>
 </x-modal>
 
-<x-modal id="sessionDetailsModal" title="Session details" dialogClass="modal-dialog-centered modal-dialog-scrollable"><div id="sessionChatPanel"></div></x-modal>
+<x-modal id="sessionDetailsModal" title="Learn/Swap session details" dialogClass="modal-dialog-centered modal-dialog-scrollable" size="lg"><div id="sessionChatPanel"></div><div class="ph-session-activities-help small text-muted mt-3"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>Activities and ratings remain available after a session is completed, even when messaging is read-only.</div></x-modal>
 <x-modal id="messageReportModal" title="Report">
   <form id="messageReportForm">
     <input type="hidden" id="messageReportTargetId">
@@ -132,81 +158,89 @@
   </form>
   <x-slot:footer><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Later</button><button type="submit" form="rateTeacherForm" class="btn btn-primary" id="submitRatingBtn">Submit rating</button></x-slot:footer>
 </x-modal>
-<x-modal id="createSessionModal" title="Create a session" dialogClass="modal-dialog-centered modal-dialog-scrollable"><div id="sessionProposalModalBody"></div></x-modal>
+<x-modal id="createSessionModal" title="Create a session" dialogClass="modal-dialog-centered modal-dialog-scrollable" size="lg"><div id="sessionProposalModalBody"></div></x-modal>
 
-<x-modal id="newChatModal" title="Start a Conversation">
-  <!-- NEW: Search Input -->
-  <div class="mb-3 px-1">
-    <div class="input-group">
-      <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search"></i></span>
-      <input type="text" id="newChatSearchInput" class="form-control border-start-0 ps-0" placeholder="Search peers...">
-    </div>
-  </div>
-
-  <p id="newChatNoResults" class="text-muted text-center d-none" role="status">No peers found. Try another name.</p>
-  <div id="newChatUserList" class="d-flex flex-column gap-2" style="max-height: 300px; overflow-y:auto;">
-    @foreach($users as $user)
-    <button type="button" class="btn btn-outline-secondary text-start start-chat-btn d-flex align-items-center gap-3 border-0 py-2 px-3" data-user-id="{{ $user->id }}" data-name="{{ $user->first_name }} {{ $user->last_name }}">
-      
-      @if($user->profile_picture)
-        <img src="{{ asset('storage/' . $user->profile_picture) }}" 
-          alt="{{ $user->first_name }}" 
-          class="rounded-circle shadow-sm flex-shrink-0" style="width: 35px; height: 35px; object-fit: cover;">
-      @else
-        <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary text-white fw-bold shadow-sm flex-shrink-0" style="width: 35px; height: 35px; font-size: 0.9rem;">
-          {{ strtoupper(substr($user->first_name, 0, 1)) }}{{ strtoupper(substr($user->last_name, 0, 1)) }}
-        </div>
+<x-modal id="newChatModal" title="Start a Conversation" size="lg">
+  <p class="text-body-secondary small mb-3">Find a PeerHive student and send a direct message.</p>
+  <label class="form-label" for="newChatSearchInput">Search by username or email</label>
+  <div class="ph-chat-searchbox mb-2"><i class="bi bi-search" aria-hidden="true"></i><input type="search" id="newChatSearchInput" class="form-control" autocomplete="off" maxlength="254" placeholder="Username prefix or full email address"></div>
+  <p id="newChatSearchHelp" class="small text-body-secondary">Type at least 3 username characters or a full email address. Full-name searches are not enabled.</p>
+  <p id="newChatNoResults" class="small text-body-secondary d-none" role="status"></p>
+  <div id="newChatSearchResults" class="ph-contacts-results d-none" aria-live="polite"></div>
+  <div id="newChatSuggestions" class="ph-chat-suggestions">
+    @foreach(['Recent contacts' => $recentContacts, 'Your favorites' => $favoriteContacts] as $heading => $contacts)
+      @if($contacts->isNotEmpty())
+        <h3 class="h6 mt-3 mb-2">{{ $heading }}</h3>
+        @foreach($contacts as $contact)
+          <button type="button" class="ph-contact-row start-chat-btn" data-user-id="{{ $contact->id }}" data-name="{{ $contact->first_name }} {{ $contact->last_name }}">
+            @if($contact->profile_picture_url)
+              <img src="{{ $contact->profile_picture_url }}" class="ph-contact-avatar" alt="" loading="lazy">
+            @else
+              <span class="ph-contact-avatar ph-contact-initials">{{ strtoupper(substr($contact->first_name, 0, 1)) }}{{ strtoupper(substr($contact->last_name, 0, 1)) }}</span>
+            @endif
+            <span class="min-w-0 flex-grow-1 text-start"><strong class="d-block text-truncate">{{ $contact->first_name }} {{ $contact->last_name }}</strong><small class="text-body-secondary">{{ $contact->username ? '@'.$contact->username : 'PeerHive student' }}</small></span>
+            <i class="bi bi-chat-dots" aria-hidden="true"></i>
+          </button>
+        @endforeach
       @endif
-
-      <span class="fw-medium text-body">{{ $user->first_name }} {{ $user->last_name }}</span>
-    </button>
     @endforeach
+    @if($recentContacts->isEmpty() && $favoriteContacts->isEmpty())
+      <div class="ph-chat-list-empty"><i class="bi bi-person-plus" aria-hidden="true"></i><p class="mb-0">Find someone to chat with</p><small>Start by searching for a username or email address.</small></div>
+    @endif
   </div>
 </x-modal>
 
-<x-modal id="newGroupModal" title="Create Group Chat">
+<x-modal id="newGroupModal" title="Create Group Chat" size="lg">
+  <p class="text-body-secondary small mb-3">Start a group for your project or study circle. Selected students receive invitations and must accept before joining.</p>
   <form id="newGroupForm">
-    <div class="form-floating mb-3">
-      <input type="text" class="form-control" id="groupNameInput" placeholder="Group name">
-      <label for="groupNameInput">Group Name</label>
-    </div>
+    <label for="groupNameInput" class="form-label fw-semibold">Group name</label>
+    <input type="text" class="form-control mb-3" id="groupNameInput" placeholder="e.g. Web Design Study Group" maxlength="80" required>
     
     <label class="form-label" for="newGroupSearchInput">Find members by email or username</label>
     <input type="search" id="newGroupSearchInput" class="form-control mb-2" autocomplete="off" maxlength="254" placeholder="Full email address or username" aria-describedby="groupSearchHelp">
-    <p class="small text-muted" id="groupSearchHelp">Enter a full email address or at least 3 username characters. Select at least 2 people.</p>
+    <p class="small text-muted" id="groupSearchHelp">Search by username prefix or full email; select at least two students to invite.</p>
     <p id="groupSearchStatus" class="small text-muted" role="status" aria-live="polite">Search to find someone to add.</p>
     <div id="groupMembersList" class="d-flex flex-column gap-2 mb-3" style="max-height:200px;overflow-y:auto" aria-label="Member search results"></div>
     <h3 class="h6">Selected members (<span id="groupSelectedCount">0</span>)</h3>
-    <div id="groupSelectedMembers" class="d-flex flex-column gap-2" aria-label="Selected members"></div>
+    <div id="groupSelectedMembers" class="d-flex flex-column gap-2 ph-selected-group-members" aria-label="Selected members"></div>
     <template id="groupMemberResultTemplate">
       <button type="button" class="btn btn-outline-secondary text-start d-flex justify-content-between align-items-center gap-2">
         <span class="min-w-0 text-break"><strong class="member-name d-block"></strong><small class="member-username d-block"></small></span>
-        <span class="member-action">Add</span>
+        <span class="member-action ph-member-add-indicator"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add</span>
       </button>
     </template>
     <template id="groupSelectedMemberTemplate">
-      <div class="border rounded p-2 d-flex justify-content-between align-items-center gap-2">
+      <div class="ph-selected-group-member p-2 d-flex justify-content-between align-items-center gap-2">
         <span class="min-w-0 text-break"><strong class="member-name d-block"></strong><small class="member-username d-block text-muted"></small></span>
-        <button type="button" class="btn btn-sm btn-outline-danger">Remove</button>
+        <button type="button" class="btn btn-sm btn-outline-danger" aria-label="Remove selected member"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
       </div>
     </template>
   </form>
   <x-slot:footer>
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-    <button type="button" class="btn btn-primary" id="createGroupBtn" disabled>Create Group</button>
+    <button type="button" class="btn btn-primary" id="createGroupBtn" disabled>Send invitations &amp; create group</button>
   </x-slot:footer>
 </x-modal>
 
-<x-modal id="groupMembersModal" title="Group Members">
-  <div id="groupMembersModalList"></div>
-  <div class="input-group mt-3">
-    <select id="addMemberSelect" class="form-select" aria-label="Add a group member">
-      <option value="">Choose a peer…</option>
-      @foreach($users as $user)
-        <option value="{{ $user->id }}">{{ $user->first_name }} {{ $user->last_name }}</option>
-      @endforeach
-    </select>
-    <button type="button" class="btn btn-primary" id="addMemberBtn">Add member</button>
+<x-modal id="editGroupNameModal" title="Rename group">
+  <form id="editGroupNameForm">
+    <label for="editGroupNameInput" class="form-label">Group name</label>
+    <input id="editGroupNameInput" class="form-control" required maxlength="80" minlength="2" autocomplete="off">
+    <div class="d-flex justify-content-end gap-2 mt-3">
+      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+      <button type="submit" class="btn btn-primary">Save name</button>
+    </div>
+  </form>
+</x-modal>
+<input type="file" id="groupPhotoUpload" accept="image/jpeg,image/png,image/webp" class="d-none" aria-label="Upload group photo">
+
+<x-modal id="groupMembersModal" title="Manage Group Members" size="lg">
+  <div id="groupMembersModalList" class="ph-group-manage-list"></div>
+  <div class="border-top pt-3 mt-3">
+    <label for="addMemberSearchInput" class="form-label fw-semibold">Invite a student</label>
+    <input type="search" id="addMemberSearchInput" class="form-control mb-2" autocomplete="off" placeholder="Username prefix or full email address" maxlength="254">
+    <p class="small text-body-secondary mb-2">Members can request an invitation; owners and admins send invitations directly. Recipients must accept.</p>
+    <div id="addMemberSearchResults" class="ph-group-member-search-results"></div>
   </div>
 </x-modal>
 
@@ -214,7 +248,7 @@
 @verbatim
 <script type="text/x-template" id="message-template-reactions-html-1"><button type="button" class="btn btn-sm [[slot0]] reaction-choice" data-emoji="[[slot1]]" aria-pressed="[[slot2]]" title="Toggle [[slot3]] reaction">[[slot4]] [[slot5]]</button></script>
 
-<script type="text/x-template" id="message-template-render-attachment-1"><a href="[[slot0]]" target="_blank"><img src="[[slot1]]" class="img-fluid rounded-3 mt-1" style="max-width:220px;"></a></script>
+<script type="text/x-template" id="message-template-render-attachment-1"><a href="[[slot0]]" target="_blank" rel="noopener noreferrer" class="ph-chat-image-attachment"><img src="[[slot1]]" alt="Image attachment" class="img-fluid rounded-3 mt-1" style="max-width:260px;"></a></script>
 
 <script type="text/x-template" id="message-template-render-attachment-2"><a href="[[slot0]]" target="_blank" class="d-flex align-items-center gap-2 mt-1 text-decoration-none [[slot1]]">
       <i class="bi bi-file-earmark-arrow-down fs-5"></i> <span>[[slot2]]</span>
@@ -281,13 +315,13 @@
 
       [[slot6]]
 
-      <div class="p-2 rounded-3 [[slot7]] message-bubble" style="max-width:70%; width:fit-content;">
+      <div class="p-2 rounded-3 [[slot7]] message-bubble ph-message-bubble" style="max-width:75%; width:fit-content;">
         [[slot8]]
         [[slot9]]
         <div class="message-body">[[slot10]]</div>
         [[slot11]]
         <div class="message-reactions d-flex flex-wrap gap-1 mt-1">[[slot12]]</div>
-        <small class="d-block opacity-75 mt-1" style="font-size:0.7rem;">
+        <small class="d-block opacity-75 mt-1 ph-message-time" style="font-size:0.7rem;">
           [[slot13]][[slot14]]
         </small>
         [[slot15]]
@@ -315,18 +349,23 @@
 <script type="text/x-template" id="message-template-buttons-1"><button type="button" class="btn border-0 bg-transparent text-body-secondary shadow-none d-inline-flex align-items-center justify-content-center p-0" style="width:32px;height:32px;" id="chatInfoBtn" aria-label="Conversation info" title="Conversation info"><i class="bi bi-info-circle-fill" style="font-size:1.5rem;line-height:1;" aria-hidden="true"></i></button></script>
 
 <script type="text/x-template" id="message-template-render-chat-header-1">
-      <div class="d-flex justify-content-between align-items-center w-100">
-        <div class="d-flex align-items-center gap-2 flex-grow-1">
+      <div class="d-flex justify-content-between align-items-center w-100 gap-2">
+        <div class="d-flex align-items-center gap-2 flex-grow-1 min-w-0">
           <button type="button" id="mobileChatBack" class="btn btn-link text-body text-decoration-none d-md-none flex-shrink-0 p-2" aria-label="Back to conversations"><i class="bi bi-arrow-left" aria-hidden="true"></i></button>
-          <div class="flex-grow-1" style="min-width:0;"><span class="fw-semibold">[[slot0]]</span><small id="chatPresenceStatus" class="d-block text-muted"></small></div>
+          <span class="ph-chat-header-avatar" aria-hidden="true">[[slot2]]</span>
+          <div class="flex-grow-1 ph-chat-header-identity" style="min-width:0;"><span class="fw-semibold">[[slot0]]</span><small id="chatPresenceStatus" class="d-block text-muted">[[slot3]]</small></div>
         </div>
-        <div class="d-flex flex-wrap gap-1 justify-content-end">[[slot1]]</div>
+        <div class="d-flex gap-2 align-items-center justify-content-end ph-chat-header-actions">
+          <button type="button" id="createSessionBtn" class="btn btn-sm btn-primary ph-session-header-btn d-none" title="Propose a private session schedule" aria-label="Propose session schedule"><i class="bi bi-calendar-plus" aria-hidden="true"></i><span class="d-none d-xl-inline ms-1">Propose schedule</span></button>
+          <button type="button" id="sessionDetailsBtn" class="btn btn-sm btn-outline-primary ph-session-header-btn d-none" title="Session details and actions" aria-label="Open session details and actions"><i class="bi bi-calendar-event" aria-hidden="true"></i><span class="d-none d-xl-inline ms-1">Session details</span></button>
+          [[slot1]]
+        </div>
       </div>
     </script>
 
-<script type="text/x-template" id="message-template-render-conversations-1"><p class="text-muted text-center p-4">No conversations yet.</p></script>
+<script type="text/x-template" id="message-template-render-conversations-1"><div class="ph-chat-list-empty"><i class="bi bi-chat-dots" aria-hidden="true"></i><p class="mb-0">No conversations yet.</p><small>Start by messaging another student.</small></div></script>
 
-<script type="text/x-template" id="message-template-badge-1"><span class="badge bg-danger rounded-pill ms-2">[[slot0]]</span></script>
+<script type="text/x-template" id="message-template-badge-1"><span class="badge rounded-pill ph-chat-unread-badge ms-2" aria-label="[[slot0]] unread messages">[[slot0]]</span></script>
 
 <script type="text/x-template" id="message-template-group-icon-1"><i class="bi bi-people-fill me-1"></i></script>
 
@@ -343,16 +382,17 @@
 <script type="text/x-template" id="message-template-render-conversations-7"><li><button type="button" class="dropdown-item text-danger leave-group-btn" data-conversation-id="[[slot0]]"><i class="bi bi-box-arrow-right me-2"></i>Leave group</button></li></script>
 
 <script type="text/x-template" id="message-template-render-conversations-4">
-        <div class="conversation-list-row d-flex align-items-center border-bottom">
+        <div class="conversation-list-row d-flex align-items-center">
         <a href="#" class="d-flex flex-grow-1 min-w-0 align-items-center gap-2 p-3 text-decoration-none text-body conversation-item [[slot0]]"
            data-conversation-id="[[slot1]]" data-is-group="[[slot2]]" data-name="[[slot3]]">
           <span class="chat-avatar-wrap flex-shrink-0">[[slot4]][[slot5]]</span>
           <div class="flex-grow-1 min-w-0">
-            <div class="d-flex justify-content-between align-items-center">
-              <span class="[[slot6]] text-truncate">[[slot7]][[slot8]][[slot9]]</span>
-              [[slot10]]
+            <div class="d-flex justify-content-between align-items-center gap-1">
+              <span class="[[slot6]] text-truncate ph-conversation-name">[[slot7]][[slot8]][[slot9]]</span>
+              <time class="ph-conversation-time">[[slot20]]</time>
             </div>
-            <small class="text-muted text-truncate d-block">[[slot11]]</small>
+            <div class="d-flex align-items-center gap-1 mt-1"><span class="ph-conversation-kind">[[slot19]]</span>[[slot10]]</div>
+            <small class="text-muted text-truncate d-block mt-1">[[slot11]]</small>
           </div>
         </a>
         <div class="dropdown pe-2">
@@ -376,7 +416,7 @@
 
 <script type="text/x-template" id="message-template-render-outgoing-3"><div class="small mt-1"><i class="bi bi-paperclip"></i> [[slot0]]</div></script>
 
-<script type="text/x-template" id="message-template-render-outgoing-1"><div class="pending-message-row d-flex flex-column align-items-end mb-2" data-pending-id="[[slot0]]"><div class="p-2 rounded-3 bg-primary text-white message-bubble" style="max-width:70%;width:fit-content">[[slot1]]<div class="message-body">[[slot2]]</div>[[slot3]]</div><div class="mt-1" style="font-size:0.7rem">[[slot4]]</div></div></script>
+<script type="text/x-template" id="message-template-render-outgoing-1"><div class="pending-message-row d-flex flex-column align-items-end mb-2" data-pending-id="[[slot0]]"><div class="p-2 rounded-3 bg-primary text-white message-bubble ph-message-bubble" style="max-width:75%;width:fit-content">[[slot1]]<div class="message-body">[[slot2]]</div>[[slot3]]</div><div class="mt-1" style="font-size:0.7rem">[[slot4]]</div></div></script>
 
 <script type="text/x-template" id="message-template-fragment-2">
             <div class="d-flex justify-content-between align-items-center py-1">
