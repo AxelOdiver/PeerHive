@@ -43,7 +43,7 @@ $(document).ready(function() {
   }
 
   // Load the global search on every authenticated (dashboard) page
-  import('./pages/search.js').catch(err => console.error('Failed to load search:', err));
+  import('./pages/search-discovery.js').catch(err => console.error('Failed to load search:', err));
 
   // Get the current page from data attribute
   const pageName = document.body.dataset.page;

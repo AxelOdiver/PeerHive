@@ -79,6 +79,9 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/search', [DashboardController::class, 'search'])->name('search');
+    // v4.7.7g.1: privacy-aware global discovery, separate from the legacy /search API.
+    Route::get('/discover', [\App\Http\Controllers\SearchDiscoveryController::class, 'index'])->name('discover.index');
+    Route::get('/discover/results', [\App\Http\Controllers\SearchDiscoveryController::class, 'results'])->middleware('throttle:60,1,discover-search:')->name('discover.results');
     Route::get('/progress', [\App\Http\Controllers\LearningProgressController::class, 'index'])->name('progress.index');
     Route::put('/progress/goals', [\App\Http\Controllers\LearningProgressController::class, 'goals'])->name('progress.goals');
     Route::put('/progress/settings', [\App\Http\Controllers\LearningProgressController::class, 'settings'])->name('progress.settings');
