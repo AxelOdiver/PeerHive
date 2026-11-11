@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Community, StudySession, StudyParticipant, User, UserSubjectQualification};
+use App\Models\{CatalogEntry, Community, StudySession, StudyParticipant, User, UserSubjectQualification};
 use App\Support\LearningHub;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
+use Illuminate\Validation\{Rule, ValidationException};
 
 class StudySessionController extends Controller
 {
@@ -39,23 +39,39 @@ class StudySessionController extends Controller
     {
         $communities = Community::where('user_id', auth()->id())->orWhereHas('members', fn ($q) => $q->where('users.id', auth()->id()))->orderBy('name')->get();
         $navigationCommunity = $communities->firstWhere('id', $request->integer('community'));
-        return view('learning.create', compact('communities', 'navigationCommunity'));
+        $catalogSubjects = CatalogEntry::subjects();
+        $catalogTopics = CatalogEntry::topics();
+        $communitySubjects = $communities->pluck('subject')->filter(fn ($name) => filled($name))->unique()->sort()->values();
+        $verifiedSubjects = $request->user()->approvedTeachingQualifications()->pluck('subject_name')->unique()->sort()->values();
+        return view('learning.create', compact('communities', 'navigationCommunity', 'catalogSubjects', 'catalogTopics', 'communitySubjects', 'verifiedSubjects'));
     }
 
     public function store(Request $request)
     {
+        // Authorize community hosting before subject catalog validation.
+        // An outsider must get 403, even if the submitted subject is not in their own dropdown.
+        $communityId = $request->validate([
+            'community_id' => ['required', 'integer', 'exists:communities,id'],
+        ])['community_id'];
+        $community = Community::findOrFail($communityId);
+        abort_unless(LearningHub::member($request->user(), $community), 403, 'Join this community before hosting a session.');
+
+        $communitySubjects = Community::where('user_id', $request->user()->id)
+            ->orWhereHas('members', fn ($members) => $members->where('users.id', $request->user()->id))
+            ->pluck('subject')->filter(fn ($name) => filled($name));
+        $catalogNames = CatalogEntry::subjects()->pluck('name')->merge(CatalogEntry::topics()->pluck('name'));
+        $verifiedNames = $request->user()->approvedTeachingQualifications()->pluck('subject_name');
+        $allowedSubjects = $catalogNames->merge($verifiedNames)->merge($communitySubjects)->unique()->all();
         $data = $request->validate([
             'community_id' => ['required', 'integer', 'exists:communities,id'], 'title' => ['required', 'string', 'max:150'],
-            'description' => ['nullable', 'string', 'max:2000'], 'subject' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:2000'], 'subject' => ['required', 'string', 'max:255', Rule::in($allowedSubjects)],
             'format' => ['required', 'in:peer,tutor'], 'starts_at' => ['required', 'date_format:Y-m-d\TH:i'],
             'timezone' => ['required', 'timezone'], 'duration' => ['required', 'integer', 'between:15,240'],
             'capacity' => ['required', 'integer', 'between:2,50'], 'meeting_method' => ['required', 'in:online,in_person'],
             'meeting_details' => ['required', 'string', 'max:1000', new \App\Rules\OnlineMeetingLink($request->input('meeting_method') === 'online')],
         ]);
-        $community = Community::findOrFail($data['community_id']);
-        abort_unless(LearningHub::member($request->user(), $community), 403, 'Join this community before hosting a session.');
         $start = Carbon::createFromFormat('Y-m-d\TH:i', $data['starts_at'], $data['timezone'])->seconds(0)->utc();
-        abort_unless($start->isFuture(), 422, 'Choose a future start time in the selected timezone.');
+        if (!$start->isFuture()) throw ValidationException::withMessages(['starts_at' => 'Choose a future start time in the selected timezone.']);
         $end = $start->copy()->addMinutes((int) $data['duration']);
         $session = DB::transaction(function () use ($request, $data, $start, $end) {
             User::whereKey(auth()->id())->lockForUpdate()->firstOrFail();

@@ -3,6 +3,7 @@
 @section('content')
 <x-learning-header title="My Progress" subtitle="Explore topics, practise with peers, and track reviewed learning activities." />
 @include('learning.progress-tabs')
+<div class="ph-tabs-page-panel">
 <form method="GET" class="d-flex flex-wrap align-items-end gap-2 mb-4"><div><label for="treeSubject" class="form-label">Subject</label><select id="treeSubject" name="subject" class="form-select" aria-describedby="treeSubjectHint">@foreach($subjects as $option)<option value="{{ $option->id }}" @selected($subject?->id === $option->id)>{{ $option->name }}</option>@endforeach</select><span id="treeSubjectHint" class="form-text">Topics update when you choose a subject.</span></div><noscript><button class="btn btn-outline-primary" type="submit">Show topics</button></noscript></form>
 <div class="row g-3"><div class="col-xl-7"><section class="card border-0 shadow-sm rounded-4 p-3">
   <h2 class="h5">{{ $subject?->name ?? 'No topics available yet' }}</h2><p class="small text-muted">Lines show suggested prerequisites. You can learn any topic without completing another first.</p>
@@ -22,4 +23,5 @@
 </section>
 @endif
 </div></div>
+</div>
 @endsection

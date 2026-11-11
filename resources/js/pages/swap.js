@@ -26,23 +26,33 @@ function swapSwalOptions(overrides = {}) {
   };
 }
 
-// Tab switching
-$('#btnradio1').on('change', function () {
-  $('#sentPanel').show();
-  $('#receivedPanel').hide();
-  $('#historyPanel').hide();
-});
+// Keep the existing radio-driven tabs and request polling. Panels fade in via scoped CSS.
+function showRequestTab(tab) {
+  const ids = { sent: 'btnradio1', received: 'btnradio2', history: 'btnradio3' };
+  if (!Object.prototype.hasOwnProperty.call(ids, tab)) tab = 'sent';
+  const radio = document.getElementById(ids[tab]);
+  if (radio) radio.checked = true;
+  for (const [name, id] of Object.entries(ids)) {
+    const label = document.querySelector(`label[for="${id}"]`);
+    if (label) label.classList.toggle('is-active', name === tab);
+    const panel = document.getElementById(`${name}Panel`);
+    if (panel) panel.hidden = name !== tab;
+  }
+  document.querySelector('[data-ph-tabs-key="requests"]')?.dispatchEvent(new Event('ph:tabs-change'));
+}
 
-$('#btnradio2').on('change', function () {
-  $('#sentPanel').hide();
-  $('#receivedPanel').show();
-  $('#historyPanel').hide();
-});
-
-$('#btnradio3').on('change', function () {
-  $('#sentPanel, #receivedPanel').hide();
-  $('#historyPanel').show();
-});
+for (const [id, name] of Object.entries({ btnradio1: 'sent', btnradio2: 'received', btnradio3: 'history' })) {
+  document.getElementById(id)?.addEventListener('change', event => {
+    if (!event.target.checked) return;
+    showRequestTab(name);
+    const url = new URL(window.location.href);
+    if (name === 'sent') url.searchParams.delete('tab');
+    else url.searchParams.set('tab', name);
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+  });
+}
+const requestedTab = new URLSearchParams(window.location.search).get('tab');
+showRequestTab(['sent', 'received', 'history'].includes(requestedTab) ? requestedTab : 'sent');
 
 // Cancel / Unswap (sent tab)
 $(document).on('submit', '.cancel-swap-form', function (e) {
@@ -70,7 +80,7 @@ $(document).on('submit', '.cancel-swap-form', function (e) {
       }
     },
     error: function (xhr) {
-      $button.prop('disabled', false).text('Unswap');
+      $button.prop('disabled', false).text('Cancel request');
 
       if (window.toast) {
         window.toast('error', xhr.responseJSON?.message || 'Unable to cancel swap right now.');
@@ -115,10 +125,11 @@ $(document).on('click', '.respond-swap-btn', async function () {
     success: function (response) {
       const $card = $btn.closest('.received-swap-card');
       $card.attr('data-status', response.swap_status);
-      $card.find('.badge.fs-8').removeClass('text-bg-warning text-bg-primary text-bg-danger').addClass(isAccepting ? 'text-bg-primary' : 'text-bg-danger').text(isAccepting ? 'Accepted' : 'Declined');
-      const $actionsArea = $btn.closest('.d-flex.gap-2');
+      $card.find('.ph-request-status').removeClass('ph-request-status--pending ph-request-status--accepted ph-request-status--declined').addClass(isAccepting ? 'ph-request-status--accepted' : 'ph-request-status--declined').text(isAccepting ? 'Accepted' : 'Declined');
+      const $actionsArea = $btn.closest('.ph-request-actions');
       $actionsArea.empty();
-      if (isAccepting) $('<a>', { href: response.redirect, class: 'btn btn-success', text: 'Open conversation' }).appendTo($actionsArea);
+      if (isAccepting && response.redirect) $('<a>', { href: response.redirect, class: 'btn btn-swap w-100', text: 'Open conversation' }).appendTo($actionsArea);
+      else if (!isAccepting) $('<span>', { class: 'text-body-secondary small', text: 'No further action is required.' }).appendTo($actionsArea);
       window.refreshSidebarMessagesBadge?.();
 
       if (isAccepting) {
@@ -151,26 +162,8 @@ $(document).on('click', '.respond-swap-btn', async function () {
 });
 
 function refreshSentCount() {
-  const $cards = $('.swap-card');
-
-  if ($cards.length === 0) {
-    $('#swapList').remove();
-    $('h2.fw-bold').first().remove();
-
-    if (!$('#swapEmptyState').length) {
-      $('#sentPanel').append(`
-        <div id="swapEmptyState">
-          <h2 class="fw-bold mb-4">Swap Dashboard</h2>
-          <div class="alert alert-light text-center py-5 rounded-4 shadow-sm">
-            <i class="bi bi-people fs-1 text-muted mb-3 d-block"></i>
-            <h5 class="text-muted">You haven't selected any peers to swap with.</h5>
-            <p class="text-muted mb-0">Go back to the dashboard and click "Swap" on a student card!</p>
-            <a href="/dashboard" class="btn btn-primary mt-3">Find Peers</a>
-          </div>
-        </div>
-      `);
-    }
-  }
+  // Re-render counts and the empty state from the server. Avoid mutating page headings.
+  refreshSwapPanels();
 }
 
 $(document).on('click', '.remove-swap-btn', async function(e) {
@@ -196,8 +189,9 @@ $(document).on('click', '.remove-swap-btn', async function(e) {
         success: function (response) {
           window.toast('success', response.message || 'Swap removed successfully.');
           
-          $cardToRemove.fadeOut(400, function() {
+          $cardToRemove.fadeOut(200, function() {
               $(this).remove();
+              refreshSwapPanels();
           });
         },
         error: function (xhr) {
@@ -209,7 +203,6 @@ $(document).on('click', '.remove-swap-btn', async function(e) {
 });
 
 // Keep both users' request lists current without leaving the page.
-if (new URLSearchParams(location.search).get('tab') === 'received') $('#btnradio2').prop('checked', true).trigger('change');
 let swapRefreshPending = false;
 async function refreshSwapPanels() {
   if (document.hidden || swapRefreshPending || window.Swal?.isVisible() || $('.respond-swap-btn:disabled, .cancel-swap-btn:disabled').length) return;
@@ -228,6 +221,7 @@ async function refreshSwapPanels() {
       const label = page.querySelector(`label[for="${id}"]`);
       if (label) document.querySelector(`label[for="${id}"]`).innerHTML = label.innerHTML;
     }
+    document.querySelector('[data-ph-tabs-key="requests"]')?.dispatchEvent(new Event('ph:tabs-change'));
   } catch (error) { console.error('Unable to refresh requests', error); }
   finally { swapRefreshPending = false; }
 }

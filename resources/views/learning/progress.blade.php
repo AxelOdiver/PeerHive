@@ -3,6 +3,7 @@
 @section('content')
 <div class="{{ auth()->user()->progress_theme==='journal_cover'?'learning-journal-header p-4 rounded-4 mb-4':'' }}"><x-learning-header title="My Progress" subtitle="Your confirmed learning and teaching activity, all in one place."><a href="{{ route('study-sessions.index') }}" class="btn btn-primary">Find a study session</a><button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#progressSettingsModal">Progress settings</button></x-learning-header></div>
 @include('learning.progress-tabs')
+<div class="ph-tabs-page-panel">
 <div class="row g-3 mb-4">
 @foreach([['Confirmed sessions',$records->count(),$stats['learning'].' learning · '.$stats['teaching'].' teaching','bi-check-circle'],['Confirmed hours',number_format(($stats['learning_minutes']+$stats['teaching_minutes'])/60,1),'Scheduled duration of confirmed attendance','bi-clock'],['Subjects explored',$subjects,'Across confirmed sessions','bi-book'],['Available points',$balance,'Earned points minus unlocked rewards','bi-gift']] as [$label,$value,$caption,$icon])
 <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm rounded-4 h-100"><div class="card-body p-4"><div class="d-flex justify-content-between gap-2 text-muted small"><span>{{ $label }}</span><i class="bi {{ $icon }} text-primary"></i></div><div class="fs-2 fw-bold my-2">{{ $value }}</div><div class="small text-muted">{{ $caption }}</div></div></div></div>
@@ -35,4 +36,5 @@
 </div></article>
 <x-modal id="progressSettingsModal" title="Progress settings"><form id="progressSettingsForm" action="{{ route('progress.settings') }}" method="POST">@csrf @method('PUT')
 <label class="form-label" for="learningTimezone">Timezone</label><select id="learningTimezone" name="timezone" class="form-select">@foreach(DateTimeZone::listIdentifiers() as $zone)<option value="{{ $zone }}" @selected(old('timezone',$timezone)===$zone)>{{ $zone }}</option>@endforeach</select></form><x-slot:footer><button type="submit" form="progressSettingsForm" class="btn btn-primary">Save settings</button></x-slot:footer></x-modal>
+</div>
 @endsection

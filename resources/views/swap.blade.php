@@ -1,226 +1,85 @@
 @extends('layouts.dashboard')
-
-@section('title', 'Swap')
-
+@section('title', 'Learning Requests')
 @section('content')
-<h1 class="h3">Learning requests and skill swaps</h1>
-<p class="text-muted">Ask a verified tutor for learning help, or exchange subjects you are both approved to teach.</p>
-<div class="d-flex flex-column align-items-start gap-3 mb-4">
-  <div class="swap-tab-toggle d-inline-flex rounded-0 shadow-sm p-0 overflow-hidden w-100">
-    <input type="radio" class="btn-check" name="btnradio" id="btnradio1" autocomplete="off" checked>
-    <label class="btn swap-tab-label flex-fill border-0 rounded-0 py-2 fw-bold shadow-none" for="btnradio1">
-      Sent
-      @if($sent->count() > 0)
-        <span class="badge bg-secondary ms-1">{{ $sent->count() }}</span>
-      @endif
-    </label>
-    <input type="radio" class="btn-check" name="btnradio" id="btnradio2" autocomplete="off">
-    <label class="btn swap-tab-label flex-fill border-0 rounded-0 py-2 fw-bold shadow-none" for="btnradio2">
-      Received
-      @php $pendingReceived = $received->where('status', 'pending')->count(); @endphp
-      @if($pendingReceived > 0)
-        <span class="badge bg-danger ms-1">{{ $pendingReceived }}</span>
-      @endif
-    </label>
-    <input type="radio" class="btn-check" name="btnradio" id="btnradio3" autocomplete="off">
-    <label class="btn swap-tab-label flex-fill border-0 rounded-0 py-2 fw-bold shadow-none" for="btnradio3">
-      History
-      @if($history->count() > 0)<span class="badge bg-secondary ms-1">{{ $history->count() }}</span>@endif
-    </label>
-  </div>
-</div>
+@php
+    $requestTab = in_array(request('tab'), ['sent', 'received', 'history'], true) ? request('tab') : 'sent';
+    $pendingReceived = $received->where('status', 'pending')->count();
+@endphp
+<div class="ph-requests-page">
+    <header class="mb-4">
+        <h1 class="h3 fw-bold mb-2">Learning Requests</h1>
+        <p class="text-body-secondary mb-0">Manage learning help, skill swaps, and past conversations.</p>
+    </header>
 
-<!-- SENT TAB -->
-<div id="sentPanel">
-  @if($sent->count() > 0)
-    <h2 class="fw-bold mb-4">
-      Swap requests you sent
-      <span class="fs-5 text-muted fw-normal ms-1">({{ $sent->count() }})</span>
-    </h2>
-    <div class="row" id="swapList">
-      @foreach($sent as $swap)
-        <div class="col-md-6 mb-3 swap-card" id="swap-{{ $swap->id }}" data-swap-id="{{ $swap->id }}" data-status="{{ $swap->status }}">
-          <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
-            @if($swap->status === 'accepted')
-              <div class="position-absolute top-0 end-0 m-3 z-3">
-                <button class="btn btn-sm btn-danger text-light rounded-circle shadow-sm remove-swap-btn" data-id="{{ $swap->id }}" title="Remove Swap">
-                  <i class="bi bi-trash3-fill"></i>
-                </button>
-              </div>
-            @endif
-            <div class="d-flex flex-column h-100">
-              <div class="d-flex align-items-center gap-3">
-                @if($swap->requestedUser->profile_picture)
-                  <img src="{{ asset('storage/' . $swap->requestedUser->profile_picture) }}" 
-                    alt="{{ $swap->requestedUser->first_name }}" 
-                    class="swap-avatar rounded-circle shadow-sm flex-shrink-0">
-                @else
-                  <div class="swap-avatar-fallback rounded-circle d-flex align-items-center justify-content-center fw-bold bg-primary text-white flex-shrink-0 shadow-sm">
-                    {{ strtoupper(substr($swap->requestedUser->first_name, 0, 1)) }}{{ strtoupper(substr($swap->requestedUser->last_name, 0, 1)) }}
-                  </div>
-                @endif
-                <div>
-                  <h5 class="fw-bold mb-0">{{ $swap->requestedUser->first_name }} {{ $swap->requestedUser->last_name }}</h5>
-                  <p class="text-muted mb-0 small">{{ $swap->requestedUser->username ? '@'.$swap->requestedUser->username : '' }}</p>
-                </div>
-              </div>
-              <x-learning-request-details :swap="$swap" />
-              @if($swap->message)
-                <p class="text-muted small mt-2 mb-0 fst-italic">"{{ $swap->message }}"</p>
-              @endif
-              <div class="d-flex align-items-end gap-3 mt-auto pt-2 w-100">
-                <!-- Left Action Area (Unswap OR Go to Messages) -->
-                <div class="flex-grow-1 mb-0">
-                  @if($swap->status === 'pending')
-                    <form method="POST" action="{{ route('swap.destroy', $swap) }}" class="cancel-swap-form m-0">
-                      @csrf
-                      @method('DELETE')
-                      <button type="submit" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2 cancel-swap-btn">Unswap</button>
-                    </form>
-                  @elseif($swap->status === 'accepted')
-                    <a href="{{ route('messages', ['conversation' => $swap->conversation?->id]) }}" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2">
-                      <i class="bi bi-chat-dots me-2"></i> Go to Messages
-                    </a>
-                  @endif
-                </div>
+    <nav class="ph-tabs-nav mb-4" aria-label="Learning request sections" data-ph-tabs data-ph-tabs-key="requests">
+        <div class="ph-tabs-track">
+            <input type="radio" class="btn-check" name="btnradio" id="btnradio1" autocomplete="off" @checked($requestTab === 'sent')>
+            <label for="btnradio1" class="ph-tabs-item swap-tab-label" data-request-tab="sent" aria-controls="sentPanel">
+                Sent @if($sent->count() > 0)<span class="ph-tabs-count">{{ $sent->count() }}</span>@endif
+            </label>
+            <input type="radio" class="btn-check" name="btnradio" id="btnradio2" autocomplete="off" @checked($requestTab === 'received')>
+            <label for="btnradio2" class="ph-tabs-item swap-tab-label" data-request-tab="received" aria-controls="receivedPanel">
+                Received @if($pendingReceived > 0)<span class="ph-tabs-count ph-tabs-count--alert">{{ $pendingReceived }}</span>@endif
+            </label>
+            <input type="radio" class="btn-check" name="btnradio" id="btnradio3" autocomplete="off" @checked($requestTab === 'history')>
+            <label for="btnradio3" class="ph-tabs-item swap-tab-label" data-request-tab="history" aria-controls="historyPanel">
+                History @if($history->count() > 0)<span class="ph-tabs-count">{{ $history->count() }}</span>@endif
+            </label>
+            <span class="ph-tabs-indicator" aria-hidden="true"></span>
+        </div>
+    </nav>
 
-                <!-- Right Status Area -->
-                <div class="d-inline-flex flex-column align-items-center flex-shrink-0">
-                  <small class="text-muted mb-1">Status</small>
-                  <span class="badge fs-8 px-3 py-2
-                    @if($swap->status === 'accepted') text-bg-primary
-                    @elseif($swap->status === 'declined') text-bg-danger
-                    @else text-bg-warning
-                    @endif">
-                    {{ ucfirst($swap->status) }}
-                  </span>
-                </div>
-              </div>
+    <section id="sentPanel" class="ph-request-panel" aria-label="Sent requests" @if($requestTab !== 'sent') hidden @endif>
+        <div class="ph-request-section-heading d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+            <div><h2 class="h5 fw-bold mb-1">Sent requests</h2><p class="small text-body-secondary mb-0">Track requests you've sent to other students.</p></div>
+            <span class="small text-body-secondary">{{ $sent->count() }} {{ Str::plural('request', $sent->count()) }}</span>
+        </div>
+        @if($sent->isNotEmpty())
+            <div class="row g-0" id="swapList">
+                @foreach($sent as $swap)
+                    @include('components.peerhive-request-card', ['swap' => $swap, 'variant' => 'sent'])
+                @endforeach
             </div>
-          </div>
-        </div>
-      @endforeach
-    </div>
-  @else
-    <div id="swapEmptyState">
-      <h2 class="fw-bold mb-4">Swap Dashboard</h2>
-      <div class="alert alert-light text-center py-5 rounded-4 shadow-sm">
-        <i class="bi bi-people fs-1 text-muted mb-3 d-block"></i>
-        <h5 class="text-muted">You haven't selected any peers to swap with.</h5>
-        <p class="text-muted mb-0">Go back to the dashboard and click "Swap" on a student card!</p>
-        <a href="{{ route('dashboard') }}" class="btn btn-primary mt-3">Find Peers</a>
-      </div>
-    </div>
-  @endif
-</div>
-
-<!-- RECEIVED TAB -->
-<div id="receivedPanel" class="panel-hidden">
-  @if($received->count() > 0)
-    <h2 class="fw-bold mb-4">
-      Swap requests you received
-      <span class="fs-5 text-muted fw-normal ms-1">({{ $received->count() }})</span>
-    </h2>
-    <div class="row">
-      @foreach($received as $swap)
-        <div class="col-md-6 mb-3 received-swap-card" id="swap-{{ $swap->id }}" data-swap-id="{{ $swap->id }}" data-status="{{ $swap->status }}">
-          <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
-            @if($swap->status === 'accepted')
-              <div class="position-absolute top-0 end-0 m-3 z-3">
-                <button class="btn btn-sm btn-danger text-light rounded-circle shadow-sm remove-swap-btn" data-id="{{ $swap->id }}" title="Remove Swap">
-                  <i class="bi bi-trash3-fill"></i>
-                </button>
-              </div>
-            @endif
-            <div class="d-flex flex-column h-100">
-              <div class="d-flex align-items-center gap-3 mb-2">
-                @if($swap->requester->profile_picture)
-                  <img src="{{ asset('storage/' . $swap->requester->profile_picture) }}" 
-                    alt="{{ $swap->requester->first_name }}" 
-                    class="swap-avatar rounded-circle shadow-sm flex-shrink-0">
-                @else
-                  <div class="swap-avatar-fallback rounded-circle d-flex align-items-center justify-content-center fw-bold bg-secondary text-white flex-shrink-0 shadow-sm">
-                    {{ strtoupper(substr($swap->requester->first_name, 0, 1)) }}{{ strtoupper(substr($swap->requester->last_name, 0, 1)) }}
-                  </div>
-                @endif
-                <div>
-                  <h5 class="fw-bold mb-0">{{ $swap->requester->first_name }} {{ $swap->requester->last_name }}</h5>
-                  <p class="text-muted mb-0 small">{{ $swap->requester->username ? '@'.$swap->requester->username : '' }}</p>
-                </div>
-              </div>
-              <x-learning-request-details :swap="$swap" />
-              @if($swap->message)
-                <p class="text-muted small fst-italic mb-2">"{{ $swap->message }}"</p>
-              @endif
-              <div class="d-flex align-items-end gap-3 mt-auto pt-2 w-100">
-                <!-- Accept/Decline OR Go to Messages -->
-                <div class="flex-grow-1 mb-0">
-                  @if($swap->status === 'pending')
-                    <div class="d-flex gap-2">
-                      <button
-                        class="btn btn-primary flex-fill rounded-3 respond-swap-btn"
-                        data-swap-id="{{ $swap->id }}"
-                        data-action="accepted">
-                        <i class="bi bi-check-lg me-1"></i> Accept
-                      </button>
-                      <button
-                        class="btn btn-danger flex-fill rounded-3 respond-swap-btn"
-                        data-swap-id="{{ $swap->id }}"
-                        data-action="declined">
-                        <i class="bi bi-x-lg me-1"></i> Decline
-                      </button>
-                    </div>
-                  @elseif($swap->status === 'accepted')
-                    <a href="{{ route('messages', ['conversation' => $swap->conversation?->id]) }}" class="btn btn-swap w-100 rounded-3 text-uppercase fw-bold py-2">
-                      <i class="bi bi-chat-dots me-2"></i> Go to Messages
-                    </a>
-                  @endif
-                </div>
-                
-                <!-- Right Status Area -->
-                <div class="d-inline-flex flex-column align-items-center flex-shrink-0">
-                  <small class="text-muted mb-1">Status</small>
-                  <span class="badge fs-8 px-3 py-2
-                    @if($swap->status === 'accepted') text-bg-primary
-                    @elseif($swap->status === 'declined') text-bg-danger
-                    @else text-bg-warning
-                    @endif">
-                    {{ ucfirst($swap->status) }}
-                  </span>
-                </div>
-              </div>
+        @else
+            <div id="swapEmptyState" class="ph-request-empty text-center">
+                <i class="bi bi-send fs-2" aria-hidden="true"></i>
+                <h3 class="h6 fw-bold mt-3">No sent requests yet</h3>
+                <p class="small text-body-secondary">Explore students and ask a verified tutor for help.</p>
+                <a href="{{ route('dashboard') }}" class="btn btn-primary">Find learning partners</a>
             </div>
-          </div>
-        </div>
-      @endforeach
-    </div>
-  @else
-    <div class="alert alert-light text-center py-5 rounded-4 shadow-sm">
-      <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
-      <h5 class="text-muted">No swap requests received yet.</h5>
-      <p class="text-muted mb-0">When other students send you a swap request, it'll appear here.</p>
-    </div>
-  @endif
-</div>
+        @endif
+    </section>
 
-<div id="historyPanel" class="panel-hidden">
-  <h2 class="fw-bold mb-4">Finished sessions <span class="fs-5 text-muted fw-normal ms-1">({{ $history->count() }})</span></h2>
-  @if($history->isEmpty())
-    <div class="alert alert-light text-center py-5 rounded-4 shadow-sm"><i class="bi bi-archive fs-1 text-muted mb-3 d-block"></i><h5 class="text-muted">No finished sessions yet.</h5><p class="text-muted mb-0">Completed sessions move here from Sent or Received.</p></div>
-  @else
-    <div class="row">
-      @foreach($history as $swap)
-        @php $peer = $swap->requester_id === auth()->id() ? $swap->requestedUser : $swap->requester; @endphp
-        <div class="col-md-6 mb-3">
-          <article class="card border-0 shadow-sm rounded-4 p-3 h-100">
-            <h3 class="h5 fw-bold mb-1">{{ $peer->first_name }} {{ $peer->last_name }}</h3>
-            <p class="text-muted small mb-2">{{ $swap->request_type === 'learning' ? 'Learn · ' : 'Swap · ' }}{{ $swap->requested_subject }}@if($swap->offered_subject) ↔ {{ $swap->offered_subject }}@endif</p>
-            <span class="badge text-bg-success align-self-start mb-3">Session finished</span>
-            <a href="{{ route('messages', ['conversation' => $swap->conversation->id]) }}" class="btn btn-outline-secondary mt-auto">Review conversation</a>
-          </article>
+    <section id="receivedPanel" class="ph-request-panel" aria-label="Received requests" @if($requestTab !== 'received') hidden @endif>
+        <div class="ph-request-section-heading d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+            <div><h2 class="h5 fw-bold mb-1">Received requests</h2><p class="small text-body-secondary mb-0">Respond to students who want to learn with you.</p></div>
+            <span class="small text-body-secondary">{{ $received->count() }} {{ Str::plural('request', $received->count()) }}</span>
         </div>
-      @endforeach
-    </div>
-  @endif
+        @if($received->isNotEmpty())
+            <div class="row g-0">
+                @foreach($received as $swap)
+                    @include('components.peerhive-request-card', ['swap' => $swap, 'variant' => 'received'])
+                @endforeach
+            </div>
+        @else
+            <div class="ph-request-empty text-center"><i class="bi bi-inbox fs-2" aria-hidden="true"></i><h3 class="h6 fw-bold mt-3">No received requests yet</h3><p class="small text-body-secondary mb-0">Requests from fellow students will appear here.</p></div>
+        @endif
+    </section>
+
+    <section id="historyPanel" class="ph-request-panel" aria-label="Request history" @if($requestTab !== 'history') hidden @endif>
+        <div class="ph-request-section-heading d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+            <div><h2 class="h5 fw-bold mb-1">Request history</h2><p class="small text-body-secondary mb-0">Review finished learning and skill-swap sessions.</p></div>
+            <span class="small text-body-secondary">{{ $history->count() }} {{ Str::plural('session', $history->count()) }}</span>
+        </div>
+        @if($history->isNotEmpty())
+            <div class="row g-0">
+                @foreach($history as $swap)
+                    @include('components.peerhive-request-card', ['swap' => $swap, 'variant' => 'history'])
+                @endforeach
+            </div>
+        @else
+            <div class="ph-request-empty text-center"><i class="bi bi-archive fs-2" aria-hidden="true"></i><h3 class="h6 fw-bold mt-3">No finished sessions yet</h3><p class="small text-body-secondary mb-0">Completed learning requests will appear here.</p></div>
+        @endif
+    </section>
 </div>
 @endsection
