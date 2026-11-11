@@ -1,21 +1,21 @@
 @extends('layouts.auth')
 
-@section('title', 'Verify Login')
-@section('body-class', 'login-page bg-body-tertiary')
+@section('title', 'Verify your email')
+@section('body-class', 'login-page ph-auth-page bg-body-tertiary')
 
 @section('content')
+<main class="peerhive-login-shell ph-auth-shell" aria-label="PeerHive authentication">
+  @include('auth.partials.brand-story')
+  <section class="ph-auth-panel">
+    <div class="ph-auth-panel-inner">
   <div class="login-box">
 
-    <div class="login-logo">
-      <a href="{{ url('/') }}"><b>Peer</b>Hive</a>
-    </div>
+    <div class="ph-mobile-brand"><a href="{{ url('/') }}" aria-label="PeerHive home"><x-peerhive-logo /><span>PeerHive</span></a></div>
 
     <div class="card">
       <div class="card-body login-card-body">
-        <p class="login-box-msg">
-          <i class="bi bi-envelope-check me-1"></i>
-          We sent a 6-digit code to your email. Enter it below.
-        </p>
+        <h1 class="h4 mb-2">{{ session('otp_purpose') === 'registration' ? 'Verify your account' : 'Verify your login' }}</h1>
+        <p class="login-box-msg"><i class="bi bi-shield-check me-1" aria-hidden="true"></i>We sent a 6-digit code to your email. Enter it below.</p>
 
         <div id="otpError" class="alert alert-danger py-2 d-none"></div>
         <div id="otpSuccess" class="alert alert-success py-2 d-none"></div>
@@ -69,15 +69,15 @@
         <div class="text-center mt-2">
           <form method="POST" action="{{ route('otp.resend') }}" id="resendForm">
             @csrf
-            <button type="submit" class="btn btn-link text-muted p-0 small">
+            <button type="submit" class="btn ph-quiet-action ph-otp-resend w-100">
               Didn't receive a code? Resend
             </button>
           </form>
         </div>
 
         <div class="text-center mt-2">
-          <a href="{{ route('login') }}" class="btn btn-secondary w-100">
-            Back to Login
+          <a href="{{ route('login') }}" class="btn auth-back-button w-100 mt-2">
+            Back to log in
           </a>
         </div>
       </div>
@@ -171,4 +171,8 @@
       });
     });
   </script>
+    </div>
+  </section>
+</main>
 @endsection
+

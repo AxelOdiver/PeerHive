@@ -115,22 +115,21 @@
             <h5 class="fw-bold mb-3">Weekly Availability</h5>
             @php
                 $days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-                $scheduleByDay = $profileUser->schedules->keyBy('day_index');
+                $scheduleByDay = $profileUser->schedules->groupBy('day_index');
             @endphp
             <div class="row g-2">
                 @foreach($days as $idx => $day)
-                @php $slot = $scheduleByDay->get($idx); @endphp
+                @php($slots = $scheduleByDay->get($idx, collect())->sortBy('start_time'))
                 <div class="col-6 col-sm-4 col-md-3">
-                    <div class="border rounded-3 p-2 text-center {{ $slot ? 'border-primary bg-primary bg-opacity-10' : 'text-muted' }}">
-                        <div class="fw-semibold small">{{ $day }}</div>
-                        @if($slot)
-                            <div class="text-primary" style="font-size:0.72rem;">
-                                {{ \Carbon\Carbon::parse($slot->start_time)->format('g:i A') }} –
-                                {{ \Carbon\Carbon::parse($slot->end_time)->format('g:i A') }}
+                    <div class="ph-public-availability-day border rounded-3 p-2 {{ $slots->isNotEmpty() ? 'is-available' : 'text-muted' }}">
+                        <div class="fw-semibold small mb-2">{{ $day }}</div>
+                        @forelse($slots as $slot)
+                            <div class="ph-public-availability-slot small">
+                                <i class="bi bi-clock me-1" aria-hidden="true"></i>{{ \Carbon\Carbon::parse($slot->start_time)->format('g:i A') }} – {{ \Carbon\Carbon::parse($slot->end_time)->format('g:i A') }}
                             </div>
-                        @else
-                            <div style="font-size:0.72rem;">Not set</div>
-                        @endif
+                        @empty
+                            <div class="small text-body-secondary">Not set</div>
+                        @endforelse
                     </div>
                 </div>
                 @endforeach

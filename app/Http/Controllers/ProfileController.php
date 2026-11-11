@@ -97,6 +97,30 @@ class ProfileController extends Controller
     public function update(UpdateUserRequest $request)
     {
         $user = Auth::user();
+        foreach (['first_name', 'middle_name', 'last_name'] as $field) {
+            if (is_string($request->input($field))) $request->merge([$field => trim($request->input($field))]);
+        }
+
+        // v4.6.1: all account security changes use verified, dedicated endpoints.
+        if (mb_strtolower(trim((string)$request->input('email', $user->email))) !== mb_strtolower((string)$user->email)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'email' => 'Use Account > Change email to verify a new address before updating it.',
+            ]);
+        }
+        if ($request->filled('password')) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'password' => 'Use Account > Change password and confirm your current password.',
+            ]);
+        }
+        $request->validate([
+            'first_name' => ['required', 'string', 'max:255', 'regex:/\A[\p{L}\p{M}]+(?:[ \'-][\p{L}\p{M}]+)*\z/u'],
+            'middle_name' => ['nullable', 'string', 'max:255', 'regex:/\A[\p{L}\p{M}]+(?:[ \'-][\p{L}\p{M}]+)*\z/u'],
+            'last_name' => ['required', 'string', 'max:255', 'regex:/\A[\p{L}\p{M}]+(?:[ \'-][\p{L}\p{M}]+)*\z/u'],
+        ], [
+            'first_name.regex' => 'Use letters, spaces, apostrophes, or hyphens only.',
+            'middle_name.regex' => 'Use letters, spaces, apostrophes, or hyphens only.',
+            'last_name.regex' => 'Use letters, spaces, apostrophes, or hyphens only.',
+        ]);
 
         if ($request->hasFile('profile_picture')) {
             $path = $request->file('profile_picture')->store('profile_pictures', 'public');
@@ -114,17 +138,12 @@ class ProfileController extends Controller
         }
         $user->middle_name = $request->input('middle_name');
         $user->last_name   = $request->input('last_name');
-        $user->email       = $request->input('email');
         $user->description = $request->input('description');
 
         foreach (['learning_interests', 'course', 'expertise', 'school', 'school_location', 'show_course', 'show_expertise', 'show_school', 'show_school_location'] as $field) {
             if ($request->exists($field)) {
                 $user->{$field} = $request->validated($field);
             }
-        }
-
-        if ($request->filled('password')) {
-            $user->password = bcrypt($request->input('password'));
         }
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($user, $request) {
@@ -168,3 +187,4 @@ class ProfileController extends Controller
     }
     
 }
+

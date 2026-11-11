@@ -48,13 +48,13 @@ class LoginController extends Controller
                 $request->session()->regenerate();
 
                 if ($request->expectsJson()) {
-                    $route = $user->role === 'admin' ? route('users') : route('dashboard');
+                    $route = $user->role === 'admin' ? route('users') : route($user->onboarding_required ? 'onboarding.show' : 'dashboard');
                     return response()->json(['redirect' => $route]);
                 }
 
                 return $user->role === 'admin'
                     ? redirect()->route('users')
-                    : redirect()->route('dashboard');
+                    : redirect()->route($user->onboarding_required ? 'onboarding.show' : 'dashboard');
             }
 
             // Stale cookie — clear it
@@ -75,7 +75,7 @@ class LoginController extends Controller
 
         Mail::to($user->email)->send(new OtpMail($code, $user->first_name));
 
-        session(['otp_user_id' => $user->id]);
+        $request->session()->put(['otp_user_id' => $user->id, 'otp_purpose' => 'login']);
 
         if ($request->expectsJson()) {
             return response()->json(['redirect' => route('otp.show')]);
@@ -95,3 +95,4 @@ class LoginController extends Controller
         return redirect()->route('login');
     }
 }
+

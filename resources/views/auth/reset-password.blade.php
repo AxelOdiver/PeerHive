@@ -1,9 +1,13 @@
 @extends('layouts.auth')
 @section('title', 'Reset password')
-@section('body-class', 'login-page bg-body-tertiary')
+@section('body-class', 'login-page ph-auth-page bg-body-tertiary')
 @section('content')
+<main class="peerhive-login-shell ph-auth-shell" aria-label="PeerHive authentication">
+  @include('auth.partials.brand-story')
+  <section class="ph-auth-panel">
+    <div class="ph-auth-panel-inner">
   <div class="login-box">
-    <div class="login-logo"><a href="{{ url('/') }}" class="peerhive-auth-brand" aria-label="PeerHive home"><x-peerhive-logo /><span>PeerHive</span></a></div>
+    <div class="ph-mobile-brand"><a href="{{ url('/') }}" aria-label="PeerHive home"><x-peerhive-logo /><span>PeerHive</span></a></div>
     <div class="card">
       <div class="card-body login-card-body">
         <h1 class="h4 text-center mb-2">Choose a new password</h1>
@@ -36,8 +40,11 @@
           <button type="submit" class="btn btn-primary w-100">Reset password</button>
         </form>
         <a href="{{ route('login') }}" class="btn auth-back-button w-100 mt-3">Back to log in</a>
-        <p class="text-center small mt-3 mb-0"><a href="{{ route('password.request') }}">Request a new reset link</a></p>
       </div>
     </div>
   </div>
+    </div>
+  </section>
+</main>
 @endsection
+

@@ -3,8 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\LoginOtp;
-use App\Models\TrustedDevice;
+use App\Support\AccountCredentialRevoker;
 use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
@@ -23,7 +22,11 @@ class PasswordResetController extends Controller
     public function email(Request $request)
     {
         $credentials = $request->validate(['email' => ['required', 'email']]);
-        Password::sendResetLink($credentials);
+        $remaining = (int) $request->session()->get('password_reset_cooldown_until', 0) - now()->timestamp;
+        if ($remaining <= 0) {
+            Password::sendResetLink($credentials); // config/auth.php has a 60-second token throttle.
+            $request->session()->put('password_reset_cooldown_until', now()->addSeconds(60)->timestamp);
+        }
 
         return back()->with('status', 'If an account exists for this email, a password reset link has been sent. Check your inbox and spam folder. Please wait a minute before requesting another link.');
     }
@@ -46,11 +49,7 @@ class PasswordResetController extends Controller
         $status = Password::reset($credentials, function (User $user, string $password) {
             DB::transaction(function () use ($user, $password) {
                 $user->forceFill(['password' => Hash::make($password), 'remember_token' => Str::random(60)])->save();
-                TrustedDevice::where('user_id', $user->id)->delete();
-                LoginOtp::where('user_id', $user->id)->delete();
-                if (config('session.driver') === 'database') {
-                    DB::connection(config('session.connection'))->table(config('session.table', 'sessions'))->where('user_id', $user->id)->delete();
-                }
+                AccountCredentialRevoker::revoke($user);
             });
             event(new PasswordReset($user));
         });
@@ -59,8 +58,10 @@ class PasswordResetController extends Controller
             return back()->withInput($request->only('email'))->withErrors(['email' => 'This reset link is invalid or has expired. Please request a new one.']);
         }
 
-        $request->session()->forget('otp_user_id');
+        $request->session()->forget(['otp_user_id', 'otp_purpose']);
+        cookie()->queue(cookie()->forget('trusted_device'));
 
         return redirect()->route('login')->with('status', 'Your password has been reset. Log in with your new password.');
     }
 }
+

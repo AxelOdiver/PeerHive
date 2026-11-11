@@ -1,10 +1,14 @@
 import './password-toggle.js';
 import './password-requirements.js';
 import { initPolicyAcceptance } from './policy-acceptance.js';
+import { initRegistrationValidation } from './register-validation.js';
+import { initUsernameGenerator } from './username-generator.js';
 
 // Register page - password toggle and form submission
 $(document).ready(function() {
   initPolicyAcceptance(document, window.bootstrap.Modal);
+  initRegistrationValidation(document);
+  initUsernameGenerator(document);
   const $form = $('#form');
   const $submitButton = $('#registerSubmitBtn');
   let submitting = false;

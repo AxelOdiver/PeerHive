@@ -1,11 +1,5 @@
-<section class="mt-4" aria-labelledby="teachingVerificationHeading">
-  <details id="teaching-verification" class="card" @if($errors->has('subject') || $errors->has('proof_document')) open @endif>
-  <summary class="card-header p-3">
-    <span class="h5" id="teachingVerificationHeading">Teaching Verification</span>
-    <span class="badge text-bg-secondary ms-2">{{ $qualifications->where('status', 'pending')->count() }} pending</span>
-    <x-teaching-badges :user="auth()->user()" />
-  </summary>
-  <div class="card-body">
+<section id="teaching-verification" class="ph-teaching-verification" aria-label="Teaching verification applications">
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-3"><span class="badge text-bg-secondary">{{ $qualifications->where('status', 'pending')->count() }} pending</span><x-teaching-badges :user="auth()->user()" /></div>
   <p class="small text-muted">Apply for each topic you can teach. Each application is reviewed separately. You can learn without teaching verification. Existing broad qualifications remain valid only for their original subject.</p>
   @if($qualifications->isEmpty())<p class="small">No applications yet.</p>@else
   <ul class="list-group mb-3">@foreach($qualifications as $qualification)<li class="list-group-item"><strong>{{ $qualification->subject_name }}</strong> — {{ ucfirst($qualification->status) }} @if($qualification->rejection_reason)<div class="small text-muted">{{ $qualification->rejection_reason }}</div>@endif</li>@endforeach</ul>
@@ -16,8 +10,6 @@
     <label class="form-label">Proof for this topic<input type="file" name="proof_document" class="form-control" accept=".jpg,.jpeg,.png,.pdf" required></label>
     <p class="small text-muted mb-0">JPEG, PNG, or PDF up to 10MB. Three attempts per topic. You may apply for other topics while one is pending.</p>
     <div><button type="submit" class="btn btn-primary">Submit for approval</button></div>
-    <a href="#catalog-suggestions">Topic not listed? Suggest it for review.</a>
+    <button type="button" class="btn btn-outline-secondary btn-sm align-self-start ph-suggestion-trigger" data-bs-toggle="modal" data-bs-target="#catalogSuggestionModal" data-catalog-suggest-kind="topic"><i class="bi bi-plus-circle me-1" aria-hidden="true"></i>Topic not listed? Suggest it</button>
   </form>
-  </div>
-  </details>
 </section>

@@ -68,9 +68,13 @@ class OtpController extends Controller
 
         // ── Valid OTP ──────────────────────────────────────────────────
         $otp->delete();
+        $purpose = $request->session()->pull('otp_purpose', 'login');
         $request->session()->forget('otp_user_id');
 
         $user = User::findOrFail($userId);
+        if (($purpose === 'registration' || $user->onboarding_required) && ! $user->email_verified_at) {
+            $user->forceFill(['email_verified_at' => now()])->save();
+        }
         Auth::login($user);
         $request->session()->regenerate();
 
@@ -100,11 +104,13 @@ class OtpController extends Controller
         }
 
         if ($request->expectsJson()) {
-            $response = response()->json( Auth::user()->role === 'admin' ? ['redirect' => route('users')] : ['redirect' => route('dashboard')]);
+            $next = $user->role === 'admin' ? 'users' : ($user->onboarding_required ? 'onboarding.show' : 'dashboard');
+            $response = response()->json(['redirect' => route($next)]);
             return $cookie ? $response->withCookie($cookie) : $response;
         }
 
-        $redirect = Auth::user()->role === 'admin' ? redirect()->route('users') : redirect()->route('dashboard');
+        $next = $user->role === 'admin' ? 'users' : ($user->onboarding_required ? 'onboarding.show' : 'dashboard');
+        $redirect = redirect()->route($next);
         return $cookie ? $redirect->withCookie($cookie) : $redirect;
         });
     }
@@ -175,3 +181,4 @@ class OtpController extends Controller
         return "{$browser} on {$os}";
     }
 }
+

@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\OtpController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RegisterController;
+use App\Http\Controllers\GetStartedController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\LikeController;
@@ -20,6 +21,8 @@ use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\MessagingActivityController;
+Route::get('/profile/email/confirm', [\App\Http\Controllers\AccountSecurityController::class, 'confirmEmail'])
+    ->middleware(['signed', 'throttle:10,1,profile-email-confirm:'])->name('profile.email.confirm');
 Route::view('/terms', 'legal.terms')->name('terms');
 Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::get('/profile-pictures/{filename}', [\App\Http\Controllers\ProfilePictureController::class, 'show'])
@@ -55,7 +58,11 @@ Route::middleware('guest')->group(function () {
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'auth.session'])->group(function () {
+    Route::get('/get-started', [GetStartedController::class, 'show'])->name('onboarding.show');
+    Route::post('/get-started/skills', [GetStartedController::class, 'skills'])->name('onboarding.skills');
+    Route::post('/get-started/learn', [GetStartedController::class, 'learn'])->name('onboarding.learn');
+    Route::post('/get-started/skip', [GetStartedController::class, 'skip'])->name('onboarding.skip');
     Route::get('/progress/skill-tree', [\App\Http\Controllers\SkillTreeController::class, 'index'])->name('progress.skill-tree');
     Route::get('/admin/learning-paths', [\App\Http\Controllers\SkillTreeController::class, 'admin'])->middleware('admin')->name('admin.learning-paths');
     Route::put('/admin/learning-paths/{topic}', [\App\Http\Controllers\SkillTreeController::class, 'update'])->middleware('admin')->name('admin.learning-paths.update');
@@ -163,6 +170,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/messages/{message}', [MessageController::class, 'deleteMessage'])->name('messages.delete');
     Route::get('/history', [\App\Http\Controllers\LearningProgressController::class, 'history'])->name('history');
 
+    Route::post('/profile/email/change', [\App\Http\Controllers\AccountSecurityController::class, 'requestEmail'])
+        ->middleware('throttle:3,10,profile-email-change:')->name('profile.email.request');
+    Route::post('/profile/password/change', [\App\Http\Controllers\AccountSecurityController::class, 'updatePassword'])
+        ->middleware('throttle:5,10,profile-password-change:')->name('profile.password.update');
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
     Route::get('/profile/show', [ProfileController::class, 'show'])->name('profile.show');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');

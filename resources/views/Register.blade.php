@@ -1,14 +1,16 @@
 @extends('layouts.auth')
 
 @section('title', 'Create account')
-@section('body-class', 'login-page registration-page bg-body-tertiary')
+@section('body-class', 'login-page registration-page ph-auth-page bg-body-tertiary')
 
 @section('content')
+<main class="peerhive-login-shell ph-auth-shell" aria-label="PeerHive authentication">
+  @include('auth.partials.brand-story')
+  <section class="ph-auth-panel">
+    <div class="ph-auth-panel-inner">
   <div class="login-box">
 
-    <div class="login-logo">
-      <a href="{{ url('/') }}" class="peerhive-auth-brand" aria-label="PeerHive home"><x-peerhive-logo /><span>PeerHive</span></a>
-    </div>
+    <div class="ph-mobile-brand"><a href="{{ url('/') }}" aria-label="PeerHive home"><x-peerhive-logo /><span>PeerHive</span></a></div>
 
     <div class="card">
       <div class="card-body login-card-body">
@@ -24,7 +26,7 @@
           <div class="input-group mb-3">
             <input
               type="text"
-              autocomplete="given-name" name="first_name" id="register-first_name"
+              autocomplete="given-name" name="first_name" id="register-first_name" data-peerhive-name maxlength="255"
               class="form-control"
               placeholder="First Name"
               required
@@ -37,19 +39,23 @@
           <div class="input-group mb-3">
             <input
               type="text"
-              autocomplete="family-name" name="last_name" id="register-last_name"
+              autocomplete="family-name" name="last_name" id="register-last_name" data-peerhive-name maxlength="255" aria-describedby="peerhive-name-guidance"
               class="form-control"
               placeholder="Last Name"
               required
             >
             <div class="invalid-feedback" data-error-for="last_name"></div>
           </div>
+          <p class="form-text ph-name-hint" id="peerhive-name-guidance">Names can contain letters, spaces, apostrophes, and hyphens.</p>
 
           <div class="mb-3">
-            <label for="register-username" class="form-label">Username <span class="text-muted small">(optional)</span></label>
-            <input id="register-username" name="username" class="form-control" autocomplete="username" minlength="3" maxlength="30" pattern="[A-Za-z0-9_]+" aria-describedby="register-username-help">
-            <div class="invalid-feedback" data-error-for="username"></div>
-            <div class="form-text" id="register-username-help">3–30 letters, numbers or underscores. Others can use this to find you.</div>
+            <label for="register-username" class="form-label">Username <span class="text-danger" aria-hidden="true">*</span></label>
+            <div class="input-group ph-username-group has-validation">
+              <input id="register-username" name="username" class="form-control" autocomplete="username" minlength="3" maxlength="30" pattern="[A-Za-z0-9_]+" placeholder="Choose a username" aria-describedby="register-username-help" required>
+              <button type="button" id="peerhiveUsernameGenerator" class="btn ph-username-generate" aria-label="Generate username from your first and last name" title="Generate a username" hidden><i class="bi bi-shuffle me-1" aria-hidden="true"></i>Generate</button>
+              <div class="invalid-feedback" data-error-for="username"></div>
+            </div>
+            <div class="form-text" id="register-username-help">Required. 3–30 letters, numbers or underscores. Generate a suggestion after entering your first and last name.</div>
           </div>
           <label for="register-email" class="form-label">Email</label>
           <div class="input-group mb-3">
@@ -107,7 +113,7 @@
             <span id="registerSubmitText">Create account</span>
           </button>
         </div>
-        <p class="text-center small mt-3 mb-0">Already have an account? <a href="{{ route('login') }}">Log in</a></p>
+        <a class="btn ph-account-login-button w-100" href="{{ route('login') }}">Already have an account?</a>
       </div>
     </div>
   </div>
@@ -133,4 +139,8 @@
       </div>
     </div>
   </div>
+    </div>
+  </section>
+</main>
 @endsection
+
