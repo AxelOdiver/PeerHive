@@ -164,6 +164,9 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::post('/notifications/read-all', [\App\Http\Controllers\BellNotificationController::class, 'readAll']);
     Route::post('/notifications/clear-read', [\App\Http\Controllers\BellNotificationController::class, 'clearRead']);
     Route::post('/notifications/{notification}/read', [\App\Http\Controllers\BellNotificationController::class, 'read'])->whereNumber('notification');
+    Route::post('/notifications/{notification}/read-state', [\App\Http\Controllers\NotificationManagementController::class, 'readState'])->whereNumber('notification')->name('notifications.read-state');
+    Route::post('/notifications/{notification}/dismiss', [\App\Http\Controllers\NotificationManagementController::class, 'dismiss'])->whereNumber('notification')->name('notifications.dismiss');
+    Route::post('/notifications/clear-all', [\App\Http\Controllers\NotificationManagementController::class, 'clearAll'])->name('notifications.clear-all');
     Route::get('/messages/conversations', [MessageController::class, 'conversations'])->name('messages.conversations');
     Route::post('/messages/conversations', [MessageController::class, 'store'])->name('messages.conversations.store');
     Route::delete('/messages/conversations/{conversation}', [MessageController::class, 'destroyConversation'])->name('messages.conversations.destroy');

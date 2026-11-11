@@ -478,7 +478,11 @@ class MessageController extends Controller
         foreach (\App\Models\StudySession::visibleTo(auth()->user())->where('status', '!=', 'cancelled')->where('starts_at', '<=', now())->whereHas('participants', fn ($q) => $q->where('user_id', $userId))->get() as $session) {
             \App\Support\BellNotifications::record($userId, 'session:'.$session->id.':started', 'session', $session->title, 'Your study session started. Open it to view the details.', route('study-sessions.show', $session));
         }
-        $history = \App\Support\BellNotifications::query($userId);
+        // Dismissal is keyed by the source event, not by the bell row ID.
+        // Polling may re-create a notification row; a dismissed event stays hidden.
+        $history = \App\Support\BellNotifications::query($userId)
+            ->whereNotIn('event_key', DB::table('bell_notification_dismissals')
+                ->where('user_id', $userId)->select('event_key'));
 
         $swapNotifications = \App\Models\Swap::with(['requester', 'requestedUser'])
             ->where(fn ($q) => $q->where(fn ($incoming) => $incoming->where('requested_user_id', $userId)->where('status', 'pending'))
