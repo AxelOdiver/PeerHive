@@ -68,8 +68,8 @@ $(document).ready(async function () {
     }
 
     if (isCreateMode) {
-      $modalTitle.text('Create User');
-      $saveButton.text('Create User');
+      $modalTitle.text('Create user');
+      $saveButton.text('Create user');
       $saveButton.removeClass('d-none');
       $passwordFields.removeClass('d-none');
       $confirmPasswordWrap.addClass('is-visible');
@@ -79,7 +79,7 @@ $(document).ready(async function () {
     }
 
     $modalTitle.text('Edit User');
-    $saveButton.text('Save Changes');
+    $saveButton.text('Save changes');
     $saveButton.removeClass('d-none');
     $passwordFields.removeClass('d-none');
     $confirmPasswordWrap.removeClass('is-visible');

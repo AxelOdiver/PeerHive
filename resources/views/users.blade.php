@@ -5,16 +5,11 @@
 @section('content')
 <div class="card border-0 shadow-sm rounded-4">
     <div class="card-body p-4">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
-            <div>
-                <h1 class="h3 fw-bold mb-1">Users</h1>
-                <p class="text-muted mb-0">Browse the user directory and export the table when needed.</p>
-            </div>
-            <button class="btn btn-primary create-user">
-                <i class="bi bi-plus-lg me-1"></i>
-                Create User
+        <x-page-header title="Users" subtitle="Browse the user directory and export the table when needed.">
+            <button type="button" class="btn btn-primary create-user">
+                <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Create user
             </button>
-        </div>
+        </x-page-header>
         
         <div id="usersTableShell" class="table-responsive users-table-shell is-loading">
             <div class="users-table-loading text-muted small py-4">
@@ -79,7 +74,7 @@
         
         <x-slot:footer>
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="submit" class="btn btn-primary" id="sendEditUserBtn" form="userForm">Save Changes</button>
+            <button type="submit" class="btn btn-primary" id="sendEditUserBtn" form="userForm">Save changes</button>
         </x-slot:footer>
     </x-modal>
 @endsection

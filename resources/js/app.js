@@ -38,6 +38,10 @@ $(document).ready(function() {
     element.addEventListener('click', () => tooltip.hide());
   });
 
+  if (document.querySelector('[data-ph-tabs]')) {
+    import('./pages/peerhive-tabs.js').catch(err => console.error('Failed to load PeerHive tabs:', err));
+  }
+
   // Load the global search on every authenticated (dashboard) page
   import('./pages/search.js').catch(err => console.error('Failed to load search:', err));
 
@@ -59,6 +63,7 @@ $(document).ready(function() {
     'community': () => import('./pages/community.js'),
     'community.show': () => import('./pages/community-show.js'),
     'messages': () => import('./pages/messages.js'),
+    'study-sessions.create': () => import('./pages/create-session-wizard.js'),
     'study-sessions.show': () => import('./pages/study-session.js'),
     'progress.skill-tree': () => import('./pages/skill-tree.js'),
   };

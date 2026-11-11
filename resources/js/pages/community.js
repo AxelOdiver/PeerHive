@@ -45,8 +45,8 @@ $(document).ready(function () {
     $editForm.find('input:not([type="hidden"]), textarea').prop('readOnly', false);
 
     if (isCreateMode) {
-      $modalTitle.text('Create Community');
-      $saveButton.text('Create Community');
+      $modalTitle.text('Create community');
+      $saveButton.text('Create community');
       $saveButton.removeClass('d-none');
       clearValidationErrors();
       return;

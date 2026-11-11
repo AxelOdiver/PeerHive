@@ -677,3 +677,1513 @@ div.dt-container .dt-button.btn {
 .reward-swatch { width:70px;height:70px;border-radius:50%;display:grid;place-items:center;background:var(--bs-tertiary-bg);color:var(--bs-body-color); }
 .learning-journal-header { background:linear-gradient(120deg,var(--bs-warning-bg-subtle),var(--bs-body-bg));border-left:4px solid var(--bs-warning); }
 @media(max-width:575.98px) { .learning-chart {gap:4px}.learning-chart-day .small {font-size:.68rem} }
+
+/* PeerHive authentication v2. Scoped to login, registration, recovery, and OTP. */
+body.auth-page.ph-auth-page {
+  --ph-navy: #102440;
+  --ph-navy-soft: #1c3d66;
+  --ph-orange: #ffa500;
+  --ph-paper: #ffffff;
+  --ph-field: #ffffff;
+  --ph-border: #d8e0ea;
+  --ph-text: #152942;
+  --ph-muted: #63748a;
+  --ph-contrast: #102440;
+  min-height: 100dvh;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  padding: 0;
+  background: var(--ph-paper) !important;
+  color: var(--ph-text);
+}
+html[data-bs-theme="dark"] body.auth-page.ph-auth-page {
+  --ph-paper: #121e30;
+  --ph-field: #1b2a3e;
+  --ph-border: #40516b;
+  --ph-text: #f2f6ff;
+  --ph-muted: #b7c5d7;
+  --ph-contrast: #ffa500;
+}
+body.ph-auth-page > .auth-appearance {
+  position: absolute;
+  top: 1.25rem;
+  right: clamp(1.2rem, 3.8vw, 4.5rem);
+  z-index: 10;
+  align-self: auto;
+  margin: 0;
+}
+body.ph-auth-page > .text-center.small.py-3 {
+  flex-shrink: 0;
+  background: var(--ph-paper);
+  margin: 0;
+  padding: .85rem 1rem !important;
+}
+.ph-auth-shell.peerhive-login-shell {
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: none;
+  min-height: calc(100dvh - 46px);
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 46%) minmax(0, 54%);
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--ph-paper);
+}
+.ph-auth-story {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+  min-height: 100%;
+  padding: clamp(2rem, 4.2vw, 5.2rem);
+  color: #fff;
+  background: radial-gradient(circle at 100% 95%, rgba(255,165,0,.23), transparent 38%),
+              radial-gradient(circle at 0% 10%, rgba(255,255,255,.07), transparent 38%),
+              linear-gradient(145deg, #102440 0%, #193b64 100%);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.ph-auth-story::after {
+  content: '';
+  position: absolute;
+  width: 410px;
+  height: 410px;
+  right: -225px;
+  bottom: -240px;
+  border: 64px solid rgba(255,255,255,.035);
+  border-radius: 50%;
+  z-index: -1;
+}
+.ph-story-brand {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: .75rem;
+  font-weight: 750;
+  font-size: 1.65rem;
+  letter-spacing: -.035em;
+  color: white;
+  text-decoration: none;
+}
+.ph-story-brand:hover { color: white; }
+.ph-story-brand .peerhive-logo-mark { width: 54px; height: 54px; border-radius: 15px; }
+.ph-story-body { max-width: 510px; margin-block: 4rem; }
+.ph-story-eyebrow { display: inline-flex; align-items: center; gap: .5rem; color: #ffce72; font-size: .8rem; font-weight: 750; letter-spacing: .13em; }
+.ph-story-body h2 { margin: 1.2rem 0 1.25rem; font-weight: 780; line-height: 1.08; letter-spacing: -.05em; font-size: clamp(2.35rem, 4vw, 4.7rem); }
+.ph-story-body h2 span { color: #ffba36; }
+.ph-story-body > p { font-size: clamp(.98rem, 1.2vw, 1.12rem); line-height: 1.75; color: #d7e4f6; max-width: 460px; }
+.ph-story-features { display: grid; gap: 1.15rem; margin-top: 3rem; }
+.ph-story-features > div { display: flex; align-items: center; gap: .85rem; color: #eff5ff; font-size: .91rem; }
+.ph-story-features i { display: grid; place-items: center; width: 41px; height: 41px; border-radius: 11px; font-size: 1.08rem; color: #ffbd45; background: rgba(255,255,255,.09); }
+.ph-story-footer { margin: 0; color: #c6d6eb; font-size: .8rem; }
+.ph-auth-panel { display: flex; align-items: center; justify-content: center; min-width: 0; background: var(--ph-paper); padding: 5rem clamp(1.5rem, 6vw, 6.5rem) 3.5rem; }
+.ph-auth-panel-inner { width: min(100%, 470px); min-width: 0; }
+.ph-auth-page .login-box, .ph-auth-page .registration-page > .login-box, .ph-auth-page .auth-page > .login-box {
+  display: block;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  flex: initial;
+}
+.ph-auth-page .login-logo { text-align: left; margin: 0 0 2rem; line-height: normal; }
+.ph-auth-page .peerhive-auth-brand { justify-content: flex-start; font-size: 1.3rem; color: var(--ph-text); font-weight: 750; }
+.ph-auth-page .peerhive-auth-brand:hover { color: var(--ph-text); }
+.ph-auth-page .peerhive-auth-brand .peerhive-logo-mark { width: 43px; height: 43px; border-radius: 12px; }
+.ph-auth-page .card { background: transparent; box-shadow: none; border: none; border-radius: 0; margin: 0; }
+.ph-auth-page .login-card-body { background: transparent; padding: 0; color: var(--ph-text); }
+.ph-auth-page .login-card-body h1 { text-align: left !important; font-size: clamp(1.7rem, 2.5vw, 2.25rem); font-weight: 750; letter-spacing: -.035em; line-height: 1.15; color: var(--ph-text); }
+.ph-auth-page .login-box-msg { padding: 0; margin: .55rem 0 1.8rem; text-align: left; color: var(--ph-muted); font-size: .94rem; line-height: 1.5; }
+.ph-auth-page .form-label { margin-bottom: .55rem; font-weight: 650; color: var(--ph-text); font-size: .88rem; }
+.ph-auth-page input.form-control, .ph-auth-page .input-group-text, .ph-auth-page .form-select { background: var(--ph-field); border-color: var(--ph-border); color: var(--ph-text); min-height: 48px; }
+.ph-auth-page input.form-control { border-radius: 10px; padding-inline: .95rem; }
+.ph-auth-page .input-group > input.form-control:not(:last-child) { border-radius: 10px 0 0 10px; }
+.ph-auth-page .input-group > .input-group-text { border-radius: 0 10px 10px 0; }
+.ph-auth-page .input-group .input-group-text { border-left: 0; }
+.ph-auth-page input.form-control:focus { box-shadow: 0 0 0 .18rem rgba(255,165,0,.2); border-color: #c88a21; }
+.ph-auth-page input.form-control.is-invalid, .ph-auth-page input.form-control.is-invalid:focus { border-color: #dc3545; box-shadow: 0 0 0 .14rem rgba(220,53,69,.10); }
+.ph-auth-page .input-group:has(input.is-invalid) .input-group-text { border-color: #dc3545; }
+.ph-auth-page .invalid-feedback { font-size: .8rem; }
+.ph-auth-page .form-text, .ph-auth-page .text-body-secondary { color: var(--ph-muted) !important; }
+.ph-auth-page .toggle-password { cursor: pointer; }
+.ph-auth-page .toggle-password:hover { color: var(--ph-orange); }
+.ph-auth-page .btn-primary, .ph-auth-page .peerhive-login-submit {
+  --bs-btn-bg: #102440;
+  --bs-btn-border-color: #102440;
+  --bs-btn-color: #fff;
+  --bs-btn-hover-bg: #1c3d66;
+  --bs-btn-hover-border-color: #1c3d66;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-active-bg: #102440;
+  --bs-btn-active-border-color: #102440;
+  --bs-btn-active-color: #fff;
+  min-height: 48px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+html[data-bs-theme="dark"] .ph-auth-page .btn-primary,
+html[data-bs-theme="dark"] .ph-auth-page .peerhive-login-submit {
+  --bs-btn-bg: #ffa500;
+  --bs-btn-border-color: #ffa500;
+  --bs-btn-color: #102440;
+  --bs-btn-hover-bg: #ffc15a;
+  --bs-btn-hover-border-color: #ffc15a;
+  --bs-btn-hover-color: #102440;
+}
+.ph-auth-page .peerhive-login-forgot { margin: 1rem auto 0; text-align: center; }
+.ph-auth-page .peerhive-login-forgot a { font-size: .9rem; color: var(--ph-contrast); font-weight: 650; text-decoration: none; }
+.ph-auth-page .peerhive-login-forgot a:hover { text-decoration: underline; }
+.ph-auth-page .peerhive-login-divider { display: flex; align-items: center; gap: .9rem; margin: 1.8rem 0 1.15rem; color: var(--ph-muted); font-size: .8rem; }
+.ph-auth-page .peerhive-login-divider::before, .ph-auth-page .peerhive-login-divider::after { content: ''; flex: 1; height: 1px; background: var(--ph-border); }
+.ph-auth-page .peerhive-login-register, .ph-auth-page .auth-back-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 48px;
+  border: 1px solid var(--ph-border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ph-text);
+  font-weight: 700;
+}
+.ph-auth-page .peerhive-login-register:hover, .ph-auth-page .auth-back-button:hover { border-color: var(--ph-orange); background: rgba(255,165,0,.08); color: var(--ph-text); }
+.ph-auth-page a:focus-visible, .ph-auth-page button:focus-visible { outline: 2px solid var(--ph-orange); outline-offset: 3px; }
+.ph-auth-page .form-check-input:checked { background-color: #102440; border-color: #102440; }
+.ph-auth-page .ph-name-hint { margin-top: -.5rem; margin-bottom: 1.2rem; font-size: .8rem; }
+.ph-auth-page.registration-page .ph-auth-panel { align-items: flex-start; padding-top: 5rem; }
+.ph-auth-page.registration-page .login-box { max-width: none; }
+.ph-auth-page #otpCode { letter-spacing: .35rem !important; }
+@media (max-width: 900px) {
+  .ph-auth-shell.peerhive-login-shell { grid-template-columns: minmax(0, 1fr); min-height: calc(100dvh - 46px); }
+  .ph-auth-story { display: none; }
+  .ph-auth-panel { padding: 5.5rem 1.5rem 3rem; }
+  .ph-auth-page.registration-page .ph-auth-panel { padding-top: 5.5rem; }
+}
+@media (max-width: 520px) {
+  body.ph-auth-page > .auth-appearance { top: .8rem; right: .8rem; }
+  .ph-auth-panel { padding: 5.25rem 1.15rem 2.2rem; }
+  .ph-auth-page .login-logo { margin-bottom: 1.3rem; }
+  .ph-auth-page .peerhive-auth-brand .peerhive-logo-mark { width: 38px; height: 38px; }
+  .ph-auth-page .login-card-body h1 { font-size: 1.75rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ph-auth-page .btn, .ph-auth-page .form-control { transition: none; }
+}
+
+
+/* Authentication v3 layout refinements: keep full-height panels without clipping. */
+body.ph-auth-page > .text-center.small.py-3 { display: none !important; }
+.ph-auth-shell.peerhive-login-shell { min-height: 100dvh; flex: 1 0 auto; overflow: visible; }
+.ph-auth-panel { min-height: 100dvh; padding-block: 5.75rem 3.5rem; }
+.ph-auth-story { min-height: 100%; }
+.ph-story-footer { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1.3rem; }
+.ph-story-footer p { margin: 0; }
+.ph-story-legal { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+.ph-story-legal a { color: #d9e6f7; text-decoration: none; }
+.ph-story-legal a:hover, .ph-story-legal a:focus { color: #ffca6d; text-decoration: underline; }
+.ph-mobile-brand { display: none; }
+.ph-mobile-legal { display: none; }
+.ph-secure-note { display: flex; align-items: flex-start; gap: .65rem; line-height: 1.5; }
+.ph-secure-note .bi { color: #be8018; font-size: 1.15rem; flex-shrink: 0; }
+.ph-auth-page .ph-account-login-button {
+  display:flex; align-items:center; justify-content:center; min-height:48px; margin-top:.9rem;
+  border: 1px solid var(--ph-border); border-radius:10px; background:transparent; color: var(--ph-text);
+  font-weight: 700; transition: background .17s ease, border-color .17s ease, box-shadow .17s ease;
+}
+.ph-auth-page .ph-account-login-button:hover, .ph-auth-page .ph-account-login-button:focus-visible {
+  border-color: #ffa500; background: rgba(255,165,0,.15); color: var(--ph-text);
+  box-shadow: 0 0 0 .15rem rgba(255,165,0,.1);
+}
+@media(max-width:900px) {
+  .ph-auth-shell.peerhive-login-shell { min-height: auto; }
+  .ph-auth-panel { min-height: calc(100dvh - 54px); padding: 5.2rem 1.5rem 2rem; }
+  .ph-mobile-brand { display: flex; align-items:center; margin-bottom: 1.8rem; }
+  .ph-mobile-brand a { display:inline-flex; align-items:center; gap:.65rem; text-decoration:none; color: var(--ph-text); font-weight:750; font-size:1.25rem; }
+  .ph-mobile-brand .peerhive-logo-mark { width:39px; height:39px; }
+  .ph-mobile-legal { display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:.8rem; padding: 0 1rem 1.25rem; background: var(--ph-paper); font-size:.82rem; }
+  .ph-mobile-legal a { color:var(--ph-muted); }
+}
+@media(max-width:520px) { .ph-auth-panel { padding: 5.15rem 1.15rem 2rem; } }
+
+/* Two-step onboarding. Existing dashboard styles remain unchanged. */
+.ph-get-started { max-width: 820px; padding: clamp(1rem, 3vw, 2.25rem) 0 3rem; }
+.ph-onboarding-kicker { font-size:.78rem; font-weight:750; letter-spacing:.14em; color:var(--bs-secondary-color); }
+.ph-onboarding-progress { background:var(--bs-secondary-bg); height:6px; overflow:hidden; border-radius:999px; }
+.ph-onboarding-progress span { display:block; height:100%; background:#ffa500; border-radius:999px; }
+.ph-onboarding-topics { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:.65rem; }
+.ph-onboarding-topic { display:flex; align-items:center; justify-content:space-between; gap:.6rem; cursor:pointer; padding:.9rem 1rem; background:var(--bs-body-bg); border:1px solid var(--bs-border-color); border-radius:12px; font-size:.92rem; }
+.ph-onboarding-topic input { position:absolute; opacity:0; pointer-events:none; }
+.ph-onboarding-topic i { color:var(--bs-secondary-color); opacity:.3; }
+.ph-onboarding-topic:has(input:checked) { border-color:#e6a132; background:var(--bs-warning-bg-subtle); }
+.ph-onboarding-topic:has(input:checked) i { opacity:1; color:#be8018; }
+.ph-onboarding-topic:has(input:focus-visible) { outline:3px solid var(--bs-primary); outline-offset:2px; }
+.ph-onboarding-topic:has(input:disabled) { opacity:.55; cursor:not-allowed; }
+.ph-onboarding-topic[hidden], .ph-topic-category[hidden] { display:none!important; }
+
+
+/* PeerHive v4: quieter actions, rounded registration controls, and branded account navigation. */
+.ph-quiet-action, .ph-auth-page .ph-quiet-action {
+  display: inline-flex; align-items: center; justify-content: center; gap: .35rem;
+  min-height: 40px; padding: .45rem .95rem; border: 1px solid transparent;
+  border-radius: 10px; background: transparent; color: var(--ph-contrast, var(--bs-secondary-color));
+  font-weight: 600; text-decoration: none; line-height: 1.35;
+  transition: background-color .16s ease, color .16s ease;
+}
+.ph-quiet-action:hover, .ph-auth-page .ph-quiet-action:hover,
+.ph-quiet-action:focus-visible, .ph-auth-page .ph-quiet-action:focus-visible {
+  background: var(--bs-secondary-bg); color: var(--ph-text, var(--bs-body-color));
+  text-decoration: none;
+}
+.ph-auth-page .peerhive-login-forgot a.ph-quiet-action { color: var(--ph-contrast); font-size: .9rem; }
+.ph-auth-page .peerhive-login-forgot a.ph-quiet-action:hover { text-decoration: none; }
+.ph-auth-page .ph-otp-resend { color: var(--ph-muted); }
+.ph-auth-page .ph-otp-resend:hover { background: var(--bs-secondary-bg); color: var(--ph-text); }
+.ph-get-started .ph-onboarding-skip { color: var(--bs-secondary-color); }
+.ph-get-started .ph-onboarding-skip:hover { color: var(--bs-body-color); }
+.ph-get-started .ph-onboarding-actions { min-width: 0; }
+@media(max-width: 380px) { .ph-get-started .ph-onboarding-actions { width: 100%; justify-content: space-between !important; } }
+
+/* Every registration control receives consistent 12px end-caps, including invalid-feedback groups. */
+.ph-auth-page.registration-page .input-group > .form-control:first-child {
+  border-top-left-radius: 12px; border-bottom-left-radius: 12px;
+}
+.ph-auth-page.registration-page .input-group > .form-control:has(+ .invalid-feedback) {
+  border-radius: 12px;
+}
+.ph-auth-page.registration-page .input-group > .input-group-text,
+.ph-auth-page.registration-page .input-group > .toggle-password,
+.ph-auth-page.registration-page .input-group > .ph-username-generate {
+  border-top-right-radius: 12px; border-bottom-right-radius: 12px;
+}
+.ph-auth-page.registration-page .ph-username-group > .form-control:has(+ .ph-username-generate) {
+  border-radius: 12px 0 0 12px;
+}
+.ph-auth-page.registration-page .ph-username-generate {
+  min-height: 48px; border: 1px solid var(--ph-border); border-left: 0;
+  background: var(--ph-field); color: var(--ph-navy); padding-inline: .9rem;
+  font-size: .85rem; font-weight: 700;
+}
+.ph-auth-page.registration-page .ph-username-generate:hover { background: rgba(255,165,0,.12); color: var(--ph-navy); }
+.ph-auth-page.registration-page .ph-username-generate:focus-visible { outline: 2px solid #ffa500; outline-offset: 2px; }
+.ph-auth-page.registration-page .ph-username-generate[hidden] { display: none !important; }
+.ph-auth-page.registration-page .ph-username-group:has(.ph-username-generate[hidden]) > .form-control { border-radius: 12px; }
+html[data-bs-theme="dark"] .ph-auth-page.registration-page .ph-username-generate { color: #ffbc4c; }
+
+body[data-authenticated="true"] { --ph-navy: #102440; --ph-orange: #ffa500; --ph-navy-soft: #1c3d66; }
+body[data-authenticated="true"] .app-header.peerhive-topnav {
+  background: var(--bs-body-bg) !important; border-bottom: 2px solid #ffa500;
+}
+body[data-authenticated="true"] .app-sidebar { background: #102440 !important; }
+body[data-authenticated="true"] .app-sidebar .sidebar-brand { background: #0b1b33; }
+body[data-authenticated="true"] .app-sidebar .nav-link { color: #e5ecf6; }
+body[data-authenticated="true"] .app-sidebar .nav-link:hover { background: rgba(255,165,0,.12); color: #fff; }
+body[data-authenticated="true"] .app-sidebar .nav-link.active { color: #fff; border-left: 3px solid #ffa500; background: rgba(255,165,0,.17); }
+body[data-authenticated="true"] .app-sidebar .peerhive-wordmark { color: white; }
+body[data-authenticated="true"] .ph-profile-trigger {
+  display: inline-flex; align-items: center; gap: .65rem;
+  border: 1px solid var(--bs-border-color); border-radius: 999px;
+  min-height: 44px; padding: .2rem .65rem .2rem .25rem;
+  background: transparent; color: var(--bs-body-color);
+  font-size: .88rem; font-weight: 700; max-width: 220px;
+  transition: border-color .16s ease, background-color .16s ease;
+}
+body[data-authenticated="true"] .ph-profile-trigger:hover,
+body[data-authenticated="true"] .ph-profile-trigger[aria-expanded="true"] {
+  border-color: #ffa500; background: rgba(255,165,0,.10);
+}
+body[data-authenticated="true"] .ph-profile-trigger:focus-visible { outline: 2px solid #ffa500; outline-offset: 2px; }
+body[data-authenticated="true"] .ph-topnav-avatar {
+  width: 36px; height: 36px; object-fit: cover; border-radius: 50%; border: 2px solid #ffa500;
+}
+body[data-authenticated="true"] .ph-topnav-account-name { max-width: 132px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body[data-authenticated="true"] .ph-profile-chevron { font-size: .73rem; color: var(--bs-secondary-color); }
+body[data-authenticated="true"] .ph-profile-trigger.dropdown-toggle::after { display: none; }
+body[data-authenticated="true"] .ph-account-dropdown {
+  width: min(320px, calc(100vw - 1.25rem)); border: 1px solid var(--bs-border-color);
+  border-top: 3px solid #ffa500; border-radius: 14px; padding-block: .4rem;
+  background: var(--bs-body-bg); overflow: hidden;
+}
+body[data-authenticated="true"] .ph-account-item {
+  display:flex; align-items:center; gap:.75rem; min-height:43px; padding: .55rem 1rem;
+  color: var(--bs-body-color); font-size: .9rem;
+}
+body[data-authenticated="true"] .ph-account-item i { color: #bc7c00; font-size: 1.06rem; width: 20px; text-align: center; }
+body[data-authenticated="true"] .ph-account-item:hover,
+body[data-authenticated="true"] .ph-account-item:focus { background: var(--bs-secondary-bg); color: var(--bs-body-color); }
+body[data-authenticated="true"] .ph-logout-item:hover { color: #b22737; }
+body[data-authenticated="true"] .ph-dark-mode-switch { cursor: pointer; width: 2.25rem; height: 1.2rem; }
+body[data-authenticated="true"] .ph-dark-mode-switch:checked { background-color: #ffa500; border-color: #ffa500; }
+body[data-authenticated="true"] .ph-dark-mode-switch:focus-visible { box-shadow: 0 0 0 .2rem rgba(255,165,0,.22); }
+body[data-authenticated="true"] .ph-account-nav { flex-shrink: 0; }
+.ph-help-modal .modal-header { border-top: 3px solid #ffa500; }
+@media(max-width:575.98px) {
+  body[data-authenticated="true"] .ph-profile-trigger { padding-inline: .22rem .55rem; gap: .25rem; }
+  body[data-authenticated="true"] .peerhive-topnav .navbar-nav.w-75 { width:auto !important; min-width:0; flex:1 1 auto; }
+  body[data-authenticated="true"] .peerhive-topnav #searchWrapper { min-width:0; flex:1 1 auto; }
+  body[data-authenticated="true"] .ph-topnav-avatar { width: 34px; height: 34px; }
+  body[data-authenticated="true"] .ph-profile-chevron { font-size: .65rem; }
+}
+html[data-bs-theme="dark"] body[data-authenticated="true"] .app-header.peerhive-topnav { background: #14253b !important; }
+html[data-bs-theme="dark"] body[data-authenticated="true"] .ph-account-item i { color: #ffbd47; }
+@media(prefers-reduced-motion: reduce) {
+  .ph-quiet-action, .ph-profile-trigger { transition: none !important; }
+}
+
+
+/* PeerHive v4.3: consistent rounded fields, quiet actions, seamless navigation. */
+/* Bootstrap has-validation leaves a square end-cap when invalid feedback is present. */
+.ph-auth-page.registration-page .input-group:has(> .form-control + .invalid-feedback) > .form-control {
+  border-radius: 12px !important;
+}
+.ph-auth-page.registration-page .input-group:has(> .ph-username-generate[hidden]) > .form-control {
+  border-radius: 12px !important;
+}
+.ph-auth-page.registration-page .input-group > .form-control:first-child:not(:last-child) {
+  border-top-left-radius: 12px !important;
+  border-bottom-left-radius: 12px !important;
+}
+.ph-auth-page.registration-page .input-group > :is(.input-group-text, .toggle-password, .ph-username-generate):not([hidden]) {
+  border-top-right-radius: 12px !important;
+  border-bottom-right-radius: 12px !important;
+}
+.ph-auth-page.registration-page .input-group:has(.is-invalid) > :is(.input-group-text, .toggle-password, .ph-username-generate) {
+  border-color: #dc3545;
+}
+/* Full-width transparent actions match the main button dimensions. */
+.ph-auth-page .peerhive-login-forgot, .ph-auth-page .peerhive-login-forgot > .ph-quiet-action,
+.ph-auth-page #resendForm, .ph-auth-page #resendForm .ph-otp-resend {
+  display: flex; align-items: center; justify-content: center; width: 100%;
+}
+.ph-auth-page .peerhive-login-forgot > .ph-quiet-action,
+.ph-auth-page #resendForm .ph-otp-resend {
+  min-height: 48px; border: 0 !important; border-radius: 12px;
+  background: transparent; box-shadow: none !important; color: var(--ph-contrast);
+}
+.ph-auth-page .peerhive-login-forgot > .ph-quiet-action:hover,
+.ph-auth-page #resendForm .ph-otp-resend:hover {
+  background: var(--bs-secondary-bg); color: var(--ph-text);
+}
+.ph-auth-page .peerhive-login-forgot > .ph-quiet-action:focus-visible,
+.ph-auth-page #resendForm .ph-otp-resend:focus-visible {
+  outline: 2px solid #ffa500; outline-offset: 2px;
+}
+/* Skip stays beside the primary step button, without a top shadow or border. */
+.ph-get-started .ph-onboarding-actions { display: flex; align-items: center; gap: .65rem; }
+.ph-get-started .ph-onboarding-skip {
+  min-height: 42px; border: 0 !important; border-radius: 10px;
+  background: transparent; box-shadow: none !important; color: var(--bs-secondary-color);
+}
+.ph-get-started .ph-onboarding-skip:hover {
+  background: var(--bs-secondary-bg); color: var(--bs-body-color);
+}
+.ph-get-started .ph-onboarding-skip:focus-visible {
+  box-shadow: none !important; outline: 2px solid #ffa500; outline-offset: 2px;
+}
+/* Clean, continuous header boundary with no orange stripe or drop shadow. */
+body[data-authenticated="true"] .app-header.peerhive-topnav {
+  min-height: 3.5rem; border: 0 !important; border-bottom: 1px solid var(--bs-border-color) !important;
+  box-shadow: none !important;
+}
+body[data-authenticated="true"] .app-sidebar .sidebar-brand {
+  height: 3.5rem; border: 0 !important;
+  border-bottom: 1px solid rgba(168, 186, 207, .22) !important;
+  box-shadow: none !important;
+}
+/* Icons retain their same shapes, sizes and vertical alignment expanded or collapsed. */
+body[data-authenticated="true"] .app-sidebar .sidebar-menu .nav-link {
+  display: flex; align-items: center; min-height: 46px; gap: .65rem;
+}
+body[data-authenticated="true"] .app-sidebar .sidebar-menu .nav-icon {
+  display: inline-flex; flex: 0 0 1.35rem; width: 1.35rem; height: 1.35rem;
+  align-items: center; justify-content: center; font-size: 1.19rem; line-height: 1;
+  margin: 0 !important; text-align: center;
+}
+body[data-authenticated="true"] .app-sidebar .sidebar-menu .nav-link p { margin: 0; }
+@media (min-width: 992px) {
+  body[data-authenticated="true"].sidebar-mini.sidebar-collapse .app-sidebar .sidebar-menu .nav-link,
+  body[data-authenticated="true"].sidebar-mini.sidebar-collapse .app-sidebar .sidebar-menu .nav-link:hover {
+    gap: 0; justify-content: center; width: 3.6rem;
+  }
+  body[data-authenticated="true"].sidebar-mini.sidebar-collapse .app-sidebar .sidebar-menu .nav-icon {
+    font-size: 1.19rem; flex: 0 0 1.35rem; margin: 0 !important;
+  }
+}
+/* Bottom-left Help shares the account menu's single guide modal. */
+body[data-authenticated="true"] .ph-sidebar-bottom {
+  padding: .7rem .5rem .85rem; border-top: 1px solid rgba(168, 186, 207, .18);
+}
+body[data-authenticated="true"] .ph-sidebar-help {
+  width: 100%; border: 0; background: transparent; cursor: pointer;
+  color: #e5ecf6; text-align: left; border-radius: 10px; padding: .72rem .9rem;
+}
+body[data-authenticated="true"] .ph-sidebar-help:hover,
+body[data-authenticated="true"] .ph-sidebar-help:focus-visible {
+  background: rgba(255, 165, 0, .12); color: #fff;
+}
+body[data-authenticated="true"] .ph-sidebar-help:focus-visible { outline: 2px solid #ffa500; outline-offset: 1px; }
+@media (min-width: 992px) {
+  body[data-authenticated="true"].sidebar-mini.sidebar-collapse .ph-sidebar-bottom { padding: .7rem .35rem .85rem; }
+  body[data-authenticated="true"].sidebar-mini.sidebar-collapse .ph-sidebar-help { width: 3.6rem; justify-content: center; }
+  body[data-authenticated="true"].sidebar-mini.sidebar-collapse .ph-sidebar-help p { display: none !important; }
+}
+/* Branded, compact guide. The upper profile menu and lower sidebar invoke the same modal. */
+.ph-help-modal .modal-header { border-top: 0 !important; border-bottom: 1px solid var(--bs-border-color); }
+.ph-help-eyebrow { color: #b57510; font-size: .72rem; font-weight: 800; letter-spacing: .13em; }
+.ph-help-steps { display: grid; gap: .7rem; }
+.ph-help-step { display: flex; align-items: flex-start; gap: .9rem; padding: .95rem; border: 1px solid var(--bs-border-color); border-radius: 12px; }
+.ph-help-icon { width: 42px; height: 42px; flex-shrink: 0; display: grid; place-items: center; border-radius: 12px; color: #e89700; background: rgba(255, 165, 0, .10); font-size: 1.2rem; }
+.ph-help-step h3 { margin: 0 0 .2rem; font-weight: 700; font-size: .95rem; }
+.ph-help-step p { margin: 0; color: var(--bs-secondary-color); font-size: .89rem; }
+@media (prefers-reduced-motion: reduce) { .ph-help-step, .ph-sidebar-help { transition: none !important; } }
+
+
+/* PeerHive v4.4: clean, compact dashboard and no highlighted sidebar selection. */
+.ph-v44-dashboard { width: 100%; min-width: 0; }
+.ph-v44-welcome h1 { letter-spacing: -.025em; }
+.ph-v44-overview { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(250px, 1fr); gap: 14px; align-items: stretch; }
+.ph-v44-card { background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); border-radius: 14px; box-shadow: 0 2px 10px rgba(10,24,45,.045); min-width: 0; }
+.ph-v44-progress { padding: 17px 18px; }
+.ph-v44-progress h2, .ph-v44-side-card h2 { color: var(--bs-emphasis-color); }
+.ph-v44-icon { width: 40px; height: 40px; border-radius: 11px; display: inline-flex; flex: 0 0 40px; justify-content: center; align-items: center; font-size: 1.22rem; background: rgba(255,165,0,.13); color: #cc7e00; }
+html[data-bs-theme="dark"] .ph-v44-icon { color: #ffbd5a; background: rgba(255,165,0,.14); }
+.ph-v44-progress-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(155px, .60fr); gap: 16px; align-items: stretch; }
+.ph-v44-activity { min-width:0; }
+.ph-v44-chart { height: 121px; display: flex; align-items: stretch; justify-content: stretch; gap: 12px; }
+.ph-v44-chart-week { flex: 1 1 0; min-width: 0; text-align: center; display: flex; flex-direction: column; gap: 5px; }
+.ph-v44-chart-bars { position: relative; flex: 1 1 0; display: flex; align-items: flex-end; justify-content: center; min-height: 0; border-bottom: 1px solid var(--bs-border-color); }
+.ph-v44-chart-bar { display: block; width: min(100%, 35px); max-height: 88%; border-radius: 7px 7px 0 0; background: linear-gradient(180deg, #ffba49, #d48b12); }
+.ph-v44-chart-value { position: absolute; top: 0; font-size: .74rem; font-weight: 700; color: var(--bs-emphasis-color); }
+.ph-v44-chart-label { font-size: .72rem; color: var(--bs-secondary-color); white-space: nowrap; }
+.ph-v44-chart-empty { min-height: 108px; display: flex; align-items: center; gap: 12px; color: var(--bs-secondary-color); background: var(--bs-tertiary-bg); border: 1px dashed var(--bs-border-color); border-radius: 12px; padding: 12px; font-size: .85rem; }
+.ph-v44-chart-empty .bi { color: #d38c1e; flex: 0 0 auto; }
+.ph-v44-metrics { border-left: 1px solid var(--bs-border-color); padding-left: 16px; display: flex; flex-direction: column; gap: 7px; justify-content: center; }
+.ph-v44-metrics > div { display: flex; align-items: center; gap: 9px; }
+.ph-v44-metrics .bi { display: grid; place-items: center; width: 31px; height: 31px; background: var(--bs-tertiary-bg); border-radius: 8px; flex: 0 0 31px; color: var(--bs-emphasis-color); }
+.ph-v44-metrics span { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.ph-v44-metrics strong { font-size: 1.12rem; color: var(--bs-emphasis-color); }
+.ph-v44-metrics small { font-size: .71rem; color: var(--bs-secondary-color); line-height: 1.35; }
+.ph-v44-stat-stack { display: grid; grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 14px; min-width:0; }
+.ph-v44-side-card { display:flex; flex-direction:column; justify-content:space-between; gap: 10px; padding: 14px 16px; }
+.ph-v44-side-footer { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.ph-v44-side-value { font-size: 1.5rem; font-weight: 750; line-height: 1; color: var(--bs-emphasis-color); }
+.ph-v44-side-value small { font-size: .8rem; font-weight: 500; color: var(--bs-secondary-color); }
+.ph-v44-dashboard .ph-v44-cta { border:1px solid #ffa500; background: #ffa500; color: #102440; font-weight: 700; }
+.ph-v44-dashboard .ph-v44-cta:hover { background: #ffbc4e; border-color: #ffbc4e; color: #102440; }
+.ph-v44-guide { border: 1px solid var(--bs-border-color) !important; border-radius: 14px; overflow: hidden; }
+.ph-v44-guide .card-header { border-bottom-color: var(--bs-border-color); }
+.ph-v44-guide .dashboard-guide-toggle { padding: .72rem 1rem !important; }
+.ph-v44-guide .tutorial-card > p { margin-bottom: .5rem !important; }
+.ph-v44-guide .tutorial-icon { width: 38px; height: 38px; border-radius: 10px; font-size: 1.15rem; }
+.ph-v44-guide .carousel-inner { min-height: 128px !important; }
+.ph-v44-guide .carousel-item h3 { font-size: 1rem; margin-bottom: .25rem; }
+.ph-v44-guide .carousel-item p { font-size: .84rem; line-height: 1.42; }
+.ph-v44-guide .tutorial-controls > .btn { height: 36px; }
+.ph-v44-guide .tutorial-dot { height: 30px; }
+.ph-v44-content > section { margin-bottom: 24px !important; }
+.ph-v44-content > section h2 { font-size: 1.2rem; }
+.ph-v44-content .card { border-radius: 12px; }
+.ph-v44-dashboard .btn:focus-visible { outline: 2px solid var(--bs-emphasis-color); outline-offset: 2px; }
+@media (max-width: 1199.98px) { .ph-v44-overview { grid-template-columns: minmax(0, 1.35fr) minmax(230px, 1fr); } }
+@media (max-width: 899.98px) { .ph-v44-overview { grid-template-columns: 1fr; } .ph-v44-stat-stack { grid-template-columns: repeat(2,minmax(0,1fr)); grid-template-rows: 1fr; } }
+@media (max-width: 599.98px) { .ph-v44-progress-body { grid-template-columns: 1fr; } .ph-v44-metrics { border-left: 0; padding-left: 0; border-top: 1px solid var(--bs-border-color); padding-top: 12px; flex-direction: row; flex-wrap: wrap; justify-content: space-between; } .ph-v44-metrics > div { flex: 1 1 95px; } .ph-v44-stat-stack { grid-template-columns: 1fr; } .ph-v44-progress { padding: 14px; } .ph-v44-guide .carousel-inner { min-height: 195px !important; } }
+
+/* An active sidebar link has no colored stripe, filled background, or glow. */
+body[data-authenticated="true"] .app-sidebar .sidebar-menu .nav-link.active,
+body[data-authenticated="true"] .app-sidebar .sidebar-menu .nav-link.active:hover,
+body[data-authenticated="true"] .app-sidebar .ph-sidebar-help.active {
+  border-left: 0 !important; background: transparent !important; box-shadow: none !important; color: #e5ecf6 !important;
+}
+body[data-authenticated="true"] .app-sidebar .sidebar-menu .nav-link.active > p { font-weight: 650; }
+body[data-authenticated="true"] .app-sidebar .sidebar-menu .nav-link:focus-visible,
+body[data-authenticated="true"] .app-sidebar .ph-sidebar-help:focus-visible { outline: 2px solid rgba(225,235,248,.85); outline-offset: -2px; }
+body[data-authenticated="true"] .app-sidebar .sidebar-menu .nav-link:hover,
+body[data-authenticated="true"] .app-sidebar .ph-sidebar-help:hover { background: rgba(255,255,255,.065) !important; }
+
+/* The top navigation and sidebar brand share one straight, neutral divider. */
+body[data-authenticated="true"] .app-header.peerhive-topnav,
+body[data-authenticated="true"] .app-sidebar .sidebar-brand { height: 56px !important; min-height: 56px !important; box-sizing: border-box; border-bottom: 1px solid rgba(150,169,191,.28) !important; box-shadow: none !important; }
+body[data-authenticated="true"] .app-sidebar { box-shadow: none !important; }
+body[data-authenticated="true"] .ph-account-dropdown { border-top: 1px solid var(--bs-border-color) !important; box-shadow: 0 12px 24px rgba(0,0,0,.13) !important; }
+body[data-authenticated="true"] .ph-topnav-avatar { border: 1px solid var(--bs-border-color) !important; }
+body[data-authenticated="true"] .ph-profile-trigger:hover,
+body[data-authenticated="true"] .ph-profile-trigger[aria-expanded="true"] { border-color: var(--bs-border-color) !important; background: var(--bs-secondary-bg) !important; box-shadow:none !important; }
+body[data-authenticated="true"] .ph-profile-trigger:focus-visible { outline: 2px solid var(--bs-emphasis-color) !important; outline-offset: 2px; }
+
+/* Slide and fade sidebar labels alongside the existing PeerHive wordmark. */
+@media (min-width: 992px) {
+  body[data-authenticated="true"] .app-sidebar .sidebar-menu .nav-link > p,
+  body[data-authenticated="true"] .app-sidebar .ph-sidebar-help > p { display: flex !important; align-items: center; overflow: hidden; min-width: 0; max-width: 170px; white-space: nowrap; opacity: 1; transform: translateX(0); transition: max-width .30s ease, opacity .21s ease, transform .30s ease; }
+  body[data-authenticated="true"].sidebar-mini.sidebar-collapse .app-sidebar .sidebar-menu .nav-link > p,
+  body[data-authenticated="true"].sidebar-mini.sidebar-collapse .app-sidebar .ph-sidebar-help > p { display: flex !important; max-width: 0 !important; opacity: 0; transform: translateX(-12px); margin: 0; pointer-events:none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-authenticated="true"] .app-sidebar .sidebar-menu .nav-link > p,
+  body[data-authenticated="true"] .app-sidebar .ph-sidebar-help > p { transition:none !important; }
+}
+
+/* PeerHive v4.5: one five-step Help experience, readable guide spacing and common actions. */
+.ph-v44-dashboard .ph-v45-action,
+.ph-v45-guide-carousel .ph-v45-action {
+  display: inline-flex; align-items: center; justify-content: center; gap: .2rem;
+  min-height: 38px; padding: .45rem .9rem; border-radius: 9px;
+  font-size: .84rem; font-weight: 700; line-height: 1.25;
+  box-shadow: none !important; white-space: normal; text-decoration: none;
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease;
+}
+.ph-v44-dashboard .ph-v45-action--outline,
+.ph-v45-guide-carousel .ph-v45-action--outline {
+  color: var(--bs-body-color); background: transparent; border: 1px solid var(--bs-border-color);
+}
+.ph-v44-dashboard .ph-v45-action--outline:hover:not(:disabled),
+.ph-v45-guide-carousel .ph-v45-action--outline:hover:not(:disabled) {
+  background: var(--bs-secondary-bg); border-color: var(--bs-secondary-color); color: var(--bs-body-color);
+}
+.ph-v44-dashboard .ph-v45-action--primary,
+.ph-v45-guide-carousel .ph-v45-action--primary {
+  color: #102440; background: #ffa500; border: 1px solid #ffa500;
+}
+.ph-v44-dashboard .ph-v45-action--primary:hover:not(:disabled),
+.ph-v45-guide-carousel .ph-v45-action--primary:hover:not(:disabled) {
+  color: #102440; background: #ffbd52; border-color: #ffbd52;
+}
+.ph-v44-dashboard .ph-v45-action:focus-visible,
+.ph-v45-guide-carousel .ph-v45-action:focus-visible {
+  outline: 2px solid var(--bs-emphasis-color); outline-offset: 2px;
+}
+.ph-v45-guide-carousel .ph-v45-action:disabled { opacity: .48; }
+.ph-v45-guide .dashboard-guide-toggle { padding: 1rem 1.3rem !important; }
+.ph-v45-guide-carousel { padding: 1.25rem 1.45rem 1.4rem; }
+.ph-v45-guide-eyebrow { color: #ffa500; letter-spacing: .015em; }
+.ph-v45-guide .carousel-inner,
+.ph-v45-modal-guide .carousel-inner { min-height: 164px !important; }
+.ph-v45-guide-step { display: flex; gap: 1rem; align-items: flex-start; min-height: 145px; }
+.ph-v45-guide-step .tutorial-icon { flex: 0 0 46px; width: 46px; height: 46px; border-radius: 12px; margin: 0; }
+.ph-v45-guide-copy { flex: 1; min-width: 0; }
+.ph-v45-guide-copy h3 { font-size: 1.04rem; line-height: 1.35; margin: 0 0 .65rem; }
+.ph-v45-guide-copy > p:not(.ph-v45-guide-tip) { font-size: .9rem; line-height: 1.6; margin-bottom: .9rem; }
+.ph-v45-guide-copy .ph-v45-guide-tip { line-height: 1.5; }
+.ph-v45-guide-controls { margin-top: 1.1rem; row-gap: .65rem !important; }
+.ph-v45-guide-controls > .btn { min-width: 112px; min-height: 38px; max-width: none; }
+.ph-v45-guide-controls .tutorial-dots { min-height: 32px; }
+.ph-v45-guide-controls .tutorial-dot { height: 30px; }
+.ph-v45-modal-guide .ph-v45-guide-controls { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.ph-v45-modal-guide .ph-v45-guide-controls > .btn:first-child { grid-column: 1; grid-row: 1; justify-self: start; }
+.ph-v45-modal-guide .ph-v45-guide-controls > .btn:last-child { grid-column: 2; grid-row: 1; justify-self: end; }
+.ph-v45-modal-guide .ph-v45-guide-controls .tutorial-dots { grid-column: 1 / -1; grid-row: 2; }
+.ph-v45-modal-guide { border: 1px solid var(--bs-border-color); border-radius: 12px; overflow: hidden; }
+.ph-v45-modal-guide .ph-v45-guide-carousel { padding: 1.25rem 1.35rem 1.5rem; }
+.ph-help-modal .modal-body:has(.ph-v45-modal-guide) { padding: 1.2rem; }
+.ph-help-modal .modal-body:has(.ph-v45-modal-guide) > p { margin-bottom: 1rem !important; }
+.ph-help-modal .modal-footer .btn { min-height: 38px; border-radius: 9px; box-shadow: none !important; font-weight: 650; }
+.ph-help-modal .modal-footer .btn-primary { background: #ffa500; border-color: #ffa500; color: #102440; }
+.ph-help-modal .modal-footer .btn-primary:hover { background: #ffbd52; border-color: #ffbd52; color: #102440; }
+@media (max-width: 575.98px) {
+  .ph-v45-guide-carousel { padding: 1rem; }
+  .ph-v45-guide-step { flex-direction: column; gap: .75rem; min-height: 0; }
+  .ph-v45-guide .carousel-inner, .ph-v45-modal-guide .carousel-inner { min-height: 255px !important; }
+  .ph-v45-guide-copy > p:not(.ph-v45-guide-tip) { font-size: .88rem; }
+  .ph-v45-guide-controls > .btn { min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ph-v44-dashboard .ph-v45-action, .ph-v45-guide-carousel .ph-v45-action { transition: none !important; }
+}
+
+
+/* PeerHive v4.5.1: branded Learn / Swap and selected swap tabs. */
+/* These two components previously used Bootstrap's emphasis color, almost black in light mode. */
+:root {
+  --ph-action-bg: #102440;
+  --ph-action-hover: #1c3d66;
+  --ph-action-text: #ffffff;
+}
+html[data-bs-theme="dark"] {
+  --ph-action-bg: #ffa500;
+  --ph-action-hover: #ffbd52;
+  --ph-action-text: #102440;
+}
+/* Limit the change to confirmed black controls, not warnings, delete actions or all Bootstrap buttons. */
+.btn-swap {
+  background-color: var(--ph-action-bg) !important;
+  border: 1px solid var(--ph-action-bg) !important;
+  color: var(--ph-action-text) !important;
+  opacity: 1 !important;
+  border-radius: 10px;
+  box-shadow: none !important;
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease;
+}
+.btn-swap:hover:not(:disabled),
+.btn-swap:focus-visible {
+  background-color: var(--ph-action-hover) !important;
+  border-color: var(--ph-action-hover) !important;
+  color: var(--ph-action-text) !important;
+  opacity: 1 !important;
+}
+.btn-swap:focus-visible,
+.swap-tab-toggle .btn-check:focus-visible + .swap-tab-label {
+  outline: 2px solid #e79b1f;
+  outline-offset: 2px;
+}
+.btn-swap:disabled { opacity: .55 !important; cursor: not-allowed; }
+.swap-tab-toggle .btn-check:checked + .swap-tab-label {
+  background-color: var(--ph-action-bg) !important;
+  border-color: var(--ph-action-bg) !important;
+  color: var(--ph-action-text) !important;
+}
+.swap-tab-toggle .btn-check:checked + .swap-tab-label:hover {
+  background-color: var(--ph-action-hover) !important;
+  border-color: var(--ph-action-hover) !important;
+  color: var(--ph-action-text) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-swap { transition: none; }
+}
+
+/* PeerHive v4.6 profile settings: horizontal, scrollable tabs and single-pane content. */
+body[data-page="profile"] .ph-settings-shell { width:100%; max-width:1140px; margin:0 auto; min-width:0; }
+body[data-page="profile"] .ph-settings-tabs-nav { overflow-x:auto; scrollbar-width:thin; scroll-padding:12px; }
+body[data-page="profile"] .ph-settings-tabs { width:max-content; min-width:100%; border-bottom:1px solid var(--bs-border-color); gap:5px; padding-bottom:2px; }
+body[data-page="profile"] .ph-settings-tabs .nav-link { display:inline-flex; align-items:center; justify-content:center; gap:.55rem; white-space:nowrap; min-height:44px; padding:.65rem 1rem; border:0; border-bottom:3px solid transparent; border-radius:9px 9px 0 0; background:transparent; color:var(--bs-secondary-color); font-weight:650; }
+body[data-page="profile"] .ph-settings-tabs .nav-link:hover { background:var(--bs-tertiary-bg); color:var(--bs-body-color); }
+body[data-page="profile"] .ph-settings-tabs .nav-link.active { background:transparent; border-bottom-color:#ffa500; color:var(--bs-body-color); }
+body[data-page="profile"] .ph-settings-tabs .nav-link:focus-visible { outline:2px solid #ffa500; outline-offset:-3px; }
+body[data-page="profile"] .ph-settings-content .tab-pane { display:none; }
+body[data-page="profile"] .ph-settings-content .tab-pane.active { display:block; }
+body[data-page="profile"] .ph-settings-panel { border:1px solid var(--bs-border-color); border-radius:14px; padding:clamp(1rem,2.3vw,2rem); background:var(--bs-body-bg); box-shadow:0 2px 10px rgba(10,24,45,.035); }
+body[data-page="profile"] .ph-settings-heading { margin-bottom:1.4rem; padding-bottom:1rem; border-bottom:1px solid var(--bs-border-color); }
+body[data-page="profile"] .ph-settings-avatar-row { display:flex; align-items:center; gap:1.4rem; flex-wrap:wrap; }
+body[data-page="profile"] .ph-settings-bio-read { background:var(--bs-tertiary-bg); border:1px solid var(--bs-border-color); border-radius:10px; min-height:66px; padding:1rem; }
+body[data-page="profile"] .ph-settings-actions { display:flex; justify-content:flex-end; padding-top:1.3rem; margin-top:1.5rem; border-top:1px solid var(--bs-border-color); }
+body[data-page="profile"] .ph-settings-save { min-width:164px; min-height:42px; border-radius:10px; }
+body[data-page="profile"] .ph-settings-subcard { padding:1.2rem; border:1px solid var(--bs-border-color); border-radius:12px; }
+body[data-page="profile"] .ph-settings-privacy-row { display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:1rem 0; border-bottom:1px solid var(--bs-border-color); }
+body[data-page="profile"] .ph-settings-privacy-row .form-switch .form-check-input { width:2.5rem; height:1.4rem; cursor:pointer; }
+body[data-page="profile"] .ph-settings-suggestion-trigger { font-weight:600; }
+body[data-page="profile"] #ph-settings-verification .card { box-shadow:none !important; }
+body[data-page="profile"] .btn-outline-primary { --bs-btn-color:var(--bs-body-color); --bs-btn-border-color:var(--bs-border-color); --bs-btn-hover-bg:var(--bs-tertiary-bg); --bs-btn-hover-color:var(--bs-body-color); --bs-btn-hover-border-color:var(--bs-secondary-color); }
+@media(max-width:575.98px) { body[data-page="profile"] .ph-settings-panel { padding:1.05rem; } body[data-page="profile"] .ph-settings-actions .btn { width:100%; } body[data-page="profile"] .ph-settings-tabs .nav-link { font-size:.85rem; padding-inline:.75rem; } }
+@media(prefers-reduced-motion:reduce) { body[data-page="profile"] .ph-settings-content .tab-pane { transition:none !important; } }
+
+/* PeerHive v4.6.1: focused settings and account security polish. */
+body[data-page="profile"] .ph-settings-security-block { padding:1.2rem 0; }
+body[data-page="profile"] .ph-settings-security-block + .ph-settings-security-block { border-top:1px solid var(--bs-border-color); margin-top:.5rem; padding-top:1.7rem; }
+body[data-page="profile"] .ph-settings-security-block h3 { color:var(--bs-emphasis-color); }
+body[data-page="profile"] .ph-security-submit { min-height:42px; border-radius:10px; }
+body[data-page="profile"] .ph-password-requirements { display:flex; flex-wrap:wrap; gap:.5rem 1.1rem; padding:.65rem 0; color:var(--bs-secondary-color); }
+body[data-page="profile"] .ph-password-requirements span { display:inline-flex; gap:3px; align-items:center; }
+body[data-page="profile"] .ph-password-requirements span.is-met { color:var(--bs-success-text-emphasis); }
+body[data-page="profile"] .ph-password-requirements span.is-met .bi { color:var(--bs-success); }
+body[data-page="profile"] #phUnsavedChangesModal .modal-content { border-radius:14px; }
+body[data-page="profile"] #phUnsavedChangesModal .modal-footer .btn { border-radius:9px; }
+body[data-page="profile"] .ph-teaching-verification #qualificationForm { background:var(--bs-tertiary-bg); border:1px solid var(--bs-border-color); border-radius:12px; }
+body[data-page="profile"] .ph-teaching-verification > .d-flex { min-height:32px; }
+@media(max-width:575.98px) { body[data-page="profile"] .ph-security-submit { width:100%; } body[data-page="profile"] .ph-settings-security-block { padding-block:.8rem; } }
+
+/* PeerHive v4.6.2: accessible brand-colored password reveal controls in Account. */
+body[data-page="profile"] .ph-password-visibility-group { flex-wrap: wrap; }
+body[data-page="profile"] .ph-password-visibility-group > .form-control { min-width: 0; flex: 1 1 auto; }
+body[data-page="profile"] .ph-settings-password-toggle {
+  min-width: 45px; min-height: 40px; padding: .375rem .75rem;
+  border-color: var(--bs-border-color); color: #102440;
+  background: var(--bs-tertiary-bg); border-radius: 0 9px 9px 0;
+}
+body[data-page="profile"] .ph-settings-password-toggle:hover,
+body[data-page="profile"] .ph-settings-password-toggle[aria-pressed="true"] {
+  color: #102440; background: rgba(255,165,0,.16); border-color: #d89312;
+}
+body[data-page="profile"] .ph-settings-password-toggle:focus-visible {
+  outline: 2px solid #ffa500; outline-offset: 2px; z-index: 4;
+}
+html[data-bs-theme="dark"] body[data-page="profile"] .ph-settings-password-toggle { color: #ffbc53; }
+html[data-bs-theme="dark"] body[data-page="profile"] .ph-settings-password-toggle:hover,
+html[data-bs-theme="dark"] body[data-page="profile"] .ph-settings-password-toggle[aria-pressed="true"] {
+  color: #ffd17e; background: rgba(255,165,0,.18); border-color: #ffa500;
+}
+
+/* PeerHive v4.7: active navigation remains obvious while sidebar is collapsed. */
+body[data-authenticated="true"] .app-sidebar .sidebar-menu .nav-link.active,
+body[data-authenticated="true"] .app-sidebar .sidebar-menu .nav-link.active:hover,
+body[data-authenticated="true"] .app-sidebar .sidebar-menu .nav-link.active:focus-visible {
+    background-color: #293f5b !important;
+    color: #ffffff !important;
+    border-left: 0 !important;
+    border-radius: 10px;
+    box-shadow: none !important;
+}
+body[data-authenticated="true"] .app-sidebar .sidebar-menu .nav-link.active > .nav-icon {
+    color: #ffa500 !important;
+}
+body[data-authenticated="true"] .app-sidebar .sidebar-menu .nav-link.active > p {
+    color: #ffffff !important;
+    font-weight: 650;
+}
+@media (min-width: 992px) {
+    body[data-authenticated="true"].sidebar-mini.sidebar-collapse .app-sidebar .sidebar-menu .nav-link.active {
+        background-color: #293f5b !important;
+        border-left: 0 !important;
+        border-radius: 10px;
+    }
+}
+
+/* BEGIN PEERHIVE LEARNING BRAND PALETTE v4.7.1 */
+/* Scoped to Progress, Rewards Hub and Study Sessions. Success, warning and danger
+   remain semantic; no learning/session logic or other pages are changed. */
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main {
+  --ph-learning-primary: #102440;
+  --ph-learning-primary-hover: #1c3d66;
+  --ph-learning-on-primary: #ffffff;
+  --ph-learning-heading: #102440;
+  --ph-learning-link: #1c3d66;
+  --ph-learning-border: #d8e0ea;
+  --ph-learning-soft: rgba(16, 36, 64, .055);
+  --ph-learning-accent-soft: rgba(255, 165, 0, .13);
+  --ph-learning-secondary: #334d6b;
+  --ph-learning-chart-learning: #102440;
+  --ph-learning-chart-teaching: #ffa500;
+}
+html[data-bs-theme="dark"] body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main {
+  --ph-learning-primary: #ffa500;
+  --ph-learning-primary-hover: #ffc15a;
+  --ph-learning-on-primary: #102440;
+  --ph-learning-heading: #f1f5fc;
+  --ph-learning-link: #ffbf5b;
+  --ph-learning-border: #40516b;
+  --ph-learning-soft: rgba(255, 165, 0, .075);
+  --ph-learning-accent-soft: rgba(255, 165, 0, .14);
+  --ph-learning-secondary: #d3dfef;
+  --ph-learning-chart-learning: #ffa500;
+  --ph-learning-chart-teaching: #86a9cc;
+}
+
+/* Readable card hierarchy, including the statistics, achievements and session cards. */
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main .card {
+  border: 1px solid var(--ph-learning-border) !important;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(10, 24, 45, .055) !important;
+}
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main :is(h1, h2, h3) {
+  color: var(--ph-learning-heading);
+}
+
+/* Main actions use navy in light mode and orange in dark mode, like Edit Profile. */
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main .btn-outline-primary {
+  --bs-btn-color: var(--ph-learning-link);
+  --bs-btn-border-color: var(--ph-learning-primary);
+  --bs-btn-hover-color: var(--ph-learning-on-primary);
+  --bs-btn-hover-bg: var(--ph-learning-primary);
+  --bs-btn-hover-border-color: var(--ph-learning-primary);
+  --bs-btn-active-color: var(--ph-learning-on-primary);
+  --bs-btn-active-bg: var(--ph-learning-primary-hover);
+  --bs-btn-active-border-color: var(--ph-learning-primary-hover);
+}
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main .btn-outline-secondary {
+  --bs-btn-color: var(--ph-learning-secondary);
+  --bs-btn-border-color: var(--ph-learning-border);
+  --bs-btn-hover-color: var(--ph-learning-heading);
+  --bs-btn-hover-bg: var(--ph-learning-soft);
+  --bs-btn-hover-border-color: var(--ph-learning-primary);
+  --bs-btn-active-bg: var(--ph-learning-soft);
+  --bs-btn-active-color: var(--ph-learning-heading);
+  --bs-btn-active-border-color: var(--ph-learning-primary);
+}
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main :is(.btn-link, .text-primary, .text-primary-emphasis) {
+  color: var(--ph-learning-link) !important;
+}
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main a:not(.btn):not([class*="text-body"]):not([class*="text-muted"]):not([class*="text-success"]):not([class*="text-danger"]) {
+  color: var(--ph-learning-link);
+}
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main :is(.btn-primary, .btn-outline-primary, .btn-outline-secondary, .btn-link):focus-visible,
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main a:focus-visible {
+  outline: 2px solid #ffa500;
+  outline-offset: 3px;
+  box-shadow: none;
+}
+
+/* Branded selected tabs, selected tree nodes, and subject labels. */
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main .nav-pills .nav-link.active {
+  background: var(--ph-learning-primary);
+  color: var(--ph-learning-on-primary);
+}
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main .nav-pills .nav-link:not(.active) {
+  color: var(--ph-learning-link);
+  border: 1px solid var(--ph-learning-border);
+}
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main .nav-pills .nav-link:not(.active):hover {
+  background: var(--ph-learning-soft);
+}
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main .badge.text-bg-primary {
+  background-color: var(--ph-learning-primary) !important;
+  color: var(--ph-learning-on-primary) !important;
+}
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main .badge.bg-primary-subtle {
+  background-color: var(--ph-learning-accent-soft) !important;
+  color: var(--ph-learning-heading) !important;
+}
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main :is(.skill-tree-node.is-selected, .topic-choice.is-selected) {
+  border-color: #ffa500 !important;
+  background-color: var(--ph-learning-accent-soft) !important;
+}
+
+/* Progress: weekly Learning / Teaching chart and statistic icons share the brand kit. */
+body[data-page="progress.index"] .app-main .learning-chart .bg-primary {
+  background-color: var(--ph-learning-chart-learning) !important;
+}
+body[data-page="progress.index"] .app-main .learning-chart .bg-secondary {
+  background-color: var(--ph-learning-chart-teaching) !important;
+}
+body[data-page="progress.index"] .app-main .bi-square-fill.text-primary {
+  color: var(--ph-learning-chart-learning) !important;
+}
+body[data-page="progress.index"] .app-main .bi-square-fill.text-secondary {
+  color: var(--ph-learning-chart-teaching) !important;
+}
+body[data-page="progress.index"] .app-main .card .bi.text-primary {
+  color: var(--ph-learning-primary) !important;
+}
+
+/* Rewards: navy hero with orange stars, retaining green earned/applied states. */
+body[data-page="rewards.index"] .app-main .card.bg-primary {
+  background: linear-gradient(120deg, #102440 0%, #1c3d66 100%) !important;
+  border-color: #294c74 !important;
+  color: #ffffff !important;
+}
+body[data-page="rewards.index"] .app-main .card.bg-primary > .card-body > .bi-stars {
+  color: #ffa500;
+}
+body[data-page="rewards.index"] .app-main .reward-swatch {
+  border: 1px solid var(--ph-learning-border);
+}
+body[data-page="rewards.index"] .app-main .table thead th {
+  border-bottom: 2px solid #ffa500;
+}
+
+/* Forms, pagination and other interactive controls. No effect on danger or success. */
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main :is(.form-control, .form-select):focus {
+  border-color: #d89217;
+  box-shadow: 0 0 0 .2rem rgba(255, 165, 0, .18);
+}
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main .form-check-input:checked {
+  background-color: var(--ph-learning-primary);
+  border-color: var(--ph-learning-primary);
+}
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main .page-link {
+  color: var(--ph-learning-link);
+}
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main .page-item.active .page-link {
+  background: var(--ph-learning-primary);
+  border-color: var(--ph-learning-primary);
+  color: var(--ph-learning-on-primary);
+}
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"], [data-page="rewards.index"], [data-page="study-sessions.index"], [data-page="study-sessions.create"], [data-page="study-sessions.show"]) .app-main .page-link:focus-visible {
+  outline: 2px solid #ffa500;
+  outline-offset: 2px;
+}
+/* END PEERHIVE LEARNING BRAND PALETTE v4.7.1 */
+
+/* BEGIN PEERHIVE SESSION UI v4.7.2 */
+/* Progress tabs: orange selection always uses dark navy text for readability. */
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"]) .app-main .ph-progress-tabs .nav-link.active,
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"]) .app-main .ph-progress-tabs .nav-link.active:is(:hover,:focus-visible) {
+  background-color: #ffa500 !important;
+  border: 1px solid #ffa500 !important;
+  color: #102440 !important;
+  font-weight: 700;
+}
+body:is([data-page="progress.index"], [data-page="progress.skill-tree"]) .app-main .ph-progress-tabs .nav-link:not(.active) {
+  background: transparent;
+  border: 1px solid var(--ph-learning-border, var(--bs-border-color));
+  color: var(--ph-learning-link, var(--bs-body-color));
+}
+
+/* Three-step create-session form. Applies only to its page. */
+body[data-page="study-sessions.create"] .ph-session-create-shell { width: min(100%, 930px); margin-inline: auto; }
+body[data-page="study-sessions.create"] .ph-session-create-card { background: var(--bs-body-bg); }
+body[data-page="study-sessions.create"] .ph-session-wizard-progress { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.55rem; padding:0 0 1.3rem; margin:0 0 1.7rem; border-bottom:1px solid var(--bs-border-color); }
+body[data-page="study-sessions.create"] .ph-session-wizard-progress li { display:flex; align-items:center; justify-content:center; gap:.5rem; min-width:0; font-size:.85rem; color:var(--bs-secondary-color); font-weight:650; }
+body[data-page="study-sessions.create"] .ph-session-step-number { display:grid; place-items:center; width:29px; height:29px; flex:0 0 29px; border:1px solid var(--bs-border-color); border-radius:50%; color:var(--bs-secondary-color); background:var(--bs-tertiary-bg); }
+body[data-page="study-sessions.create"] .ph-session-wizard-progress li.is-active { color:var(--bs-emphasis-color); }
+body[data-page="study-sessions.create"] .ph-session-wizard-progress li.is-active .ph-session-step-number { background:#ffa500; border-color:#ffa500; color:#102440; }
+body[data-page="study-sessions.create"] .ph-session-wizard-progress li.is-complete .ph-session-step-number { background:#102440; border-color:#102440; color:#fff; }
+body[data-page="study-sessions.create"] .ph-session-step-header { display:flex; align-items:flex-start; gap:.85rem; }
+body[data-page="study-sessions.create"] .ph-session-step-icon { display:grid; place-items:center; width:42px; height:42px; flex:0 0 42px; border-radius:11px; color:#102440; background:rgba(255,165,0,.17); font-size:1.2rem; }
+body[data-page="study-sessions.create"] .ph-session-format-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.8rem; }
+body[data-page="study-sessions.create"] .ph-session-format-option { display:flex; position:relative; align-items:flex-start; gap:.8rem; min-height:108px; border:1px solid var(--bs-border-color); border-radius:12px; padding:1rem; cursor:pointer; transition:border-color .16s ease,background-color .16s ease; }
+body[data-page="study-sessions.create"] .ph-session-format-option input { position:absolute; opacity:0; width:1px; height:1px; }
+body[data-page="study-sessions.create"] .ph-session-format-option:has(input:checked) { border-color:#d9951b; background:rgba(255,165,0,.10); }
+body[data-page="study-sessions.create"] .ph-session-format-option:has(input:focus-visible) { outline:2px solid #ffa500; outline-offset:3px; }
+body[data-page="study-sessions.create"] .ph-session-format-option strong { display:block; font-size:.95rem; color:var(--bs-emphasis-color); margin-bottom:.3rem; }
+body[data-page="study-sessions.create"] .ph-session-format-option small { display:block; color:var(--bs-secondary-color); font-size:.78rem; line-height:1.5; }
+body[data-page="study-sessions.create"] .ph-session-format-icon { display:grid; place-items:center; width:36px; height:36px; flex:0 0 36px; border-radius:9px; background:var(--bs-tertiary-bg); color:var(--ph-learning-link,#102440); font-size:1.15rem; }
+body[data-page="study-sessions.create"] .ph-session-format-check { margin-left:auto; color:#c88712; opacity:0; }
+body[data-page="study-sessions.create"] .ph-session-format-option:has(input:checked) .ph-session-format-check { opacity:1; }
+body[data-page="study-sessions.create"] .ph-session-step-tip { display:flex; gap:.7rem; padding:.85rem 1rem; border-radius:10px; background:var(--bs-tertiary-bg); color:var(--bs-secondary-color); font-size:.85rem; }
+body[data-page="study-sessions.create"] .ph-session-step-tip > i { flex:0 0 auto; color:#c98a16; }
+body[data-page="study-sessions.create"] .ph-session-review { background:var(--bs-tertiary-bg); border:1px solid var(--bs-border-color); border-radius:12px; padding:1.25rem; }
+body[data-page="study-sessions.create"] .ph-session-review dl > div { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:.4rem 1.5rem; border-top:1px solid var(--bs-border-color); padding:.65rem 0; }
+body[data-page="study-sessions.create"] .ph-session-review dt { color:var(--bs-secondary-color); font-size:.82rem; font-weight:500; }
+body[data-page="study-sessions.create"] .ph-session-review dd { margin:0; text-align:right; font-size:.85rem; font-weight:650; overflow-wrap:anywhere; }
+body[data-page="study-sessions.create"] .ph-session-wizard-footer { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:.7rem; border-top:1px solid var(--bs-border-color); }
+body[data-page="study-sessions.create"] .ph-session-wizard-footer > [data-ph-wizard-status] { flex:1 1 220px; }
+body[data-page="study-sessions.create"] .ph-session-wizard-footer [hidden] { display:none !important; }
+body[data-page="study-sessions.create"] .ph-session-wizard-panel[hidden] { display:none !important; }
+body[data-page="study-sessions.create"] .ph-session-format-option:hover { border-color:#e4a948; }
+
+/* Study Session browse cards: clear subject, schedule, participation and action. */
+body[data-page="study-sessions.index"] .ph-session-list-card { background:var(--bs-body-bg); overflow:hidden; transition:transform .16s ease,border-color .16s ease; }
+body[data-page="study-sessions.index"] .ph-session-list-card:hover { transform:translateY(-2px); border-color:#dda451 !important; }
+body[data-page="study-sessions.index"] .ph-session-format-chip { display:inline-flex; align-items:center; gap:.4rem; color:var(--bs-emphasis-color); font-weight:650; font-size:.78rem; line-height:1.4; }
+body[data-page="study-sessions.index"] .ph-session-format-chip i { color:#d59221; font-size:1rem; }
+body[data-page="study-sessions.index"] .ph-session-member-chip { display:inline-flex; align-items:center; border-radius:7px; background:var(--bs-success-bg-subtle); color:var(--bs-success-text-emphasis); padding:.27rem .52rem; font-size:.75rem; font-weight:700; }
+body[data-page="study-sessions.index"] .ph-session-status-label { display:inline-flex; align-items:center; gap:.35rem; font-size:.78rem; font-weight:650; color:var(--bs-secondary-color); }
+body[data-page="study-sessions.index"] .ph-session-status-label i { font-size:.48rem; color:#cc8b1c; }
+body[data-page="study-sessions.index"] .ph-session-status-label.is-complete i { color:var(--bs-success); }
+body[data-page="study-sessions.index"] .ph-session-status-label.is-cancelled i { color:var(--bs-danger); }
+body[data-page="study-sessions.index"] .ph-session-card-subject { color:var(--ph-learning-link, #102440); font-size:.78rem; font-weight:700; }
+body[data-page="study-sessions.index"] .ph-session-description { line-height:1.5; }
+body[data-page="study-sessions.index"] .ph-session-card-meta { display:grid; gap:.55rem; border-top:1px solid var(--bs-border-color); padding-top:1rem; }
+body[data-page="study-sessions.index"] .ph-session-card-meta > div { display:flex; align-items:flex-start; gap:.65rem; font-size:.82rem; color:var(--bs-secondary-color); }
+body[data-page="study-sessions.index"] .ph-session-card-meta > div i { display:grid; place-items:center; flex:0 0 18px; width:18px; font-size:.98rem; color:#c78a27; }
+body[data-page="study-sessions.index"] .ph-session-card-meta span { overflow-wrap:anywhere; }
+body[data-page="study-sessions.index"] .ph-session-capacity-track { background:var(--bs-tertiary-bg); width:100%; height:7px; border-radius:99px; overflow:hidden; }
+body[data-page="study-sessions.index"] .ph-session-capacity-track > span { display:block; height:100%; border-radius:99px; background:#ffa500; }
+body[data-page="study-sessions.index"] .ph-session-card-action { display:inline-flex; justify-content:center; align-items:center; min-height:43px; color:#fff !important; background:#102440; border:1px solid #102440; border-radius:10px; font-weight:700; }
+body[data-page="study-sessions.index"] .ph-session-card-action:hover { background:#1c3d66; border-color:#1c3d66; color:#fff !important; }
+body[data-page="study-sessions.index"] .ph-session-card-action:focus-visible { outline:2px solid #ffa500; outline-offset:3px; }
+html[data-bs-theme="dark"] body[data-page="study-sessions.index"] .ph-session-card-action { color:#102440 !important; background:#ffa500; border-color:#ffa500; }
+html[data-bs-theme="dark"] body[data-page="study-sessions.index"] .ph-session-card-action:hover { background:#ffc15a; border-color:#ffc15a; color:#102440 !important; }
+html[data-bs-theme="dark"] body[data-page="study-sessions.create"] .ph-session-wizard-progress li.is-complete .ph-session-step-number { background:#ffa500; border-color:#ffa500; color:#102440; }
+@media (max-width:575.98px) {
+  body[data-page="study-sessions.create"] .ph-session-wizard-progress li { flex-direction:column; gap:.3rem; font-size:.74rem; }
+  body[data-page="study-sessions.create"] .ph-session-format-options { grid-template-columns:1fr; }
+  body[data-page="study-sessions.create"] .ph-session-review dd { text-align:left; }
+  body[data-page="study-sessions.create"] .ph-session-wizard-footer [data-ph-wizard-status] { flex-basis:100%; }
+}
+@media (prefers-reduced-motion:reduce) {
+  body[data-page="study-sessions.index"] .ph-session-list-card,
+  body[data-page="study-sessions.create"] .ph-session-format-option { transition:none !important; }
+}
+/* END PEERHIVE SESSION UI v4.7.2 */
+
+/* BEGIN PEERHIVE SESSION POLISH v4.7.3 */
+/* Fix the faint heading icon in dark mode and keep focus indications accessible. */
+body[data-page="study-sessions.create"] .ph-session-step-icon {
+  background: #ffe0a0; color: #102440;
+}
+html[data-bs-theme="dark"] body[data-page="study-sessions.create"] .ph-session-step-icon {
+  background: #ffa500; color: #102440;
+}
+body[data-page="study-sessions.create"] .ph-session-step-icon .bi { font-size: 1.32rem; line-height: 1; }
+body[data-page="study-sessions.create"] [data-ph-session-subject]:focus-visible,
+body[data-page="study-sessions.create"] input:focus-visible,
+body[data-page="study-sessions.create"] textarea:focus-visible { outline: 2px solid #ffa500; outline-offset: 1px; }
+body[data-page="study-sessions.create"] [data-ph-subject-tutor-help]:not([hidden]) { display:block; }
+body[data-page="study-sessions.create"] [data-ph-subject-group][hidden] { display:none !important; }
+
+/* Participant terminology and Session Details layout, scoped to the detail route. */
+body[data-page="study-sessions.show"] .ph-session-detail-page { max-width: 1320px; margin:0 auto; }
+body[data-page="study-sessions.show"] .ph-session-detail-toolbar { margin-top:-.15rem; }
+body[data-page="study-sessions.show"] .ph-session-detail-format,
+body[data-page="study-sessions.show"] .ph-session-detail-topic,
+body[data-page="study-sessions.show"] .ph-session-detail-status { display:inline-flex; align-items:center; border-radius:999px; padding:.36rem .7rem; font-size:.78rem; font-weight:700; line-height:1.35; }
+body[data-page="study-sessions.show"] .ph-session-detail-format { background:rgba(255,165,0,.13); color:var(--ph-learning-link,#102440); border:1px solid rgba(255,165,0,.30); }
+body[data-page="study-sessions.show"] .ph-session-detail-status { color:var(--bs-secondary-color); background:var(--bs-tertiary-bg); border:1px solid var(--bs-border-color); }
+body[data-page="study-sessions.show"] .ph-session-detail-status--completed { background:var(--bs-success-bg-subtle); color:var(--bs-success-text-emphasis); }
+body[data-page="study-sessions.show"] .ph-session-detail-status--cancelled { background:var(--bs-danger-bg-subtle); color:var(--bs-danger-text-emphasis); }
+body[data-page="study-sessions.show"] .ph-session-detail-topic { background:var(--bs-tertiary-bg); color:var(--bs-body-color); border:1px solid var(--bs-border-color); }
+body[data-page="study-sessions.show"] .ph-session-detail-card { background:var(--bs-body-bg); border:1px solid var(--bs-border-color); border-radius:16px; box-shadow:0 2px 12px rgba(14,30,51,.04); }
+body[data-page="study-sessions.show"] .ph-session-detail-description { overflow-wrap:anywhere; white-space:pre-wrap; color:var(--bs-secondary-color); line-height:1.6; }
+body[data-page="study-sessions.show"] .ph-session-detail-facts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1.15rem 1.35rem; }
+body[data-page="study-sessions.show"] .ph-session-detail-fact { display:flex; align-items:flex-start; gap:.8rem; min-width:0; }
+body[data-page="study-sessions.show"] .ph-session-detail-fact-icon { display:grid; flex:0 0 38px; place-items:center; width:38px; height:38px; border-radius:10px; color:var(--ph-learning-link,#102440); background:var(--bs-tertiary-bg); font-size:1.08rem; }
+body[data-page="study-sessions.show"] .ph-session-detail-fact > div { min-width:0; overflow-wrap:anywhere; }
+body[data-page="study-sessions.show"] .ph-session-detail-fact strong { display:block; font-size:.84rem; margin-bottom:.28rem; color:var(--bs-emphasis-color); }
+body[data-page="study-sessions.show"] .ph-session-detail-fact p, body[data-page="study-sessions.show"] .ph-session-detail-fact a { font-size:.88rem; }
+body[data-page="study-sessions.show"] .ph-session-detail-fact small { color:var(--bs-secondary-color); font-size:.76rem; }
+body[data-page="study-sessions.show"] .ph-session-detail-fact a { color:var(--ph-learning-link,#102440); text-underline-offset:2px; }
+body[data-page="study-sessions.show"] .ph-session-detail-capacity { border-top:1px solid var(--bs-border-color); }
+body[data-page="study-sessions.show"] .ph-session-detail-capacity-track { background:var(--bs-tertiary-bg); border-radius:99px; height:8px; overflow:hidden; }
+body[data-page="study-sessions.show"] .ph-session-detail-capacity-track > span { display:block; height:100%; border-radius:99px; background:#ffa500; }
+body[data-page="study-sessions.show"] .ph-session-booking-note { display:flex; align-items:flex-start; font-size:.92rem; gap:.15rem; }
+body[data-page="study-sessions.show"] .ph-session-booking-note > .bi { color:var(--bs-success); }
+body[data-page="study-sessions.show"] .ph-session-member-row { display:flex; align-items:center; gap:.7rem; padding:.8rem 0; border-bottom:1px solid var(--bs-border-color); }
+body[data-page="study-sessions.show"] .ph-session-member-row:last-child { border-bottom:0; padding-bottom:0; }
+body[data-page="study-sessions.show"] .ph-session-member-avatar { display:grid; place-items:center; width:35px; height:35px; flex:0 0 35px; border-radius:50%; background:var(--bs-tertiary-bg); color:var(--bs-body-color); font-weight:700; }
+body[data-page="study-sessions.show"] .ph-session-member-role { background:rgba(255,165,0,.13); color:var(--ph-learning-link,#102440); font-size:.73rem; font-weight:700; border-radius:99px; padding:.3rem .65rem; }
+body[data-page="study-sessions.show"] .ph-session-detail-copy { border-radius:9px; }
+body[data-page="study-sessions.show"] :is(.ph-session-detail-copy,.ph-session-detail-card .btn):focus-visible { outline:2px solid #ffa500; outline-offset:3px; }
+@media(max-width: 767.98px) {
+  body[data-page="study-sessions.show"] .ph-session-detail-facts { grid-template-columns:1fr; }
+  body[data-page="study-sessions.show"] .ph-session-detail-toolbar { align-items:flex-start; }
+}
+/* END PEERHIVE SESSION POLISH v4.7.3 */
+
+
+/* BEGIN PEERHIVE v4.7.4: shared animated underline tabs and Requests redesign. */
+body[data-authenticated="true"] .app-main .ph-tabs-nav { overflow-x:auto; overflow-y:hidden; width:100%; scrollbar-width:thin; scrollbar-color:var(--bs-border-color) transparent; scroll-padding-inline:1rem; }
+body[data-authenticated="true"] .app-main .ph-tabs-track { display:flex; align-items:stretch; position:relative; gap:.25rem; width:max-content; min-width:100%; border-bottom:1px solid var(--bs-border-color); }
+body[data-authenticated="true"] .app-main .ph-tabs-item { display:inline-flex; align-items:center; justify-content:center; gap:.5rem; min-height:48px; padding:.7rem 1.05rem; border:0; border-radius:8px 8px 0 0; background:transparent; color:var(--bs-secondary-color); text-decoration:none; font-size:.91rem; font-weight:600; white-space:nowrap; cursor:pointer; user-select:none; transition:background-color .18s ease,color .18s ease; }
+body[data-authenticated="true"] .app-main .ph-tabs-item:hover { color:var(--bs-body-color); background:var(--bs-tertiary-bg); }
+body[data-authenticated="true"] .app-main .ph-tabs-item.is-active,
+body[data-authenticated="true"] .app-main .ph-tabs-track input:checked + .ph-tabs-item { color:var(--bs-emphasis-color); font-weight:750; background:transparent; }
+body[data-authenticated="true"] .app-main .ph-tabs-item:focus-visible,
+body[data-authenticated="true"] .app-main .ph-tabs-track input:focus-visible + .ph-tabs-item { outline:2px solid #ffa500; outline-offset:-3px; }
+body[data-authenticated="true"] .app-main .ph-tabs-indicator { position:absolute; bottom:-1px; left:0; width:var(--ph-tab-width, 0px); height:3px; transform:translateX(var(--ph-tab-x,0px)); border-radius:99px 99px 0 0; background:#ffa500; pointer-events:none; opacity:0; transition:transform .23s cubic-bezier(.2,.7,.1,1), width .23s cubic-bezier(.2,.7,.1,1), opacity .15s ease; }
+body[data-authenticated="true"] .app-main .ph-tabs-count { display:inline-flex; min-width:21px; height:21px; padding:0 .35rem; align-items:center; justify-content:center; border-radius:99px; background:var(--bs-tertiary-bg); color:var(--bs-secondary-color); font-size:.74rem; font-weight:700; }
+body[data-authenticated="true"] .app-main .ph-tabs-count--alert { color:#fff; background:#bb3446; }
+body[data-authenticated="true"] .app-main .ph-tabs-track input:checked + .ph-tabs-item .ph-tabs-count { color:var(--bs-emphasis-color); }
+/* Avoid old orange filled Progress and study-filter buttons; selectors are scoped to new tabs. */
+body[data-authenticated="true"] .app-main .ph-tabs-nav a.ph-tabs-item { color:var(--bs-secondary-color) !important; }
+body[data-authenticated="true"] .app-main .ph-tabs-nav a.ph-tabs-item.is-active { color:var(--bs-emphasis-color) !important; }
+body[data-authenticated="true"] .app-main .ph-tabs-nav a.ph-tabs-item:hover { color:var(--bs-emphasis-color) !important; }
+@keyframes ph-v474-tab-enter { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+body[data-authenticated="true"] .app-main .ph-tabs-page-panel,
+body[data-page="swap"] .ph-request-panel:not([hidden]) { animation:ph-v474-tab-enter .22s ease-out both; }
+body[data-page="swap"] .ph-request-panel[hidden] { display:none !important; }
+body[data-page="swap"] .ph-requests-page { width:100%; min-width:0; }
+body[data-page="swap"] .ph-requests-page .ph-request-section-heading h2 { color:var(--bs-emphasis-color); }
+body[data-page="swap"] .ph-request-card { border:1px solid var(--bs-border-color) !important; border-radius:15px; background:var(--bs-body-bg); box-shadow:0 2px 12px rgba(10,24,45,.05); transition:border-color .18s ease,transform .18s ease; }
+body[data-page="swap"] .ph-request-card:hover { border-color:rgba(218,151,32,.65) !important; transform:translateY(-2px); }
+body[data-page="swap"] .ph-request-card-heading { min-width:0; }
+body[data-page="swap"] .ph-request-avatar { display:grid; place-items:center; flex-shrink:0; height:44px; width:44px; object-fit:cover; }
+body[data-page="swap"] .ph-request-avatar--fallback { background:#102440; color:#fff; font-size:.8rem; font-weight:700; }
+html[data-bs-theme="dark"] body[data-page="swap"] .ph-request-avatar--fallback { background:#354a65; color:#fff; }
+body[data-page="swap"] .ph-request-type { display:inline-flex; align-items:center; gap:.4rem; font-size:.76rem; font-weight:700; color:var(--bs-secondary-color); letter-spacing:.015em; }
+body[data-page="swap"] .ph-request-type i { font-size:1rem; color:#d18b18; }
+body[data-page="swap"] .ph-request-status { display:inline-flex; align-items:center; padding:.3rem .65rem; border-radius:100px; background:var(--bs-tertiary-bg); color:var(--bs-secondary-color); font-size:.72rem; font-weight:750; white-space:nowrap; }
+body[data-page="swap"] .ph-request-status--accepted, body[data-page="swap"] .ph-request-status--finished { background:var(--bs-success-bg-subtle); color:var(--bs-success-text-emphasis); }
+body[data-page="swap"] .ph-request-status--pending { background:var(--bs-warning-bg-subtle); color:var(--bs-warning-text-emphasis); }
+body[data-page="swap"] .ph-request-status--declined, body[data-page="swap"] .ph-request-status--cancelled { background:var(--bs-danger-bg-subtle); color:var(--bs-danger-text-emphasis); }
+body[data-page="swap"] .ph-request-card h4 { color:var(--bs-emphasis-color); }
+body[data-page="swap"] .ph-request-context .small { color:var(--bs-secondary-color); }
+body[data-page="swap"] .ph-request-context .badge { font-size:.69rem; }
+body[data-page="swap"] .ph-request-note { padding:.75rem .9rem; border-radius:10px; background:var(--bs-tertiary-bg); color:var(--bs-secondary-color); white-space:pre-wrap; overflow-wrap:anywhere; }
+body[data-page="swap"] .ph-request-history-note { display:flex; align-items:center; gap:.3rem; padding:.8rem .9rem; border-radius:10px; background:var(--bs-tertiary-bg); color:var(--bs-body-color); }
+body[data-page="swap"] .ph-request-history-note .bi { color:var(--bs-success); }
+body[data-page="swap"] .ph-request-actions { padding-top:1rem; border-top:1px solid var(--bs-border-color); }
+body[data-page="swap"] .ph-request-actions .btn { min-height:42px; border-radius:9px; font-weight:650; }
+body[data-page="swap"] .ph-request-review-link { --bs-btn-color:#102440; --bs-btn-border-color:#102440; --bs-btn-hover-color:#fff; --bs-btn-hover-bg:#102440; --bs-btn-hover-border-color:#102440; }
+html[data-bs-theme="dark"] body[data-page="swap"] .ph-request-review-link { --bs-btn-color:#ffa500; --bs-btn-border-color:#ffa500; --bs-btn-hover-color:#102440; --bs-btn-hover-bg:#ffa500; --bs-btn-hover-border-color:#ffa500; }
+body[data-page="swap"] .ph-request-icon-action { width:36px; height:36px; min-width:36px; display:grid; place-items:center; border:1px solid var(--bs-border-color); border-radius:9px; background:transparent; color:var(--bs-secondary-color); }
+body[data-page="swap"] .ph-request-icon-action:hover { color:var(--bs-danger); border-color:var(--bs-danger); background:var(--bs-danger-bg-subtle); }
+body[data-page="swap"] .ph-request-empty { padding:clamp(2rem,4vw,3.5rem) 1.25rem; border:1px dashed var(--bs-border-color); border-radius:15px; background:var(--bs-body-bg); }
+body[data-page="swap"] .ph-request-empty > .bi { color:#d18b18; }
+body[data-page="swap"] .ph-request-card .btn:focus-visible { outline:2px solid #ffa500; outline-offset:2px; }
+@media(max-width:575.98px) { body[data-authenticated="true"] .app-main .ph-tabs-item { padding:.7rem .75rem; font-size:.85rem; } body[data-page="swap"] .ph-request-card .card-body { padding:1rem !important; } }
+@media(prefers-reduced-motion:reduce) {
+  body[data-authenticated="true"] .app-main .ph-tabs-item,
+  body[data-authenticated="true"] .app-main .ph-tabs-indicator,
+  body[data-page="swap"] .ph-request-card { transition:none !important; }
+  body[data-authenticated="true"] .app-main .ph-tabs-page-panel,
+  body[data-page="swap"] .ph-request-panel:not([hidden]) { animation:none !important; }
+}
+/* END PEERHIVE v4.7.4 */
+
+/* BEGIN PeerHive v4.7.5 My Schedule */
+body[data-page="schedule"] .ph-schedule-page { width:100%; min-width:0; }
+body[data-page="schedule"] .ph-schedule-card { border:1px solid var(--bs-border-color); border-radius:15px; background:var(--bs-body-bg); overflow:hidden; }
+body[data-page="schedule"] .ph-schedule-card .card-header { background:var(--bs-body-bg); border-bottom-color:var(--bs-border-color); padding:1.1rem 1.25rem; }
+body[data-page="schedule"] .ph-tabs-track .ph-tabs-item { border:0 !important; color:var(--bs-secondary-color); }
+body[data-page="schedule"] .ph-tabs-track .ph-tabs-item.active { color:var(--bs-emphasis-color); background:transparent; font-weight:750; }
+body[data-page="schedule"] .ph-tabs-track .ph-tabs-item:hover { background:var(--bs-tertiary-bg); }
+body[data-page="schedule"] .ph-tabs-nav .ph-tabs-track { border-bottom-color:var(--bs-border-color); }
+body[data-page="schedule"] .availability-tile.ph-availability-day { display:flex; flex-direction:column; gap:1rem; align-items:stretch; width:100%; min-height:184px; text-align:left; border:1px solid var(--bs-border-color); border-radius:13px; background:var(--bs-body-bg); color:var(--bs-body-color); padding:1rem; cursor:pointer; transition:border-color .16s ease,background-color .16s ease,transform .16s ease; }
+body[data-page="schedule"] .availability-tile.ph-availability-day:hover { transform:translateY(-2px); border-color:#d59a2f; background:var(--bs-tertiary-bg); }
+body[data-page="schedule"] .availability-tile.ph-availability-day.active { border-color:rgba(255,165,0,.65); box-shadow:none; }
+body[data-page="schedule"] .ph-availability-day-head { display:flex; justify-content:space-between; align-items:center; gap:1rem; }
+body[data-page="schedule"] .ph-availability-day .availability-day { margin:0; color:var(--bs-emphasis-color); }
+body[data-page="schedule"] .ph-availability-count { border-radius:99px; padding:.2rem .55rem; font-size:.71rem; font-weight:700; color:var(--bs-secondary-color); background:var(--bs-tertiary-bg); white-space:nowrap; }
+body[data-page="schedule"] .ph-availability-day.active .ph-availability-count { color:var(--bs-emphasis-color); background:rgba(255,165,0,.16); }
+body[data-page="schedule"] .ph-availability-ranges { display:grid; gap:.55rem; flex:1; }
+body[data-page="schedule"] .ph-availability-range { display:flex; align-items:start; gap:.45rem; font-size:.85rem; color:var(--bs-body-color); }
+body[data-page="schedule"] .ph-availability-range .bi { color:#c5891d; }
+body[data-page="schedule"] .ph-availability-edit { color:var(--bs-emphasis-color); font-size:.82rem; font-weight:650; }
+html[data-bs-theme="dark"] body[data-page="schedule"] .ph-availability-edit { color:#ffbf56; }
+body[data-page="schedule"] .ph-availability-slot { padding:1rem; border:1px solid var(--bs-border-color); border-radius:12px; background:var(--bs-tertiary-bg); }
+body[data-page="schedule"] .ph-availability-slot input:focus { border-color:#d9911e; box-shadow:0 0 0 .18rem rgba(255,165,0,.18); }
+body[data-page="schedule"] .ph-add-slot { border-style:dashed; }
+body[data-page="schedule"] #phAvailabilityErrors[hidden] { display:none; }
+body[data-page="schedule"] .ph-booked-session { padding:1rem; border:1px solid var(--bs-border-color); border-radius:12px; margin-top:.75rem; }
+body[data-page="schedule"] .ph-booked-subject { font-size:.72rem; font-weight:750; color:var(--bs-emphasis-color); border-radius:99px; background:rgba(255,165,0,.12); padding:.28rem .65rem; }
+body[data-page="schedule"] .ph-booking-status { font-size:.76rem; font-weight:750; background:var(--bs-success-bg-subtle); color:var(--bs-success-text-emphasis); border-radius:99px; padding:.3rem .65rem; }
+body[data-page="schedule"] .ph-bookings-empty { border:1px dashed var(--bs-border-color); border-radius:12px; }
+body[data-page="schedule"] .ph-bookings-empty .bi { color:#d08a1b; }
+body[data-page="schedule"] :is(.availability-tile,.btn,.form-control):focus-visible { outline:2px solid #ffa500; outline-offset:2px; }
+body[data-page="schedule"] #bookingCalendar { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:.3rem; }
+body[data-page="schedule"] #bookingCalendar > div { min-width:0; }
+body[data-page="schedule"] #bookingCalendar .calendar-event { color:var(--bs-emphasis-color); background:rgba(255,165,0,.12); border-radius:6px; padding:.3rem; }
+body[data-page="users.profile"] .ph-public-availability-day.is-available { border-color:rgba(255,165,0,.5) !important; background:rgba(255,165,0,.08); }
+body[data-page="users.profile"] .ph-public-availability-slot { color:var(--bs-body-color); margin-bottom:.35rem; line-height:1.4; }
+@media(max-width:575.98px) { body[data-page="schedule"] .availability-tile.ph-availability-day { min-height:150px; } body[data-page="schedule"] .ph-availability-day-head { flex-wrap:wrap; } body[data-page="schedule"] #bookingCalendar > div:not(.calendar-weekday) { min-height:64px !important; font-size:.75rem; } body[data-page="schedule"] #bookingCalendar .calendar-event { white-space:normal; line-height:1.2; } }
+@media(prefers-reduced-motion:reduce) { body[data-page="schedule"] .availability-tile.ph-availability-day { transition:none !important; transform:none !important; } }
+/* END PeerHive v4.7.5 My Schedule */
+
+
+/* BEGIN PeerHive v4.7.5b Schedule header alignment (presentation only) */
+body[data-page="schedule"] .ph-schedule-card .card-header.ph-schedule-availability-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap;
+    gap: .8rem 1.25rem;
+    width: 100%;
+}
+body[data-page="schedule"] .ph-schedule-availability-heading {
+    flex: 1 1 260px;
+    min-width: 0;
+}
+body[data-page="schedule"] .ph-schedule-timezone-note {
+    display: inline-flex;
+    align-items: center;
+    gap: .55rem;
+    margin-inline-start: auto;
+    min-width: 0;
+    max-width: 100%;
+    padding: .52rem .8rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 10px;
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-secondary-color);
+    line-height: 1.4;
+}
+body[data-page="schedule"] .ph-schedule-timezone-note i {
+    flex: 0 0 auto;
+    color: #d9951b;
+}
+body[data-page="schedule"] .ph-schedule-timezone-note strong {
+    font-weight: 700;
+    color: var(--bs-emphasis-color);
+}
+body[data-page="schedule"] .ph-schedule-card .card-header.ph-calendar-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 76px;
+    width: 100%;
+}
+body[data-page="schedule"] .ph-calendar-month-nav {
+    display: grid;
+    grid-template-columns: 40px minmax(150px, max-content) 40px;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(.55rem, 2vw, 1.35rem);
+    min-width: 0;
+    max-width: 100%;
+    margin-inline: auto;
+}
+body[data-page="schedule"] .ph-calendar-month-nav h2 {
+    margin: 0;
+    white-space: nowrap;
+    text-align: center;
+    font-size: clamp(1rem, 2vw, 1.25rem);
+}
+body[data-page="schedule"] .ph-calendar-month-nav .btn {
+    display: inline-grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 10px;
+}
+@media (max-width: 575.98px) {
+    body[data-page="schedule"] .ph-schedule-availability-heading { flex-basis: 100%; }
+    body[data-page="schedule"] .ph-schedule-timezone-note { margin-inline-start: 0; width: 100%; }
+    body[data-page="schedule"] .ph-calendar-month-nav { grid-template-columns: 36px minmax(130px, max-content) 36px; gap: .4rem; }
+    body[data-page="schedule"] .ph-calendar-month-nav .btn { width: 36px; height: 36px; }
+}
+/* END PeerHive v4.7.5b Schedule header alignment */
+
+/* BEGIN PEERHIVE v4.7.6: History clarity and branded controls (UI only) */
+body[data-page="history"] .ph-history-shell { overflow: hidden; border: 1px solid var(--bs-border-color) !important; border-radius: 15px; background: var(--bs-body-bg); box-shadow: 0 2px 10px rgba(10,24,45,.045); }
+body[data-page="history"] .ph-history-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap: .65rem 1rem; padding:1.2rem 1.4rem; border-bottom:1px solid var(--bs-border-color); }
+body[data-page="history"] .ph-history-header h2 { color:var(--bs-emphasis-color); }
+body[data-page="history"] .ph-history-count { white-space:nowrap; font-size:.8rem; font-weight:700; border:1px solid var(--bs-border-color); padding:.35rem .6rem; border-radius:999px; background:var(--bs-tertiary-bg); color:var(--bs-secondary-color); }
+body[data-page="history"] .ph-history-list { padding:0 1.35rem; }
+body[data-page="history"] .ph-history-row { display:flex; align-items:center; justify-content:space-between; gap:1.15rem 1.5rem; padding:1.25rem 0; border-bottom:1px solid var(--bs-border-color); }
+body[data-page="history"] .ph-history-row:last-child { border-bottom:0; }
+body[data-page="history"] .ph-history-row-main { display:flex; align-items:flex-start; gap:.9rem; min-width:0; flex:1 1 300px; }
+body[data-page="history"] .ph-history-row-icon { width:42px; height:42px; border-radius:12px; flex:0 0 42px; display:grid; place-items:center; background:var(--bs-tertiary-bg); color:var(--bs-secondary-color); font-size:1.15rem; }
+body[data-page="history"] .ph-history-row-icon.is-completed { background:var(--bs-success-bg-subtle); color:var(--bs-success-text-emphasis); }
+body[data-page="history"] .ph-history-row-copy { min-width:0; }
+body[data-page="history"] .ph-history-title { display:inline-block; margin-bottom:.35rem; color:var(--bs-emphasis-color); font-size:1rem; line-height:1.4; font-weight:700; text-decoration:none; overflow-wrap:anywhere; }
+body[data-page="history"] .ph-history-title:hover { color:var(--ph-action-bg,#102440); text-decoration:underline; text-underline-offset:3px; }
+body[data-page="history"] .ph-history-meta { display:flex; align-items:center; flex-wrap:wrap; gap:.3rem .7rem; color:var(--bs-secondary-color); font-size:.8rem; line-height:1.5; }
+body[data-page="history"] .ph-history-meta > span:not(:last-child)::after { content:'·'; margin-left:.7rem; color:var(--bs-tertiary-color); }
+body[data-page="history"] .ph-history-row-aside { display:flex; align-items:center; justify-content:flex-end; gap:.5rem .85rem; flex-wrap:wrap; flex:0 1 365px; }
+body[data-page="history"] .ph-history-status { display:inline-flex; align-items:center; gap:.35rem; padding:.34rem .65rem; border-radius:999px; font-size:.77rem; font-weight:750; white-space:nowrap; }
+body[data-page="history"] .ph-history-status.is-completed { background:var(--bs-success-bg-subtle); color:var(--bs-success-text-emphasis); }
+body[data-page="history"] .ph-history-status.is-cancelled { background:var(--bs-secondary-bg); color:var(--bs-secondary-color); }
+body[data-page="history"] .ph-history-attendance { font-size:.78rem; color:var(--bs-secondary-color); }
+body[data-page="history"] .ph-history-attendance--confirmed { color:var(--bs-success-text-emphasis); }
+body[data-page="history"] .ph-history-attendance--pending { color:var(--bs-warning-text-emphasis); }
+body[data-page="history"] .ph-history-action { display:inline-flex; align-items:center; justify-content:center; gap:.4rem; padding:.45rem .65rem; border:1px solid var(--bs-border-color); border-radius:9px; color:var(--bs-body-color); font-size:.82rem; font-weight:650; text-decoration:none; white-space:nowrap; }
+body[data-page="history"] .ph-history-action:hover { background:rgba(255,165,0,.12); border-color:#db981e; color:var(--bs-emphasis-color); }
+body[data-page="history"] :is(.ph-history-action,.ph-history-title,.ph-history-discover):focus-visible { outline:2px solid #ffa500; outline-offset:3px; }
+body[data-page="history"] .ph-history-discover { background:#102440; border:1px solid #102440; color:#fff; font-weight:700; border-radius:10px; padding:.65rem 1rem; }
+body[data-page="history"] .ph-history-discover:hover { background:#1c3d66; border-color:#1c3d66; color:#fff; }
+html[data-bs-theme="dark"] body[data-page="history"] .ph-history-discover { background:#ffa500; border-color:#ffa500; color:#102440; }
+html[data-bs-theme="dark"] body[data-page="history"] .ph-history-discover:hover { background:#ffbd52; border-color:#ffbd52; color:#102440; }
+body[data-page="history"] .ph-history-empty { text-align:center; padding:3.3rem 1rem; max-width:520px; margin:0 auto; }
+body[data-page="history"] .ph-history-empty-icon { display:grid; place-items:center; width:58px; height:58px; margin:0 auto 1rem; border-radius:16px; background:rgba(255,165,0,.13); color:#c5871a; font-size:1.65rem; }
+body[data-page="history"] .ph-history-pagination { border-top:1px solid var(--bs-border-color); padding:1rem 1.3rem; }
+@media (max-width: 767.98px) { body[data-page="history"] .ph-history-row { align-items:flex-start; flex-direction:column; } body[data-page="history"] .ph-history-row-aside { justify-content:flex-start; flex:0 1 auto; width:100%; padding-left:3.3rem; } body[data-page="history"] .ph-history-meta { display:block; } body[data-page="history"] .ph-history-meta > span { display:block; } body[data-page="history"] .ph-history-meta > span:not(:last-child)::after { display:none; } }
+@media (max-width: 420px) { body[data-page="history"] .ph-history-header { padding:1rem; } body[data-page="history"] .ph-history-list { padding-inline:1rem; } body[data-page="history"] .ph-history-row-aside { padding-left:0; } }
+@media (prefers-reduced-motion: reduce) { body[data-page="history"] :is(.ph-history-action,.ph-history-discover) { transition:none !important; } }
+/* END PEERHIVE v4.7.6 History clarity */
+
+
+/* BEGIN PEERHIVE v4.7.7: Messages and private Learn/Swap UI */
+body[data-page="messages"] .ph-messages-ui { --ph-m-msg:#102440; --ph-m-orange:#ffa500; border:1px solid var(--bs-border-color); border-radius:18px; box-shadow:0 9px 28px rgba(13,31,54,.06); }
+body[data-page="messages"] .ph-messages-ui .ph-messaging-sidebar { background:var(--bs-body-bg) !important; }
+body[data-page="messages"] .ph-messages-ui .ph-chat-list-header { background:var(--bs-body-bg); }
+body[data-page="messages"] .ph-messages-ui .chat-column-header h1 { color:var(--bs-emphasis-color); }
+body[data-page="messages"] .ph-messaging-icon-btn { display:inline-grid; place-items:center; height:36px; width:36px; border:1px solid var(--bs-border-color); color:var(--bs-emphasis-color); border-radius:12px; background:var(--bs-body-bg); font-size:1rem; }
+body[data-page="messages"] .ph-messaging-icon-btn:hover { background:rgba(255,165,0,.11); border-color:#db981e; color:var(--bs-emphasis-color); }
+body[data-page="messages"] .ph-chat-list-tools { background:var(--bs-body-bg); }
+body[data-page="messages"] .ph-chat-searchbox { position:relative; }
+body[data-page="messages"] .ph-chat-searchbox > i { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--bs-secondary-color); pointer-events:none; }
+body[data-page="messages"] .ph-chat-searchbox input { border-radius:99px; padding:.65rem 1rem .65rem 2.55rem; background:var(--bs-tertiary-bg); border:1px solid var(--bs-border-color); }
+body[data-page="messages"] .ph-chat-filter { width:auto; max-width:185px; border-radius:10px; background-color:var(--bs-body-bg); }
+body[data-page="messages"] .ph-chat-list { padding:8px 10px 20px; }
+body[data-page="messages"] .ph-chat-section-heading { display:flex; align-items:center; gap:8px; margin:12px 7px 5px; padding:.55rem .35rem; font-size:.79rem; font-weight:750; letter-spacing:.01em; color:var(--bs-secondary-color); }
+body[data-page="messages"] .ph-chat-section-heading > i { color:#be821b; }
+body[data-page="messages"] .ph-chat-section-count { margin-left:auto; font-size:.7rem; font-weight:750; color:var(--bs-secondary-color); background:var(--bs-tertiary-bg); border-radius:99px; padding:2px 8px; }
+body[data-page="messages"] .conversation-list-row { margin:3px 0; border-radius:12px; transition:background-color .18s ease, box-shadow .18s ease; }
+body[data-page="messages"] .conversation-list-row:hover { background:var(--bs-tertiary-bg); }
+body[data-page="messages"] .conversation-list-row:has(.conversation-item.bg-body-tertiary) { background:rgba(255,165,0,.11); box-shadow:inset 3px 0 #ffa500; }
+body[data-page="messages"] .conversation-item { border-radius:12px; padding:12px 8px 12px 12px !important; background:transparent !important; min-width:0; }
+body[data-page="messages"] .conversation-list-row .conversation-options { margin-right:5px; background:transparent; }
+body[data-page="messages"] .conversation-list-row .conversation-options:hover { background:var(--bs-secondary-bg); }
+body[data-page="messages"] .ph-conversation-name { flex:1; min-width:0; font-size:.87rem; }
+body[data-page="messages"] .ph-conversation-time { flex-shrink:0; font-size:.67rem; color:var(--bs-secondary-color); }
+body[data-page="messages"] .ph-conversation-kind { color:var(--bs-secondary-color); background:var(--bs-tertiary-bg); border-radius:99px; padding:2px 7px; font-size:.63rem; font-weight:650; white-space:nowrap; }
+body[data-page="messages"] .ph-conversation-kind .ph-kind-session { color:#955b00; }
+html[data-bs-theme="dark"] body[data-page="messages"] .ph-conversation-kind .ph-kind-session { color:#ffca76; }
+body[data-page="messages"] .ph-chat-unread-badge { background:#ffa500 !important; color:#102440 !important; font-size:.7rem; }
+body[data-page="messages"] .ph-chat-conversation-type-avatar { display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:rgba(255,165,0,.14);color:#c4861a;font-size:1.15rem; }
+body[data-page="messages"] .ph-chat-list-empty { display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2.6rem .75rem;color:var(--bs-secondary-color);gap:.4rem; }
+body[data-page="messages"] .ph-chat-list-empty i { font-size:1.7rem;color:#b87e20; }
+body[data-page="messages"] #chatHeader { background:var(--bs-body-bg); }
+body[data-page="messages"] .ph-chat-header-avatar { display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border-radius:50%;overflow:hidden;background:rgba(255,165,0,.14);color:var(--bs-emphasis-color); }
+body[data-page="messages"] .ph-chat-header-photo { display:block;width:100%;height:100%;object-fit:cover; }
+body[data-page="messages"] .ph-chat-header-initials { font-weight:750;font-size:.95rem; }
+body[data-page="messages"] #chatPresenceStatus { font-size:.74rem; margin-top:2px; }
+body[data-page="messages"] .ph-chat-header-actions { flex-shrink:0; }
+body[data-page="messages"] .ph-session-header-btn { border-radius:9px; white-space:nowrap; }
+body[data-page="messages"] .ph-messages-scroller { background:var(--bs-body-bg); scrollbar-color:var(--bs-border-color) transparent; }
+body[data-page="messages"] .ph-chat-empty { display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;min-height:100%;color:var(--bs-secondary-color);text-align:center; }
+body[data-page="messages"] .ph-chat-empty i { display:grid;place-items:center;width:65px;height:65px;border-radius:20px;background:rgba(255,165,0,.11);color:#c78922;font-size:1.65rem; }
+body[data-page="messages"] .ph-messages-scroller .message-row { margin-block:.55rem !important; }
+body[data-page="messages"] .ph-message-bubble { border-radius:15px !important;padding:.7rem .9rem !important;box-shadow:0 1px 3px rgba(14,30,50,.04);overflow-wrap:anywhere; }
+body[data-page="messages"] .ph-message-bubble.bg-primary,body[data-page="messages"] .pending-message-row .message-bubble { background:#102440 !important;color:#fff !important; }
+body[data-page="messages"] .ph-message-bubble.bg-body-tertiary { background:var(--bs-tertiary-bg) !important;color:var(--bs-body-color) !important; }
+body[data-page="messages"] .ph-message-bubble.bg-primary .message-reactions .reaction-choice { color:#102440; }
+body[data-page="messages"] .ph-chat-image-attachment img { max-height:270px; width:auto; object-fit:contain; }
+body[data-page="messages"] .ph-message-time { font-size:.67rem !important; }
+body[data-page="messages"] .ph-message-composer { background:var(--bs-body-bg); }
+body[data-page="messages"] #messageInput { background:var(--bs-tertiary-bg);border:1px solid var(--bs-border-color);border-radius:99px;min-height:43px; }
+body[data-page="messages"] #chooseAttachmentBtn { height:43px !important;width:43px !important; }
+body[data-page="messages"] #messageForm .ph-send-button { min-height:43px; font-weight:700; }
+body[data-page="messages"] .ph-session-event-card { background:var(--bs-tertiary-bg);border-color:var(--bs-border-color)!important;border-radius:14px; }
+body[data-page="messages"] .ph-session-event-card strong { color:var(--bs-emphasis-color); }
+body[data-page="messages"] .btn-outline-primary { --bs-btn-color:#102440;--bs-btn-border-color:#8fa3bc;--bs-btn-hover-color:#fff;--bs-btn-hover-bg:#102440;--bs-btn-hover-border-color:#102440; }
+html[data-bs-theme="dark"] body[data-page="messages"] .btn-outline-primary { --bs-btn-color:#ffbd52;--bs-btn-border-color:#ffbd52;--bs-btn-hover-color:#102440;--bs-btn-hover-bg:#ffbd52;--bs-btn-hover-border-color:#ffbd52; }
+html[data-bs-theme="dark"] body[data-page="messages"] .ph-message-bubble.bg-primary,html[data-bs-theme="dark"] body[data-page="messages"] .pending-message-row .message-bubble { background:#182f4b !important;color:#f8fafc !important;border:1px solid #455f7f; }
+body[data-page="messages"] :is(.conversation-item,.conversation-options,.ph-messaging-icon-btn,.ph-session-header-btn,#chatInfoBtn,#chooseAttachmentBtn,#messageInput,#conversationSearchInput,#conversationFilterSelect):focus-visible { outline:2px solid #ffa500;outline-offset:2px; }
+body[data-page="messages"] .ph-private-session-panel { padding:.2rem; }
+body[data-page="messages"] .ph-private-session-heading { padding:.9rem;border-radius:12px;background:var(--bs-tertiary-bg); }
+body[data-page="messages"] .ph-session-panel-icon { display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:rgba(255,165,0,.16);color:#c78821; }
+body[data-page="messages"] .ph-private-session-status { background:rgba(255,165,0,.16);color:var(--bs-emphasis-color);border:1px solid rgba(255,165,0,.28); }
+body[data-page="messages"] .ph-private-session-details { padding:.9rem;border:1px solid var(--bs-border-color);border-radius:12px; }
+body[data-page="messages"] .ph-private-session-details summary { cursor:pointer; }
+body[data-page="messages"] .ph-private-session-details p { line-height:1.55; }
+body[data-page="messages"] #sessionActivitiesBody .ph-session-activity-card,body[data-page="messages"] #sessionActivitiesBody .ph-session-activity-form { border-radius:13px;overflow:hidden;border-color:var(--bs-border-color); }
+body[data-page="messages"] #sessionActivitiesBody .ph-session-activity-card .card-body { padding:1.25rem; }
+body[data-page="messages"] #sessionActivitiesBody .ph-session-activity-form > summary { cursor:pointer;padding:1rem; }
+body[data-page="messages"] .ph-messaging-main #chatInfoBtn { color:var(--bs-secondary-color) !important; }
+@media(min-width:1200px) { body[data-page="messages"] .messaging-columns > .chat-sidebar { width:clamp(290px,30%,375px); } }
+@media(min-width:768px) and (max-width:1199.98px) { body[data-page="messages"] .messaging-columns > .chat-sidebar { width:clamp(220px,32%,310px); } }
+@media(max-width:767.98px) { body[data-page="messages"] .ph-messages-ui { border-radius:12px; } body[data-page="messages"] .ph-chat-list { padding-inline:6px; } body[data-page="messages"] .ph-chat-header-avatar { width:34px;height:34px;flex-basis:34px; } body[data-page="messages"] #chatHeader { padding:.6rem !important; } body[data-page="messages"] .ph-chat-header-actions { gap:3px !important; } body[data-page="messages"] .ph-session-header-btn { padding:.3rem .45rem; } body[data-page="messages"] #chatHeader .ph-chat-header-identity { max-width:clamp(90px,29vw,210px); } body[data-page="messages"] .ph-message-composer { padding:.55rem !important; } body[data-page="messages"] .ph-message-bubble { max-width:85% !important; } }
+@media(prefers-reduced-motion:reduce) { body[data-page="messages"] .conversation-list-row { transition:none; } }
+/* END PEERHIVE v4.7.7 Messages and Learn/Swap UI */
+
+/* BEGIN PeerHive v4.7.7a Messaging refinement */
+body[data-page="messages"] .conversation-list-row:has(.conversation-item.bg-body-tertiary) { background:var(--bs-tertiary-bg); box-shadow:none; }
+body[data-page="messages"] .conversation-list-row:has(.conversation-item.bg-body-tertiary) .ph-conversation-name { font-weight:750; }
+body[data-page="messages"] .ph-session-event-card { width:min(100%,480px); background:var(--bs-body-bg); }
+body[data-page="messages"] .ph-session-subject { color:var(--bs-emphasis-color); font-weight:750; }
+body[data-page="messages"] .ph-session-card-actions { display:flex; flex-wrap:wrap; align-items:center; gap:.45rem; border-top:1px solid var(--bs-border-color); padding-top:.85rem; margin-top:.9rem; }
+body[data-page="messages"] .ph-session-change-note { padding:.65rem .75rem; border-radius:9px; background:var(--bs-tertiary-bg); border-left:3px solid #ffa500; font-size:.8rem; overflow-wrap:anywhere; }
+body[data-page="messages"] #messageForm .ph-send-button { min-height:40px; height:40px; padding:.35rem .95rem; font-size:.85rem; display:inline-flex; gap:0; align-items:center; justify-content:center; }
+body[data-page="messages"] #messageForm .ph-send-button i { font-size:.96rem; }
+body[data-page="messages"] .ph-private-meeting-switch { display:flex; gap:.45rem; flex-wrap:wrap; }
+body[data-page="messages"] .ph-meeting-method-choice { position:relative; cursor:pointer; }
+body[data-page="messages"] .ph-meeting-method-choice input { position:absolute; opacity:0; width:1px; height:1px; }
+body[data-page="messages"] .ph-meeting-method-choice span { display:flex; align-items:center; justify-content:center; gap:.4rem; border:1px solid var(--bs-border-color); background:var(--bs-body-bg); color:var(--bs-body-color); border-radius:99px; min-height:40px; padding:.5rem 1.2rem; font-size:.87rem; font-weight:650; transition:background-color .16s ease,border-color .16s ease; }
+body[data-page="messages"] .ph-meeting-method-choice input:checked + span { background:#ffa500; border-color:#ffa500; color:#102440; }
+body[data-page="messages"] .ph-meeting-method-choice input:focus-visible + span { outline:2px solid #ffa500; outline-offset:3px; }
+body[data-page="messages"] .ph-session-proposal-form { display:grid; gap:.35rem; }
+body[data-page="messages"] .ph-session-form-section { padding:.9rem 1rem; background:var(--bs-tertiary-bg); border:1px solid var(--bs-border-color); border-radius:12px; }
+body[data-page="messages"] .ph-session-form-section-title { display:flex; align-items:center; gap:.55rem; margin-bottom:.85rem; font-size:.95rem; }
+body[data-page="messages"] .ph-session-form-section-title i { color:#dc9626; font-size:1.05rem; }
+body[data-page="messages"] .ph-private-proposal-footer { padding-top:.4rem; }
+body[data-page="messages"] .ph-private-proposal-footer .btn { min-height:40px; border-radius:9px; }
+body[data-page="messages"] #createSessionModal .modal-dialog { width:min(calc(100% - 20px),660px); max-width:660px; }
+body[data-page="messages"] #createSessionModal .modal-body { padding:1.15rem; }
+body[data-page="messages"] .ph-private-session-details .ph-session-actions-summary { padding:1rem; background:var(--bs-tertiary-bg); border:1px solid var(--bs-border-color); border-radius:11px; }
+body[data-page="messages"] .ph-private-session-details .ph-session-actions-summary .btn { border-radius:9px; }
+@media(min-width:768px) {
+  body[data-page="messages"] .messaging-columns > .chat-sidebar { transition:width .2s ease,opacity .18s ease,flex-basis .2s ease; }
+  body[data-page="messages"] .messaging-columns.ph-chat-list-collapsed > .chat-sidebar { width:0!important; min-width:0!important; flex:0 0 0!important; opacity:0; overflow:hidden; border:0!important; pointer-events:none; }
+  body[data-page="messages"] .messaging-columns.ph-chat-list-collapsed > .chat-main { flex:1 1 auto; min-width:0; }
+}
+@media(max-width:767.98px) { body[data-page="messages"] .ph-collapse-conversations, body[data-page="messages"] .ph-expand-conversations { display:none!important; } body[data-page="messages"] .ph-session-card-actions .btn { flex:1 1 auto; } }
+@media(max-width:400px) { body[data-page="messages"] #messageForm .ph-send-button { padding:0; flex:0 0 40px; width:40px; } }
+@media(prefers-reduced-motion:reduce) { body[data-page="messages"] .ph-meeting-method-choice span, body[data-page="messages"] .messaging-columns > .chat-sidebar { transition:none!important; } }
+/* END PeerHive v4.7.7a Messaging refinement */
+
+
+/* PeerHive v4.7.7b: messaging clarity and group management */
+body[data-page="messages"] .ph-chat-category-filters {display:flex;gap:5px;overflow-x:auto;scrollbar-width:thin;padding-bottom:4px;}
+body[data-page="messages"] .ph-chat-filter-chip {flex:0 0 auto;border:1px solid var(--bs-border-color);background:var(--bs-body-bg);color:var(--bs-secondary-color);border-radius:999px;font-size:.75rem;font-weight:650;padding:5px 10px;min-height:32px;}
+body[data-page="messages"] .ph-chat-filter-chip.is-active {background:rgba(255,165,0,.14);color:var(--bs-emphasis-color);border-color:#cb891c;}
+body[data-page="messages"] .ph-chat-section-toggle {display:flex;width:calc(100% - 14px);border:0;background:transparent;cursor:pointer;text-align:left;}
+body[data-page="messages"] .ph-chat-section-toggle:hover {background:var(--bs-tertiary-bg);border-radius:7px;}
+body[data-page="messages"] .ph-chat-section-toggle:focus-visible {outline:2px solid #ffa500;outline-offset:0;border-radius:7px;}
+body[data-page="messages"] .ph-chat-section-chevron {margin-left:auto;font-size:.68rem;color:var(--bs-secondary-color)!important;}
+body[data-page="messages"] .ph-chat-list .conversation-list-row {min-width:0;}
+body[data-page="messages"] .ph-chat-list .ph-group-list-photo {width:40px;height:40px;border-radius:50%;object-fit:cover;}
+body[data-page="messages"] .ph-group-invite-tray {max-height:190px;overflow:auto;}
+body[data-page="messages"] .ph-group-invite-item {background:var(--bs-tertiary-bg);border:1px solid var(--bs-border-color);border-radius:10px;}
+body[data-page="messages"] .ph-session-event-row {display:flex!important;justify-content:center!important;width:100%;padding-inline:3px;}
+body[data-page="messages"] .ph-session-event-card {max-width:min(100%,520px)!important;width:min(100%,520px)!important;border:1px solid var(--bs-border-color)!important;background:var(--bs-tertiary-bg);border-radius:14px;box-shadow:none!important;min-width:0;}
+body[data-page="messages"] .ph-session-event-icon {display:grid;place-items:center;width:34px;height:34px;flex:0 0 auto;border-radius:9px;background:rgba(255,165,0,.14);color:#e59a0b;}
+body[data-page="messages"] .ph-session-state-badge {flex:0 0 auto;border-radius:999px;background:rgba(255,165,0,.14);color:var(--bs-emphasis-color);border:1px solid rgba(255,165,0,.35);font-size:.69rem;font-weight:700;padding:4px 8px;}
+body[data-page="messages"] .ph-session-card-detail-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px 0;margin-top:10px;border-top:1px solid var(--bs-border-color);font-size:.82rem;}
+body[data-page="messages"] .ph-session-card-detail-grid span {display:flex;align-items:center;gap:7px;min-width:0;overflow-wrap:anywhere;}
+body[data-page="messages"] .ph-session-card-detail-grid i {color:#e59a0b;flex-shrink:0;}
+body[data-page="messages"] .ph-session-card-meeting {font-size:.82rem;overflow-wrap:anywhere;margin-bottom:8px;}
+body[data-page="messages"] .ph-session-card-note {border-radius:8px;padding:9px 11px;background:var(--bs-body-bg);border:1px solid var(--bs-border-color);overflow-wrap:anywhere;}
+body[data-page="messages"] .ph-session-card-footer {display:flex;justify-content:space-between;align-items:center;gap:7px;flex-wrap:wrap;}
+body[data-page="messages"] .ph-session-card-actions {margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;}
+body[data-page="messages"] .ph-contact-row {display:flex;align-items:center;width:100%;gap:12px;padding:10px;border:0;border-bottom:1px solid var(--bs-border-color);border-radius:8px;background:transparent;color:var(--bs-body-color);text-align:left;min-width:0;}
+body[data-page="messages"] .ph-contact-row:hover {background:var(--bs-tertiary-bg);}
+body[data-page="messages"] .ph-contact-avatar {width:40px;height:40px;object-fit:cover;border-radius:50%;flex-shrink:0;}
+body[data-page="messages"] .ph-contact-initials {display:grid;place-items:center;background:#233e5c;color:#fff;font-size:.78rem;font-weight:700;}
+body[data-page="messages"] .ph-contacts-results {max-height:330px;overflow-y:auto;}
+body[data-page="messages"] .ph-selected-group-member {border:1px solid var(--bs-border-color);border-radius:9px;background:var(--bs-tertiary-bg);}
+body[data-page="messages"] .ph-group-member-row {display:flex;align-items:center;gap:9px;padding:10px 0;border-bottom:1px solid var(--bs-border-color);}
+body[data-page="messages"] .ph-member-role-picker {max-width:146px;font-size:.78rem;}
+body[data-page="messages"] .ph-info-profile {text-align:center;margin-bottom:16px;}
+body[data-page="messages"] .ph-info-profile-photo {width:76px;height:76px;display:grid;place-items:center;object-fit:cover;border-radius:50%;margin:0 auto;background:#102440;color:#ffa500;font-size:1.75rem;}
+body[data-page="messages"] .ph-info-quick-actions {display:flex;justify-content:space-around;gap:5px;margin-bottom:16px;}
+body[data-page="messages"] .ph-info-quick-action {display:flex;align-items:center;gap:7px;flex-direction:column;border:0;background:transparent;color:var(--bs-body-color);font-size:.75rem;min-width:62px;padding:8px 4px;border-radius:8px;}
+body[data-page="messages"] .ph-info-quick-action i {font-size:1.2rem;}
+body[data-page="messages"] .ph-info-quick-action:hover {background:var(--bs-tertiary-bg);}
+body[data-page="messages"] .ph-info-section {border-top:1px solid var(--bs-border-color);padding:16px 0;}
+body[data-page="messages"] .ph-info-line-action {display:flex;align-items:center;gap:10px;background:transparent;border:0;padding:11px 4px;color:var(--bs-body-color);font-size:.875rem;width:100%;text-align:left;min-height:42px;}
+body[data-page="messages"] .ph-info-line-action:hover {color:#e59a0b;}
+body[data-page="messages"] .ph-info-line-action i {font-size:1rem;}
+body[data-page="messages"] .ph-info-person {display:flex;align-items:center;gap:10px;margin:9px 0;}
+body[data-page="messages"] .ph-info-person-avatar {width:30px;height:30px;flex-shrink:0;display:grid;place-items:center;border-radius:50%;background:var(--bs-tertiary-bg);}
+body[data-page="messages"] .ph-info-person-avatar img {width:100%;height:100%;border-radius:50%;object-fit:cover;}
+body[data-page="messages"] .ph-info-role-tag {color:#e59a0b;font-size:.72rem;font-weight:700;}
+body[data-page="messages"] .ph-chat-list .ph-chat-section-count {margin-left:4px;}
+body[data-page="swap"] .ph-request-icon-action {display:flex!important;align-items:center!important;justify-content:center!important;padding:0!important;line-height:1!important;}
+body[data-page="swap"] .ph-request-icon-action .bi {display:block;line-height:1!important;vertical-align:middle;margin:0;}
+@media (max-width:575.98px) {body[data-page="messages"] .ph-session-card-detail-grid {grid-template-columns:1fr;} body[data-page="messages"] .ph-chat-category-filters {gap:4px;} body[data-page="messages"] .ph-chat-filter-chip {padding-inline:8px;}}
+@media (prefers-reduced-motion:reduce) {body[data-page="messages"] .ph-chat-filter-chip,body[data-page="messages"] .ph-session-event-card {transition:none!important;}}
+
+/* BEGIN PeerHive v4.7.7e Shared action and page-header design system */
+body[data-authenticated="true"] {
+  --ph-brand-primary: #102440;
+  --ph-brand-primary-hover: #1c3d66;
+  --ph-brand-on-primary: #fff;
+  --ph-brand-focus: #bd7e0b;
+  --ph-action-height: 42px;
+  --ph-action-height-sm: 36px;
+  --ph-action-radius: 10px;
+  --bs-primary: #102440;
+  --bs-primary-rgb: 16, 36, 64;
+}
+html[data-bs-theme="dark"] body[data-authenticated="true"] {
+  --ph-brand-primary: #ffa500;
+  --ph-brand-primary-hover: #ffc15a;
+  --ph-brand-on-primary: #102440;
+  --ph-brand-focus: #ffc15a;
+  --bs-primary: #ffa500;
+  --bs-primary-rgb: 255, 165, 0;
+}
+body[data-authenticated="true"] .app-main .btn-primary {
+  --bs-btn-bg: var(--ph-brand-primary);
+  --bs-btn-border-color: var(--ph-brand-primary);
+  --bs-btn-color: var(--ph-brand-on-primary);
+  --bs-btn-hover-bg: var(--ph-brand-primary-hover);
+  --bs-btn-hover-border-color: var(--ph-brand-primary-hover);
+  --bs-btn-hover-color: var(--ph-brand-on-primary);
+  --bs-btn-active-bg: var(--ph-brand-primary-hover);
+  --bs-btn-active-border-color: var(--ph-brand-primary-hover);
+  --bs-btn-active-color: var(--ph-brand-on-primary);
+  --bs-btn-disabled-bg: var(--ph-brand-primary);
+  --bs-btn-disabled-border-color: var(--ph-brand-primary);
+  --bs-btn-disabled-color: var(--ph-brand-on-primary);
+}
+body[data-authenticated="true"] .app-main .btn-outline-primary {
+  --bs-btn-color: var(--ph-brand-primary);
+  --bs-btn-border-color: var(--ph-brand-primary);
+  --bs-btn-hover-bg: var(--ph-brand-primary);
+  --bs-btn-hover-border-color: var(--ph-brand-primary);
+  --bs-btn-hover-color: var(--ph-brand-on-primary);
+  --bs-btn-active-bg: var(--ph-brand-primary-hover);
+  --bs-btn-active-border-color: var(--ph-brand-primary-hover);
+  --bs-btn-active-color: var(--ph-brand-on-primary);
+}
+body[data-authenticated="true"] .app-main .btn:not(.btn-link):not(.dropdown-toggle) {
+  min-height: var(--ph-action-height);
+  border-radius: var(--ph-action-radius);
+}
+body[data-authenticated="true"] .app-main .btn.btn-sm:not(.btn-link):not(.dropdown-toggle) {
+  min-height: var(--ph-action-height-sm);
+}
+body[data-authenticated="true"] .app-main .btn:focus-visible,
+body[data-authenticated="true"] .app-main .ph-info-line-action:focus-visible {
+  outline: 2px solid var(--ph-brand-focus);
+  outline-offset: 2px;
+}
+body[data-authenticated="true"] .app-main .btn:disabled,
+body[data-authenticated="true"] .app-main .btn.disabled {
+  cursor: not-allowed;
+  opacity: .62;
+}
+body[data-page="messages"] .ph-session-card-actions .btn {
+  min-height: var(--ph-action-height-sm) !important;
+  border-radius: var(--ph-action-radius);
+}
+body[data-page="swap"] .ph-request-icon-action,
+body[data-page="community"] .delete-community-btn {
+  width: var(--ph-action-height);
+  height: var(--ph-action-height);
+  min-width: var(--ph-action-height);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+body[data-authenticated="true"] .ph-page-header { gap: 1rem; }
+body[data-authenticated="true"] .ph-page-header-copy { flex: 1 1 250px; min-width: 0; }
+body[data-authenticated="true"] .ph-page-header h1 { letter-spacing: -.02em; line-height: 1.2; }
+body[data-authenticated="true"] .ph-page-header-copy p { max-width: 68ch; line-height: 1.55; }
+body[data-authenticated="true"] .ph-page-header-actions { flex: 0 1 auto; }
+@media (max-width: 575.98px) {
+  body[data-authenticated="true"] .ph-page-header-actions { width: 100%; }
+  body[data-authenticated="true"] .ph-page-header-actions > .btn { flex: 1 1 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-authenticated="true"] .app-main .btn { transition: none; }
+}
+/* END PeerHive v4.7.7e Shared design system */
+
