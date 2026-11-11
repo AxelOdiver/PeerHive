@@ -7,9 +7,15 @@
           'active' => request()->routeIs('dashboard'),
       ],
       [
+          'href' => route('community'),
+          'icon' => 'bi bi-diagram-3',
+          'label' => 'Community',
+          'active' => request()->routeIs('community', 'community.show'),
+      ],
+      [
           'href' => route('favorites.index'),
           'icon' => 'bi bi-star',
-          'label' => 'Favorites',
+          'label' => 'My Favorites',
           'active' => request()->routeIs('favorites.index'),
       ],
       [
@@ -21,7 +27,7 @@
       [
           'href' => route('schedule'),
           'icon' => 'bi bi-alarm',
-          'label' => 'Schedule',
+          'label' => 'My Schedule',
           'active' => request()->routeIs('schedule'),
       ],
       [
@@ -48,12 +54,6 @@
           'icon' => 'bi bi-clock-history',
           'label' => 'History',
           'active' => request()->routeIs('history'),
-      ],
-      [
-          'href' => route('community'),
-          'icon' => 'bi bi-diagram-3',
-          'label' => 'Community',
-          'active' => request()->routeIs('community'),
       ],
     ];
 
@@ -107,28 +107,6 @@
   </div>
 
   <div class="sidebar-wrapper d-flex flex-column" style="min-height: calc(100vh - 60px);">
-    <div class="sidebar-user border-bottom border-secondary-subtle">
-      <div class="d-flex flex-column align-items-center text-center gap-2 p-3">
-        <a href="{{ route('users.profile', auth()->user()) }}" aria-label="View my profile" data-sidebar-tooltip="View my profile">
-        <img
-          src="{{ $sidebarAvatarUrl ?? auth()->user()->profile_picture_url ?? route('profile-picture.show', ['filename' => 'default']) }}"
-          alt="{{ trim(auth()->user()->first_name . ' ' . auth()->user()->last_name) ?: 'User' }}"
-          id="sidebarUserAvatar"
-          class="rounded-circle dashboard-avatar flex-shrink-0 object-fit-cover"
-          width="36"
-          height="36"
-          loading="eager"
-          decoding="sync"
-          fetchpriority="high"
-        >
-        </a>
-
-        <div class="sidebar-user-meta">
-          <a href="{{ route('users.profile', auth()->user()) }}" class="fw-semibold text-white text-decoration-none" id="sidebarUserName" aria-label="View my profile">{{ trim(auth()->user()->first_name.' '.auth()->user()->middle_name.' '.auth()->user()->last_name) ?: 'User' }}</a>
-          <small class="text-white-50 d-block" id="sidebarUserEmail">{{ auth()->user()->email ?? '' }}</small>
-        </div>
-      </div>
-    </div>
      <!-- Sidebar Menu -->
     <nav class="mt-3 flex-grow-1">
       <ul
@@ -150,14 +128,15 @@
       </ul>
     </nav>
 
-    <div class="border-top border-secondary-subtle p-1">
-      <form method="POST" action="{{ route('logout') }}" class="w-100">
-        @csrf
-        <button type="submit" class="logout-btn text-start" aria-label="Log out" data-sidebar-tooltip="Log out">
-          <i class="bi bi-box-arrow-right me-2"></i>
-          <span>Log out</span>
-        </button>
-      </form>
-  </div>
+    <nav class="ph-sidebar-bottom mt-auto" aria-label="Help">
+      <ul class="nav sidebar-menu flex-column" role="navigation">
+        <li class="nav-item">
+          <button type="button" class="nav-link ph-sidebar-help" data-bs-toggle="modal" data-bs-target="#peerhiveHelpModal" aria-label="How PeerHive Works" title="How PeerHive Works">
+            <i class="nav-icon bi bi-question-circle" aria-hidden="true"></i>
+            <p>Help</p>
+          </button>
+        </li>
+      </ul>
+    </nav>
   </div>
 </aside>

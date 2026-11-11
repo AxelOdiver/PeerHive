@@ -11,6 +11,9 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $currentUser = Auth::user();
+        // Only newly registered users see the dashboard guide during their first seven days.
+        // Existing users can still open the same walkthrough from Help at any time.
+        $showDashboardGuide = \App\Support\DashboardGuideVisibility::forUser($currentUser);
 
         $focusTopic = \App\Models\CatalogEntry::approved()->where('kind', 'topic')->find($request->integer('learn_topic'));
         $students = \App\Support\PeerMatching::recommend($currentUser, $focusTopic ? [$focusTopic->name] : null);
@@ -28,8 +31,32 @@ class DashboardController extends Controller
 
         $completedSessions = \App\Models\StudyParticipant::where('user_id', $currentUser->id)->whereNotNull('confirmed_at')->whereHas('session', fn ($q) => $q->where('status', 'completed'))->count();
         $learningPoints = (int) \Illuminate\Support\Facades\DB::table('point_entries')->where('user_id', $currentUser->id)->sum('points');
+        // Dashboard v4.4: counts and the four-week chart use real authenticated-user data.
+        $sentRequests = $currentUser->swaps()->count();
+        $joinedCommunityCount = $currentUser->joinedCommunities()->count();
+        $upcomingSessionCount = \App\Models\StudySession::whereHas('participants', fn ($q) => $q->where('user_id', $currentUser->id))
+            ->where('status', 'scheduled')->where('starts_at', '>', now())->count();
+
+        $chartStart = now()->startOfWeek()->subWeeks(3);
+        $completedDates = \App\Models\StudyParticipant::where('user_id', $currentUser->id)
+            ->whereNotNull('confirmed_at')
+            ->whereHas('session', fn ($q) => $q->where('status', 'completed')->where('starts_at', '>=', $chartStart))
+            ->with('session:id,starts_at')
+            ->get(['id', 'study_session_id'])
+            ->pluck('session.starts_at')->filter();
+
+        $weeklyActivity = collect(range(3, 0))->map(function ($weeksAgo) use ($completedDates) {
+            $start = now()->startOfWeek()->subWeeks($weeksAgo);
+            $end = $start->copy()->addWeek();
+            return [
+                'label' => $start->format('M j'),
+                'count' => $completedDates->filter(fn ($date) => $date->greaterThanOrEqualTo($start) && $date->lessThan($end))->count(),
+            ];
+        })->all();
+        $activityPeak = max(1, ...array_column($weeklyActivity, 'count'));
+        $activityTotal = array_sum(array_column($weeklyActivity, 'count'));
         $nextSession = \App\Models\StudySession::whereHas('participants', fn ($q) => $q->where('user_id', $currentUser->id))->where('status', 'scheduled')->where('starts_at', '>', now())->orderBy('starts_at')->first();
-        return view('dashboard', compact('topstudents', 'communityPosts', 'communitySuggestion', 'students', 'favoritedIds', 'likedIds', 'completedSessions', 'learningPoints', 'nextSession', 'focusTopic'));
+        return view('dashboard', compact('topstudents', 'communityPosts', 'communitySuggestion', 'students', 'favoritedIds', 'likedIds', 'completedSessions', 'learningPoints', 'nextSession', 'focusTopic', 'sentRequests', 'joinedCommunityCount', 'upcomingSessionCount', 'weeklyActivity', 'activityPeak', 'activityTotal', 'showDashboardGuide'));
     }
 
     public function search(Request $request)

@@ -22,9 +22,15 @@ class FavoriteController extends Controller
 
     public function index()
     {
-        $favorites = Auth::user()->favorites()->with('approvedTeachingQualifications')->withCount(['likedBy', 'swaps'])->get();
-        $likedIds  = Auth::user()->likes->pluck('id')->toArray();
+        // Use exactly the same teaching rating aggregates as Dashboard > Top Students.
+        $favorites = Auth::user()->favorites()
+            ->with('approvedTeachingQualifications')
+            ->withCount(['likedBy', 'swaps', 'comments', 'teachingRatings'])
+            ->withAvg('teachingRatings', 'stars')
+            ->get();
+        $favoritedIds = $favorites->pluck('id')->all();
+        $likedIds = Auth::user()->likes->pluck('id')->all();
 
-        return view('favorites', compact('favorites', 'likedIds'));
+        return view('favorites', compact('favorites', 'favoritedIds', 'likedIds'));
     }
 }

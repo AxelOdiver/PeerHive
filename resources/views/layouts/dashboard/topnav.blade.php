@@ -1,6 +1,4 @@
-@vite(['resources/css/app.css', 'resources/js/app.js'])
-
-<nav class="app-header navbar navbar-expand bg-body">
+<nav class="app-header navbar navbar-expand bg-body peerhive-topnav">
   <div class="container-fluid">
     <ul class="navbar-nav w-75 me-2">
       <li class="nav-item">
@@ -79,63 +77,115 @@
       </ul>
     </li>
     
-    <!-- Theme Mode -->
-    <li class="nav-item dropdown">
-      <button
-      class="btn btn-link nav-link py-2 px-0 px-lg-2 dropdown-toggle d-flex align-items-center"
-      id="bd-theme"
-      type="button"
-      aria-expanded="false"
-      data-bs-toggle="dropdown"
-      data-bs-display="static"
-      >
-      <span class="theme-icon-active">
-        <i class="my-1"></i>
-      </span>
-    </button>
-    <ul
-    class="dropdown-menu dropdown-menu-end"
-    aria-labelledby="bd-theme-text"
-    style="--bs-dropdown-min-width: 8rem;"
-    >
-    <li>
-      <button
-      type="button"
-      class="dropdown-item d-flex align-items-center"
-      data-bs-theme-value="light"
-      aria-pressed="false"
-      >
-      <i class="bi bi-sun-fill me-2"></i>
-      Light
-      <i class="bi bi-check-lg ms-auto d-none"></i>
-    </button>
-  </li>
-  <li>
-    <button
-    type="button"
-    class="dropdown-item d-flex align-items-center"
-    data-bs-theme-value="dark"
-    aria-pressed="false"
-    >
-    <i class="bi bi-moon-fill me-2"></i>
-    Dark
-    <i class="bi bi-check-lg ms-auto d-none"></i>
-  </button>
-</li>
-<li>
-  <button
-  type="button"
-  class="dropdown-item d-flex align-items-center"
-  data-bs-theme-value="auto"
-  aria-pressed="true"
-  >
-  <i class="bi bi-circle-fill-half-stroke me-2"></i>
-  Auto
-  <i class="bi bi-check-lg ms-auto d-none"></i>
-</button>
-</li>
-</ul>
-</li>
+    <!-- Profile and appearance menu -->
+    <li class="nav-item dropdown ph-account-nav">
+      <button type="button" class="ph-profile-trigger dropdown-toggle" id="peerhiveAccountMenu" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Open account menu">
+        <img id="sidebarUserAvatar" class="ph-topnav-avatar" src="{{ $sidebarAvatarUrl ?? auth()->user()->profile_picture_url ?? route('profile-picture.show', ['filename' => 'default']) }}" alt="" width="38" height="38" loading="eager" decoding="sync">
+        <span class="ph-topnav-account-name d-none d-sm-inline" id="sidebarUserName">{{ trim(auth()->user()->first_name.' '.auth()->user()->middle_name.' '.auth()->user()->last_name) ?: 'My account' }}</span>
+        <i class="bi bi-chevron-down ph-profile-chevron" aria-hidden="true"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end ph-account-dropdown shadow" aria-labelledby="peerhiveAccountMenu">
+        <li class="px-3 pt-3 pb-2">
+          <span class="fw-semibold d-block text-truncate">{{ trim(auth()->user()->first_name.' '.auth()->user()->last_name) ?: 'My account' }}</span>
+          <small class="d-block text-body-secondary text-truncate" id="sidebarUserEmail">{{ auth()->user()->email ?? '' }}</small>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item ph-account-item" href="{{ route('users.profile', auth()->user()) }}"><i class="bi bi-person-circle" aria-hidden="true"></i><span>View profile</span></a></li>
+        <li><a class="dropdown-item ph-account-item" href="{{ route('profile') }}"><i class="bi bi-gear" aria-hidden="true"></i><span>Settings <small class="text-body-secondary">(Edit profile)</small></span></a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li class="px-3 py-2 d-flex align-items-center justify-content-between gap-2">
+          <span class="d-flex align-items-center gap-2"><i class="bi bi-moon-stars" aria-hidden="true"></i>Dark mode</span>
+          <div class="form-check form-switch m-0">
+            <input type="checkbox" class="form-check-input ph-dark-mode-switch" id="peerhiveDarkModeSwitch" role="switch" aria-label="Turn dark mode on or off">
+          </div>
+        </li>
+        <li><button class="dropdown-item ph-account-item" type="button" data-bs-toggle="modal" data-bs-target="#peerhiveHelpModal"><i class="bi bi-question-circle" aria-hidden="true"></i><span>How PeerHive Works</span></button></li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <form method="POST" action="{{ route('logout') }}" class="m-0">
+            @csrf
+            <button type="submit" class="dropdown-item ph-account-item ph-logout-item"><i class="bi bi-box-arrow-right" aria-hidden="true"></i><span>Log out</span></button>
+          </form>
+        </li>
+      </ul>
+    </li>
 </ul>
 </div>
 </nav>
+<!-- Shared How PeerHive Works guide, available from the profile menu and sidebar. -->
+<div class="modal fade" id="peerhiveHelpModal" tabindex="-1" aria-labelledby="peerhiveHelpTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+    <div class="modal-content ph-help-modal">
+      <div class="modal-header">
+        <div>
+          <p class="ph-help-eyebrow mb-1">PEERHIVE GUIDE</p>
+          <h2 class="modal-title fs-4 fw-bold" id="peerhiveHelpTitle">How PeerHive Works</h2>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close How PeerHive Works"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-body-secondary mb-4">Learn, share your skills, and connect with fellow students in a few simple steps.</p>
+        {{-- The Help popup uses the exact same five-step carousel as the new-user dashboard. --}}
+        <div class="ph-v45-modal-guide">
+          @include('dashboard.quick-start', ['helpModal' => true])
+        </div>
+      </div>
+      <div class="modal-footer d-flex justify-content-between gap-2">
+        <a class="btn btn-outline-secondary" href="{{ route('profile') }}">Edit my profile</a>
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Got it</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const helpModal = document.getElementById('peerhiveHelpModal');
+    helpModal?.addEventListener('show.bs.modal', () => {
+      const accountTrigger = document.getElementById('peerhiveAccountMenu');
+      if (accountTrigger && window.bootstrap?.Dropdown) {
+        window.bootstrap.Dropdown.getOrCreateInstance(accountTrigger).hide();
+      }
+    });
+    // Help is present on every authenticated page, including those without dashboard.js.
+    // Initialize its own carousel only when the modal is first opened.
+    let helpCarouselReady = false;
+    helpModal?.addEventListener('shown.bs.modal', () => {
+      if (helpCarouselReady || !window.bootstrap?.Carousel) return;
+      const guide = document.getElementById('peerHiveHelpWalkthrough');
+      if (!guide) return;
+      helpCarouselReady = true;
+      const instance = new window.bootstrap.Carousel(guide, { interval: false, wrap: false, touch: true, keyboard: true });
+      const slides = Array.from(guide.querySelectorAll('.carousel-item'));
+      const dots = Array.from(guide.querySelectorAll('[data-tutorial-slide]'));
+      const previous = document.getElementById('peerHiveHelpPrevious');
+      const next = document.getElementById('peerHiveHelpNext');
+      previous?.addEventListener('click', () => instance.prev());
+      next?.addEventListener('click', () => instance.next());
+      dots.forEach((dot, index) => dot.addEventListener('click', () => instance.to(index)));
+      guide.addEventListener('slid.bs.carousel', event => {
+        if (previous) previous.disabled = event.to === 0;
+        if (next) next.disabled = event.to === slides.length - 1;
+        slides.forEach((slide, index) => slide.setAttribute('aria-hidden', String(index !== event.to)));
+        dots.forEach((dot, index) => {
+          dot.classList.toggle('is-active', index === event.to);
+          dot.setAttribute('aria-current', index === event.to ? 'step' : 'false');
+        });
+        if (document.activeElement === previous && previous.disabled) next?.focus();
+        if (document.activeElement === next && next.disabled) previous?.focus();
+      });
+    });
+    const toggle = document.getElementById('peerhiveDarkModeSwitch');
+    if (!toggle) return;
+    const sync = () => {
+      toggle.checked = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    };
+    toggle.addEventListener('change', () => {
+      const theme = toggle.checked ? 'dark' : 'light';
+      try { localStorage.setItem('theme', theme); } catch {}
+      document.documentElement.setAttribute('data-bs-theme', theme);
+    });
+    // Supports theme changes elsewhere in PeerHive without stale switch state.
+    new MutationObserver(sync).observe(document.documentElement, {attributes: true, attributeFilter: ['data-bs-theme']});
+    sync();
+  });
+</script>
