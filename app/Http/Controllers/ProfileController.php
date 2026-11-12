@@ -15,7 +15,7 @@ class ProfileController extends Controller
         $catalogTopics = \App\Models\CatalogEntry::topics();
         $catalogPrograms = \App\Models\CatalogEntry::approved()->where('kind', 'program')->orderBy('name')->get();
         $catalogSubjects = \App\Models\CatalogEntry::approved()->where('kind', 'subject')->orderBy('name')->get();
-        $catalogSuggestions = \App\Models\CatalogEntry::where('submitted_by', auth()->id())->with('parent')->latest()->get();
+        $catalogSuggestions = \App\Models\CatalogEntry::whereHas('requesters', fn ($q) => $q->where('users.id', auth()->id()))->with(['parent', 'mergedInto'])->latest()->get();
         $qualifications = \App\Models\UserSubjectQualification::where('user_id', auth()->id())->latest('id')->get();
         return view('profile.edit', compact('catalogTopics', 'catalogPrograms', 'catalogSubjects', 'catalogSuggestions', 'qualifications'));
     }
@@ -147,8 +147,9 @@ class ProfileController extends Controller
         }
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($user, $request) {
-            $user->save();
+            // Match catalog review's lock order: catalog entry before user.
             if ($request->boolean('course_unlisted') && $user->course) CatalogController::suggest('program', $user->course, $user->id);
+            $user->save();
         });
 
         return response()->json([

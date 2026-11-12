@@ -11,7 +11,7 @@
           <div><label class="form-label" for="catalogSuggestionName">Suggested name</label><input name="name" id="catalogSuggestionName" class="form-control" required maxlength="100" placeholder="For example: Japanese Conversation"></div>
         </form>
         @if($catalogSuggestions->isNotEmpty())
-          <div class="mt-4"><h3 class="h6">Your suggestions</h3><ul class="list-unstyled small mb-0">@foreach($catalogSuggestions->take(8) as $suggestion)<li class="py-1">{{ ucfirst($suggestion->kind) }}: {{ $suggestion->name }} <span class="badge text-bg-secondary">{{ ucfirst($suggestion->status) }}</span> @if($suggestion->review_note)<span class="text-body-secondary">{{ $suggestion->review_note }}</span>@endif</li>@endforeach</ul></div>
+          <div class="mt-4"><h3 class="h6">Your suggestions</h3><ul class="list-unstyled small mb-0">@foreach($catalogSuggestions->take(8) as $suggestion)<li class="py-1">{{ ucfirst($suggestion->kind) }}: {{ $suggestion->name }} <span class="badge text-bg-secondary">{{ ucfirst($suggestion->status) }}</span> @if($suggestion->mergedInto)<span class="text-body-secondary">Merged into {{ $suggestion->mergedInto->name }}.</span>@endif @if($suggestion->review_note)<span class="text-body-secondary">{{ $suggestion->review_note }}</span>@endif</li>@endforeach</ul></div>
         @endif
       </div>
       <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" form="catalogSuggestionForm" class="btn btn-primary">Submit suggestion</button></div>

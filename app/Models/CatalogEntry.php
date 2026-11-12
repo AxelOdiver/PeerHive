@@ -8,9 +8,13 @@ class CatalogEntry extends Model
 {
     protected $attributes = ['status' => 'pending'];
     protected $fillable = ['kind', 'name', 'name_key', 'parent_id', 'submitted_by'];
+    protected $casts = ['reviewed_at' => 'datetime'];
+
     public static function key(string $name): string { return mb_strtolower(preg_replace('/\s+/u', ' ', trim($name))); }
     public function parent() { return $this->belongsTo(self::class, 'parent_id'); }
+    public function mergedInto() { return $this->belongsTo(self::class, 'merged_into_id'); }
     public function submitter() { return $this->belongsTo(User::class, 'submitted_by'); }
+    public function requesters() { return $this->belongsToMany(User::class, 'catalog_entry_requesters', 'catalog_entry_id', 'user_id')->withPivot('purpose', 'source', 'description')->withTimestamps(); }
     public function scopeApproved($query) { return $query->where('status', 'approved'); }
     public static function topics() { return self::approved()->where('kind', 'topic')->with('parent')->orderBy('name')->get(); }
     public static function names(): array { return self::topics()->pluck('name')->all(); }

@@ -16,11 +16,12 @@ class GetStartedController extends Controller
         }
         $step = $request->query('step') === 'learn' ? 'learn' : 'skills';
         $topics = CatalogEntry::topics();
+        $subjects = CatalogEntry::subjects();
         $selected = $step === 'learn'
             ? ($request->user()->learning_interests ?? [])
             : ($request->user()->expertise ?? []);
 
-        return view('onboarding.get-started', compact('step', 'topics', 'selected'));
+        return view('onboarding.get-started', compact('step', 'topics', 'selected', 'subjects'));
     }
 
     public function skills(Request $request)
