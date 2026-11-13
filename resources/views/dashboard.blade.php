@@ -5,7 +5,7 @@
 @section('content')
 <div class="ph-v44-dashboard">
   <header class="ph-v44-welcome mb-3">
-    <h1 class="h4 fw-bold mb-1">Welcome back, {{ auth()->user()->first_name }}! <span aria-hidden="true">&#128075;</span></h1>
+    <h1 class="h4 fw-bold mb-1">{{ session('peerhive_first_dashboard_visit') ? 'Welcome to PeerHive' : 'Welcome back' }}, {{ auth()->user()->first_name }}!</h1>
     <p class="small text-body-secondary mb-0">Learn with your peers, share your skills, and keep growing.</p>
   </header>
 

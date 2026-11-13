@@ -45,7 +45,7 @@ class GetStartedController extends Controller
                 'onboarding_completed_at' => now(),
             ])->save();
         });
-        return redirect()->route('dashboard')->with('success', 'Welcome to PeerHive!');
+        return redirect()->route('dashboard')->with('success', 'Welcome to PeerHive!')->with('peerhive_first_dashboard_visit', true);
     }
 
     public function skip(Request $request)
@@ -57,7 +57,7 @@ class GetStartedController extends Controller
         }
         abort_unless($request->input('step') === 'learn', 422);
         $user->forceFill(['onboarding_required' => false, 'onboarding_completed_at' => now()])->save();
-        return redirect()->route('dashboard')->with('success', 'You can add skills and interests in your profile anytime.');
+        return redirect()->route('dashboard')->with('success', 'You can add skills and interests in your profile anytime.')->with('peerhive_first_dashboard_visit', true);
     }
 
     private function validateTopics(Request $request): array
