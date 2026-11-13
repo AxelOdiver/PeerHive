@@ -31,10 +31,6 @@
                         <h2 class="h5 fw-bold mb-1">Your Weekly Availability</h2>
                         <p class="text-body-secondary small mb-0">You can save multiple time slots for each day.</p>
                     </div>
-                    <p class="ph-schedule-timezone-note small mb-0">
-                        <i class="bi bi-clock" aria-hidden="true"></i>
-                        <span>Times are entered in your learning timezone: <strong>{{ $timezone }}</strong></span>
-                    </p>
                 </div>
                 <div class="card-body p-3 p-md-4">
                     <div class="row g-3 row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xxl-4" id="weekTiles" aria-live="polite"></div>

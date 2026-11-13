@@ -53,11 +53,12 @@ export function toast(type, message) {
   });
 }
 
-export function confirmAction(text = 'Please confirm that you want to continue.', confirmButtonText = 'Confirm') {
+export function confirmAction(text = 'Please confirm that you want to continue.', confirmButtonText = 'Confirm', target = 'body') {
   const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
   const isDark = theme === 'dark';
 
   return window.Swal.fire({
+    target,
     title: 'Are you sure?',
     text,
     icon: 'warning',

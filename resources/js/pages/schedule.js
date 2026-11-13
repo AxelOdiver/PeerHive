@@ -219,6 +219,17 @@ $(document).ready(function() {
   });
   clearDay?.addEventListener('click', async () => {
     const dayIndex = Number(selectedDay.value);
+    if (!Number.isInteger(dayIndex) || dayIndex < 0 || dayIndex > 6) return;
+    if (typeof window.confirmAction !== 'function') {
+      setError('Confirmation dialog is unavailable. Reload the page and try again.');
+      return;
+    }
+    const result = await window.confirmAction(
+      `Remove all availability for ${days[dayIndex]}? This action cannot be undone.`,
+      `Clear ${days[dayIndex]} availability?`,
+      '#availabilityModal'
+    );
+    if (!result?.isConfirmed) return;
     clearDay.disabled = true;
     try {
       await request('DELETE', {day_index:dayIndex});
