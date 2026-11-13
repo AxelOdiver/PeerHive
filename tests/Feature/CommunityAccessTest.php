@@ -24,7 +24,7 @@ class CommunityAccessTest extends TestCase
         Post::create(['community_id' => $community->id, 'user_id' => $owner->id, 'title' => 'Private post title', 'body' => 'Private post body']);
         $url = route('community.show', $community);
         $this->actingAs($user)->get('/community')->assertOk()->assertSee($url)
-            ->assertSee('stretched-link', false)->assertSee('Join Community')->assertDontSee('View Community');
+            ->assertSee('stretched-link', false)->assertSee('Join community')->assertDontSee('View community');
         $this->get($url)->assertOk()->assertSee('Learn together')->assertSee('Request to join')->assertDontSee('Private post title')->assertDontSee('Private post body')->assertDontSee('createPostForm');
         $this->post(route('community.join', $community))->assertRedirect($url);
         $this->post(route('community.join', $community))->assertRedirect($url);

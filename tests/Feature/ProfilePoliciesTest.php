@@ -21,12 +21,12 @@ class ProfilePoliciesTest extends TestCase
             'proof_file_path' => 'qualifications/private-proof.pdf', 'status' => 'pending',
         ]);
         $url = '/users/'.$teacher->id.'/profile';
-        $this->actingAs($viewer)->get($url)->assertOk()->assertDontSee('Teaching verified: Coding');
+        $this->actingAs($viewer)->get($url)->assertOk()->assertDontSee('Verified to teach: Coding');
         $qualification->update(['status' => 'approved']);
-        $this->get($url)->assertOk()->assertSee('Teaching verified: Coding')->assertDontSee('private-proof.pdf');
-        $this->get('/dashboard')->assertOk()->assertSee('Teaching verified: Coding');
+        $this->get($url)->assertOk()->assertSee('Verified to teach: Coding')->assertDontSee('private-proof.pdf');
+        $this->get('/dashboard')->assertOk()->assertSee('Verified to teach: Coding');
         $qualification->update(['status' => 'rejected']);
-        $this->get($url)->assertOk()->assertDontSee('Teaching verified: Coding');
+        $this->get($url)->assertOk()->assertDontSee('Verified to teach: Coding');
         $this->actingAs($teacher)->get('/profile')->assertOk()->assertSee('Teaching Verification');
     }
 
@@ -38,7 +38,7 @@ class ProfilePoliciesTest extends TestCase
         $this->get('/register')->assertOk()->assertSee('policyAcceptanceModal')->assertSee('policyScrollContent')->assertSee('End of Terms and Privacy Policy.');
         $this->get('/login')->assertOk()->assertSee('loginTermsModal')->assertSee('loginPrivacyModal')
             ->assertSee('data-bs-target="#loginTermsModal"', false)->assertSee('data-bs-target="#loginPrivacyModal"', false);
-        $data = ['first_name' => 'New', 'last_name' => 'Member', 'email' => 'new@example.com', 'password' => 'StrongPassword1!', 'password_confirmation' => 'StrongPassword1!'];
+        $data = ['first_name' => 'New', 'last_name' => 'Member', 'username' => 'newmember', 'email' => 'new@example.com', 'password' => 'StrongPassword1!', 'password_confirmation' => 'StrongPassword1!'];
         $this->postJson('/register', $data)->assertUnprocessable()->assertJsonValidationErrors('accept_policies');
         $this->assertDatabaseCount('users', 0);
         $this->postJson('/register', $data + ['accept_policies' => '0'])->assertUnprocessable();

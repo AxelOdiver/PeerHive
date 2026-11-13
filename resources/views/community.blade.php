@@ -53,7 +53,7 @@
         
         <span class="badge bg-secondary mb-2 p-2"><i class="bi bi-people-fill me-1"></i>Limit: {{ $community->member_limit }} members</span>
         @if($isMember || $isAdmin)
-        <a href="{{ route('community.show', $community->id) }}" class="btn btn-swap w-100 rounded-3 fw-bold py-2 d-block text-center text-decoration-none position-relative z-2">
+        <a href="{{ route('community.show', $community->id) }}" class="btn btn-outline-secondary w-100 rounded-3 fw-bold py-2 d-block text-center text-decoration-none position-relative z-2">
           View community
         </a>
         @else
