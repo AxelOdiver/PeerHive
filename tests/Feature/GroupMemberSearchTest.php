@@ -38,7 +38,20 @@ class GroupMemberSearchTest extends TestCase
         $peers = collect(range(1, 12))->map(fn ($i) => User::factory()->create(['username' => 'learner_'.$i]));
         $this->actingAs($viewer)->getJson('/messages/member-search?q=learner')->assertOk()->assertJsonCount(10, 'users');
         $this->postJson('/messages/conversations', ['is_group' => 1, 'name' => 'Study group', 'member_ids' => $peers->take(2)->pluck('id')->all()])->assertOk();
-        $this->assertDatabaseCount('conversation_user', 3);
+        // Consent-based group creation gives membership only to the owner.
+        $this->assertDatabaseCount('conversation_user', 1);
+        $this->assertDatabaseCount('group_invitations', 2);
+        $group = \App\Models\Conversation::where('name', 'Study group')->firstOrFail();
+        $this->assertDatabaseHas('conversation_user', [
+            'conversation_id' => $group->id, 'user_id' => $viewer->id, 'group_role' => 'owner',
+        ]);
+        $invitee = $peers->first();
+        $this->actingAs($invitee)->getJson(route('messages.conversations.fetch', $group))->assertForbidden();
+        $invite = \Illuminate\Support\Facades\DB::table('group_invitations')
+            ->where('conversation_id', $group->id)->where('target_user_id', $invitee->id)->firstOrFail();
+        $this->postJson(route('messages.groups.invitation.decision', $invite->id), ['decision' => 'accept'])->assertOk();
+        $this->assertSame(2, $group->users()->count());
+        $this->actingAs($viewer);
         $this->withoutVite();
         $html = $this->get('/messages')->assertOk()->getContent();
         $groupMarkup = substr($html, strpos($html, 'id="newGroupForm"'));

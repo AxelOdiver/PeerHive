@@ -22,7 +22,7 @@ test('reopening the active chat preserves its draft without leaking it into anot
   show(){return this;},
   empty(){if(key==='preview')previewContent='';return this;},
   trigger(){if(key==='#cancelReplyBtn')values.set('reply','');return this;},
-  removeClass(){return this;},addClass(){return this;}
+  removeClass(){return this;},addClass(){return this;},remove(){return this;}
  };}
  const classes=new Set();
  const context={$:element,messagingColumns:{classList:{add:name=>classes.add(name)}},

@@ -52,9 +52,9 @@ class LearningCatalogTest extends TestCase
         $this->actingAs($other)->putJson('/profile', $this->profile($other, ['course' => 'BSTM']))->assertUnprocessable();
         $this->get('/admin/catalog')->assertForbidden();
         $this->actingAs($admin)->post('/admin/catalog/'.$entry->id, ['status' => 'approved'])->assertRedirect();
-        $this->post('/admin/catalog/'.$entry->id, ['status' => 'rejected'])->assertStatus(409);
+        $this->post('/admin/catalog/'.$entry->id, ['status' => 'rejected', 'review_note' => 'Cannot reject a program after approval.'])->assertStatus(409);
         $this->actingAs($other)->putJson('/profile', $this->profile($other, ['course' => 'BSTM']))->assertOk();
-        $this->get('/profile')->assertOk()->assertSee('BSTM')->assertSee('row-cols-lg-2');
+        $this->get('/profile')->assertOk()->assertSee('BSTM')->assertSee('id="course"', false);
         $this->putJson('/profile', $this->profile($other, ['course_unlisted' => 1, 'course_other' => ['invalid']]))->assertUnprocessable();
         $this->actingAs($admin)->get('/admin/catalog')->assertOk()->assertSee('BSTM');
     }

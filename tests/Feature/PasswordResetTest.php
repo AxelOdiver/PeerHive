@@ -20,9 +20,10 @@ class PasswordResetTest extends TestCase
     {
         $this->postJson('/register', [
             'first_name' => 'Test', 'last_name' => 'Member', 'email' => 'registration@example.com',
+            'username' => 'testmember_v4',
             'accept_policies' => '1',
             'password' => 'NewPassword1!', 'password_confirmation' => 'NewPassword1!',
-        ])->assertOk()->assertJsonPath('redirect', route('login'));
+        ])->assertOk()->assertJsonPath('redirect', route('otp.show'));
         $this->assertDatabaseHas('users', ['email' => 'registration@example.com', 'middle_name' => null]);
     }
 

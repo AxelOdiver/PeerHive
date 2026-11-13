@@ -90,7 +90,7 @@ class LearningHubTest extends TestCase
             $this->get('/study-sessions?filter=history')->assertSee('Python practice')->assertSee(ucfirst($status));
         }
         $this->actingAs($outsider)->get('/study-sessions?filter=mine')->assertDontSee('Python practice');
-        $this->actingAs($host)->get('/progress')->assertSee('Back to Dashboard');
+        $this->actingAs($host)->get('/progress')->assertSee('Back to dashboard');
         $this->get('/dashboard')->assertSee(route('study-sessions.index'), false);
     }
 
