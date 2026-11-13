@@ -17,8 +17,8 @@
         <h1 class="h4 mb-2">{{ session('otp_purpose') === 'registration' ? 'Verify your account' : 'Verify your login' }}</h1>
         <p class="login-box-msg"><i class="bi bi-shield-check me-1" aria-hidden="true"></i>We sent a 6-digit code to your email. Enter it below.</p>
 
-        <div id="otpError" class="alert alert-danger py-2 d-none"></div>
-        <div id="otpSuccess" class="alert alert-success py-2 d-none"></div>
+        <div id="otpError" class="alert alert-danger py-2 d-none" role="alert" aria-live="assertive"></div>
+        <div id="otpSuccess" class="alert alert-success py-2 d-none" role="status" aria-live="polite"></div>
 
         @if(session('resent'))
           <div class="alert alert-success py-2">A new code has been sent to your email.</div>
@@ -36,6 +36,7 @@
               type="text"
               name="code"
               id="otpCode"
+              aria-describedby="otpError"
               class="form-control text-center fw-bold @error('code') is-invalid @enderror"
               style="font-size: 1.6rem; letter-spacing: 0.5rem;"
               placeholder="— — — — — —"
@@ -49,8 +50,9 @@
           </div>
 
           <p class="text-muted small text-center mb-3">
-            Code expires in <span id="countdown" class="fw-bold text-danger">10:00</span>
+            Code expires in <span id="countdown" class="fw-bold text-danger" data-expires-at-ms="{{ $otpExpiresAtMs }}" data-server-now-ms="{{ $otpServerNowMs }}">--:--</span>
           </p>
+          <p id="otpExpiredHint" class="small text-danger text-center mb-3 d-none" role="status">This code has expired. Request a new code below.</p>
 
           {{-- Trust device checkbox --}}
           <div class="form-check mb-3">
@@ -85,25 +87,50 @@
 
   </div>
 
-  {{-- Countdown timer --}}
+  {{-- Use the server-issued expiry, not a fresh countdown after refresh. --}}
   <script>
     (function () {
-      let seconds = 10 * 60;
       const el = document.getElementById('countdown');
+      const submit = document.getElementById('otpSubmitBtn');
+      const expiredHint = document.getElementById('otpExpiredHint');
+      const code = document.getElementById('otpCode');
+      let expiresAt = Number(el.dataset.expiresAtMs) || 0;
+      let serverOffset = (Number(el.dataset.serverNowMs) || Date.now()) - Date.now();
+      let isSubmitting = false;
       const tick = () => {
-        if (seconds <= 0) { el.textContent = 'Expired'; return; }
+        const seconds = Math.max(0, Math.ceil((expiresAt - Date.now() - serverOffset) / 1000));
+        submit.disabled = isSubmitting || seconds === 0;
+        if (seconds === 0) {
+          el.textContent = 'Expired';
+          expiredHint.classList.remove('d-none');
+          return;
+        }
+        expiredHint.classList.add('d-none');
         const m = Math.floor(seconds / 60).toString().padStart(2, '0');
         const s = (seconds % 60).toString().padStart(2, '0');
         el.textContent = `${m}:${s}`;
-        seconds--;
-        setTimeout(tick, 1000);
+      };
+      window.peerhiveOtpTimer = {
+        update(expiryMs, serverNowMs) {
+          expiresAt = Number(expiryMs) || 0;
+          serverOffset = (Number(serverNowMs) || Date.now()) - Date.now();
+          tick();
+        },
+        setSubmitting(submitting) {
+          isSubmitting = submitting;
+          tick();
+        },
+        canSubmit() { return !isSubmitting && expiresAt > Date.now() + serverOffset; },
       };
       tick();
+      window.setInterval(tick, 1000);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+      code.addEventListener('input', function () {
+        this.value = this.value.replace(/\D/g, '').slice(0, 6);
+        this.classList.remove('is-invalid');
+        this.removeAttribute('aria-invalid');
+      });
     })();
-
-    document.getElementById('otpCode').addEventListener('input', function () {
-      this.value = this.value.replace(/\D/g, '').slice(0, 6);
-    });
   </script>
 
   {{-- AJAX submit --}}
@@ -112,18 +139,18 @@
       const $form    = $('#otpForm');
       const $error   = $('#otpError');
       const $success = $('#otpSuccess');
-      const $submitButton = $('#otpSubmitBtn');
       const $submitSpinner = $('#otpSubmitSpinner');
       const $submitText = $('#otpSubmitText');
 
       function setSubmitting(isSubmitting) {
-        $submitButton.prop('disabled', isSubmitting);
+        window.peerhiveOtpTimer.setSubmitting(isSubmitting);
         $submitSpinner.toggleClass('d-none', !isSubmitting);
         $submitText.text(isSubmitting ? 'Verifying...' : 'Verify');
       }
 
       $form.on('submit', function (e) {
         e.preventDefault();
+        if (!window.peerhiveOtpTimer.canSubmit()) return;
         $error.addClass('d-none').text('');
         $success.addClass('d-none').text('');
         setSubmitting(true);
@@ -142,7 +169,8 @@
           error: function (xhr) {
             setSubmitting(false);
             const errors = xhr.responseJSON?.errors?.code;
-            const msg = errors ? errors[0] : (xhr.responseJSON?.message ?? 'Something went wrong.');
+            const msg = errors ? errors[0] : (xhr.responseJSON?.message ?? 'Could not verify the code. Please try again.');
+            $('#otpCode').addClass('is-invalid').attr('aria-invalid', 'true');
             $error.removeClass('d-none').text(msg);
           },
         });
@@ -162,10 +190,15 @@
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
           },
           success: function (response) {
+            window.peerhiveOtpTimer?.update(response.expires_at_ms, response.server_now_ms);
+            $('#otpCode').val('').removeClass('is-invalid').removeAttr('aria-invalid');
             $success.removeClass('d-none').text(response.message);
           },
           error: function (xhr) {
-            $error.removeClass('d-none').text(xhr.responseJSON?.message ?? 'Could not resend code.');
+            const msg = xhr.status === 429
+              ? 'Please wait before requesting another code.'
+              : (xhr.responseJSON?.message ?? 'Could not resend code.');
+            $error.removeClass('d-none').text(msg);
           },
         });
       });

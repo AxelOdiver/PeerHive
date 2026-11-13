@@ -53,7 +53,6 @@
             <button type="button" class="input-group-text toggle-password" aria-label="Show password" aria-controls="login-password" aria-pressed="false"><i class="bi bi-eye-slash-fill" aria-hidden="true"></i></button>
             <div class="invalid-feedback" data-error-for="password"></div>
           </div>
-          <p class="small text-body-secondary mb-3 ph-secure-note"><i class="bi bi-shield-check" aria-hidden="true"></i><span>On a new device, we’ll email you a verification code after you log in.</span></p>
           
           <button type="submit" class="btn btn-primary w-100 d-inline-flex align-items-center justify-content-center gap-2" id="loginSubmitBtn">
             <span class="spinner-border spinner-border-sm d-none" id="loginSubmitSpinner" aria-hidden="true"></span>

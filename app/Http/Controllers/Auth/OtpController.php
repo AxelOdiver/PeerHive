@@ -23,7 +23,12 @@ class OtpController extends Controller
             return redirect()->route('login');
         }
 
-        return view('auth.otp');
+        $otp = LoginOtp::where('user_id', $request->session()->get('otp_user_id'))->latest()->first();
+
+        return view('auth.otp', [
+            'otpExpiresAtMs' => $otp?->expires_at?->getTimestampMs(),
+            'otpServerNowMs' => now()->getTimestampMs(),
+        ]);
     }
 
     public function verify(Request $request)
@@ -44,6 +49,15 @@ class OtpController extends Controller
             ->latest()
             ->first();
 
+        // Check expiration before comparing the code so any expired OTP
+        // receives the correct message, even when the entered digits are wrong.
+        if ($otp && $otp->isExpired()) {
+            $otp->delete();
+            if ($request->expectsJson()) {
+                return response()->json(['errors' => ['code' => ['Code has expired. Request a new code.']]], 422);
+            }
+            return back()->withErrors(['code' => 'Code has expired. Request a new code.']);
+        }
         if ($otp && $otp->attempts >= 5) {
             return response()->json(['message' => 'Too many attempts. Request a new code.'], 429);
         }
@@ -56,14 +70,6 @@ class OtpController extends Controller
                 return response()->json(['errors' => ['code' => ['Invalid code. Please try again.']]], 422);
             }
             return back()->withErrors(['code' => 'Invalid code. Please try again.']);
-        }
-
-        if ($otp->isExpired()) {
-            $otp->delete();
-            if ($request->expectsJson()) {
-                return response()->json(['errors' => ['code' => ['Code has expired. Please log in again.']]], 422);
-            }
-            return redirect()->route('login')->withErrors(['code' => 'Code has expired. Please log in again.']);
         }
 
         // ── Valid OTP ──────────────────────────────────────────────────
@@ -129,7 +135,7 @@ class OtpController extends Controller
 
         $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        LoginOtp::create([
+        $otp = LoginOtp::create([
             'user_id'    => $userId,
             'code'       => '******',
             'code_hash'  => \Illuminate\Support\Facades\Hash::make($code),
@@ -139,7 +145,11 @@ class OtpController extends Controller
         Mail::to($user->email)->send(new OtpMail($code, $user->first_name));
 
         if ($request->expectsJson()) {
-            return response()->json(['message' => 'A new code has been sent to your email.']);
+            return response()->json([
+                'message' => 'A new code has been sent to your email.',
+                'expires_at_ms' => $otp->expires_at->getTimestampMs(),
+                'server_now_ms' => now()->getTimestampMs(),
+            ]);
         }
 
         return back()->with('resent', true);
